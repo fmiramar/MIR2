@@ -1,0 +1,64 @@
+title:: MIR2
+summary:: Modern SuperCollider music-information retrieval and pitch evidence
+categories:: Libraries>MIR
+
+MIR2 is a native family of control-rate analyzers built from published signal-processing methods. Version 0.1 combines explicit spectral/onset descriptors with YIN and McLeod pitch analysis, periodicity, voicing evidence, confidence, and octave ambiguity.
+
+section:: Spectral and onset analyzers
+
+definitionlist::
+## link::Classes/SpecCentroid2:: || Spectral center in Hz.
+## link::Classes/SpecFlatness2:: || Geometric-to-arithmetic spectral ratio.
+## link::Classes/SpecPcile2:: || Generalized rolloff/percentile frequency.
+## link::Classes/MFCC2:: || Configurable Mel cepstral coefficients.
+## link::Classes/FFTFlux2:: || Frame-to-frame spectral distance.
+## link::Classes/Onsets2:: || Flux and SuperFlux-style onset trigger plus strength.
+::
+
+section:: Modern Pitch Analysis
+
+definitionlist::
+## link::Classes/PitchYIN:: || YIN F0, confidence, and voicing.
+## link::Classes/PitchMPM:: || McLeod F0, clarity, and voicing.
+## link::Classes/Pitch2:: || General facade with explicit octave ambiguity.
+## link::Classes/Periodicity:: || Repeating-structure evidence without a required F0 decision.
+## link::Classes/Voicing:: || Binary and continuous voiced/harmonic evidence.
+::
+
+Pitch confidence, periodicity, and voicing are deliberately different outputs. A signal can be strongly periodic while offering several plausible fundamental frequencies; pitch-specific classes therefore should not be used as interchangeable probability meters.
+
+section:: Frame policy
+
+FFT analyzers update only when their FFT chain produces a frame. Their code::fftSize:: argument must match the buffer used by code::FFT::. Pitch analyzers accept audio-rate input, fill a trailing causal frame, and update once per code::hop * frameSize:: input samples. Their approximate first-result latency is code::frameSize / sampleRate:: seconds, with no future lookahead.
+
+Silence returns zeros rather than NaN, Inf, or a stale pitch. code::Pitch2:: holds the last valid frequency only when code::hold: 1:: is explicitly requested.
+
+section:: Runnable overview
+
+code::
+(
+Routine({
+    var buffer;
+    buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    SynthDef(\mir2Guide, {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var pitch = Pitch2.kr(source, 40, 2000, 2048, 0.25, \mpm);
+        var periodicity = Periodicity.kr(source, 40, 2000, 2048);
+        var centroid = SpecCentroid2.kr(chain, fftSize: 1024);
+        SendReply.kr(Impulse.kr(5), '/mir2', [pitch, periodicity, centroid].flat);
+        Out.ar(0, (source * 0.15) ! 2)
+    }).play;
+}).play(AppClock);
+)
+::
+
+section:: Project boundary
+
+MIR2 is complementary to FluCoMa. Use FluCoMa for corpus, decomposition, dimensionality-reduction, and data workflows; use MIR2 for its modern legacy successors, explicit pitch evidence, and later tonal/rhythm descriptors. Version 0.1 does not install placeholders for probabilistic candidates, SWIPE', multipitch, neural inference, or the later MIR catalogue.
+
+section:: References
+
+PitchYIN follows de Cheveigné and Kawahara (2002). PitchMPM follows McLeod and Wyvill (2005). Onsets2's maximum-filtered method follows the architectural idea in Böck and Widmer (2013). See the installed ORIGINS.md for complete provenance and scope.

@@ -1,0 +1,68 @@
+class:: Voicing
+summary:: Binary and continuous voiced/harmonic evidence
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2
+
+description::
+Estimates whether a frame contains stable voiced or harmonic excitation without requiring the caller to use its F0. code::\periodicity:: returns NSDF peak evidence directly. code::\hybrid:: combines that evidence with a silence gate and a zero-crossing plausibility factor. Version 0.1 is a deterministic model-free descriptor, not a trained speech classifier or a calibrated probability.
+
+The first output applies code::threshold:: to the continuous second output. Silence returns two zeros. It is practically similar to link::Classes/Pitch::'s code::hasFreq:: output, but supplies continuous evidence independently from the final pitch decision.
+
+classmethods::
+
+method:: kr
+
+argument:: in
+Audio-rate signal.
+
+argument:: frameSize
+Literal power-of-two frame size from 256 through 8192.
+
+argument:: hop
+Update hop as a frame fraction from 0.0625 through 1.
+
+argument:: minFreq
+Minimum periodic frequency in Hz.
+
+argument:: maxFreq
+Maximum periodic frequency and zero-crossing reference in Hz.
+
+argument:: method
+Literal code::\periodicity:: or code::\hybrid::.
+
+argument:: threshold
+Decision threshold from 0 through 1 for the binary output.
+
+returns::
+An Array: binary voiced flag and continuous evidence from 0 through 1.
+
+method:: latency
+Returns approximate first-result latency in seconds.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = Voicing.kr(source, 1024, 0.25, 40, 1000, \hybrid, 0.5);
+        var excitation = XFade2.ar(WhiteNoise.ar(0.05), Pulse.ar(110, 0.3, 0.05),
+            result[1].linlin(0, 1, -1, 1));
+        result.poll(5, "voicing [flag, evidence]");
+        excitation ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch::
+link::Classes/Pitch2::
+link::Classes/Periodicity::
+

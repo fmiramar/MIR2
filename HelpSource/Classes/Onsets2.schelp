@@ -1,0 +1,72 @@
+class:: Onsets2
+summary:: Causal flux and SuperFlux-style onset evidence
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/Onsets
+
+description::
+Returns an onset trigger and a continuously decaying onset-strength value. code::\flux:: uses absolute log-spectral difference, code::\fluxPos:: keeps increases, and code::\superflux:: compares increases against a maximum-filtered neighborhood in the preceding log spectrum. A causal exponentially weighted mean and variance supply the adaptive threshold, and code::minGap:: suppresses clustered triggers.
+
+The FFT hop must match code::hop:: so time constants remain correct. The first frame and silence return zero. It is practically similar to link::Classes/Onsets::, but exposes continuous strength, a SuperFlux-style option, seconds-based state, and explicit FFT/hop configuration; it is not numerically equivalent to the legacy detector.
+
+classmethods::
+
+method:: kr
+
+argument:: chain
+An FFT chain matching code::fftSize:: and code::hop::.
+
+argument:: threshold
+Nonnegative multiplier on the running onset-strength deviation.
+
+argument:: method
+Literal code::\flux::, code::\fluxPos::, or code::\superflux::.
+
+argument:: relaxTime
+Decay time in seconds for the strength output.
+
+argument:: minGap
+Minimum interval between triggers in seconds.
+
+argument:: medianTime
+History time in seconds for the causal adaptive mean and variance. The name preserves the planned interface, but version 0.1 uses exponential statistics rather than a literal median.
+
+argument:: maxFilterBins
+Literal frequency-neighborhood radius from 0 through 12 for code::\superflux::.
+
+argument:: floor
+Positive floor before the natural logarithm.
+
+argument:: fftSize
+Literal FFT size from 256 through 8192.
+
+argument:: hop
+FFT hop as a fraction of code::fftSize::, from 0.0625 through 1.
+
+returns::
+An Array: trigger and nonnegative strength.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var onset = Onsets2.kr(chain, 0.3, \superflux, fftSize: 1024, hop: 0.5);
+        var click = Decay2.ar(K2A.ar(onset[0]), 0.001, 0.04) * PinkNoise.ar(0.1);
+        (source * 0.12 + click) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets::
+link::Classes/FFTFlux2::
+

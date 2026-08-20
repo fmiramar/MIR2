@@ -1,0 +1,57 @@
+class:: SpecCentroid2
+summary:: Explicit spectral centroid in Hz
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/SpecCentroid
+
+description::
+Calculates the weighted mean frequency of a SuperCollider FFT frame. Bins from code::minFreq:: through code::maxFreq:: contribute either magnitude or power, and silence returns zero. The output updates when the FFT chain produces a new frame and otherwise retains that frame's result.
+
+The implementation is a non-destructive reader of the FFT chain's spectral values. It is practically similar to link::Classes/SpecCentroid::, but makes spectrum convention, frequency limits, FFT size, units, and silence behavior explicit.
+
+classmethods::
+
+method:: kr
+
+argument:: chain
+An FFT chain produced with the same literal size as code::fftSize::.
+
+argument:: minFreq
+Lowest included frequency in Hz. Default 0 includes DC.
+
+argument:: maxFreq
+Highest included frequency in Hz. Zero selects Nyquist.
+
+argument:: spectrumMode
+Literal 0 weights by magnitude; 1 weights by power.
+
+argument:: fftSize
+Literal FFT size: a power of two from 256 through 8192.
+
+returns::
+Centroid frequency in Hz, or 0 for silence.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        SpecCentroid2.kr(chain, fftSize: 1024).poll(5, "centroid Hz");
+        (source * 0.15) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/SpecCentroid::
+link::Classes/SpecFlatness2::
+link::Classes/SpecPcile2::
+

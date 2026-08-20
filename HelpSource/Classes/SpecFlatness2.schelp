@@ -1,0 +1,60 @@
+class:: SpecFlatness2
+summary:: Stable spectral flatness with explicit conventions
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/SpecFlatness
+
+description::
+Returns the geometric mean divided by the arithmetic mean of nonnegative spectral weights. Values approach 0 for concentrated spectra and 1 for uniform spectra. The logarithmic floor stabilizes individual bins, while an all-silent frame returns exactly 0.
+
+The analyzer reads FFT values without changing them. It is practically similar to link::Classes/SpecFlatness::, but documents magnitude/power selection, frequency limits, floor, update policy, and silence behavior.
+
+classmethods::
+
+method:: kr
+
+argument:: chain
+An FFT chain produced with the same literal size as code::fftSize::.
+
+argument:: minFreq
+Lowest included frequency in Hz.
+
+argument:: maxFreq
+Highest included frequency in Hz; 0 selects Nyquist.
+
+argument:: spectrumMode
+Literal 0 uses magnitude and 1 uses power.
+
+argument:: floor
+Positive logarithmic floor applied before the geometric mean.
+
+argument:: fftSize
+Literal FFT size from 256 through 8192.
+
+returns::
+A ratio from 0 through 1.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        SpecFlatness2.kr(chain, fftSize: 1024).poll(5, "flatness");
+        (source * 0.15) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/SpecFlatness::
+link::Classes/SpecCentroid2::
+link::Classes/FFTFlux2::
+

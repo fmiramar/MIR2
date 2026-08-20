@@ -1,0 +1,77 @@
+class:: MFCC2
+summary:: Configurable Mel-frequency cepstral coefficients
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/MFCC
+
+description::
+Integrates an FFT spectrum through triangular Mel filters, applies a natural logarithm, then a DCT-II. The output count, band count, coefficient zero, frequency bounds, Slaney/HTK Mel mapping, magnitude/power input, DCT normalization, and liftering are explicit initialization choices. Silence deterministically produces the DCT of the configured log floor rather than NaN or Inf.
+
+The implementation follows the standard paper-defined MFCC pipeline and shares MIR2's tested filter-bank and DCT kernels. It is practically similar to link::Classes/MFCC::, but removes its fixed historical representation and undocumented output scaling; numerical identity is not expected.
+
+classmethods::
+
+method:: kr
+
+argument:: chain
+An FFT chain matching code::fftSize::.
+
+argument:: numCoeffs
+Literal output count from 1 through 64.
+
+argument:: numBands
+Literal Mel band count from 4 through 128 and large enough for the requested coefficients.
+
+argument:: minFreq
+Lowest Mel-filter edge in Hz.
+
+argument:: maxFreq
+Highest Mel-filter edge in Hz; 0 selects Nyquist.
+
+argument:: include0
+Nonzero begins at coefficient 0; zero begins at coefficient 1.
+
+argument:: melMode
+Literal code::\slaney:: or code::\htk::.
+
+argument:: spectrumMode
+Literal 0 integrates magnitude and 1 integrates power.
+
+argument:: logFloor
+Positive energy floor before the natural logarithm.
+
+argument:: dctNorm
+Nonzero uses orthonormal DCT-II scaling.
+
+argument:: lifter
+Positive sinusoidal lifter length; 0 disables liftering.
+
+argument:: fftSize
+Literal FFT size from 256 through 8192.
+
+returns::
+An Array of code::numCoeffs:: control-rate outputs.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        MFCC2.kr(chain, 13, 40, fftSize: 1024).poll(5, "MFCC2");
+        (source * 0.15) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/MFCC::
+link::Classes/SpecCentroid2::
+

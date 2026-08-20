@@ -1,0 +1,78 @@
+class:: Pitch2
+summary:: General modern F0 facade with explicit octave ambiguity
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch, Classes/PitchYIN, Classes/PitchMPM
+
+description::
+Provides one entry point to MIR2's YIN and McLeod pitch engines. It returns frequency, algorithm-specific confidence, binary voicing, and competition from octave-related candidates instead of collapsing all evidence into one frequency. Octave ambiguity is code::competitor / (selected + competitor)::, where the competitor is the strongest local candidate near one-quarter, one-half, two, or four times the selected frequency within 80 cents.
+
+For code::\yin::, confidence is one minus CMNDF; for code::\mpm::, it is NSDF clarity. Neither is a calibrated probability. A negative code::threshold:: selects the method default: 0.1 for YIN and 0.93 for MPM. Silence returns zero evidence and frequency unless code::hold:: is explicitly nonzero; while holding, confidence and voicing still fall to zero.
+
+Frame scheduling and effective minimum frequency follow link::Classes/PitchYIN::. It is practically similar to link::Classes/Pitch::, but uses modern selectable paper-based algorithms, has explicit frame/hop semantics, exposes uncertainty, and does not silently hold stale pitch by default.
+
+classmethods::
+
+method:: kr
+
+argument:: in
+Audio-rate signal. Multichannel expansion creates independent analyzers.
+
+argument:: minFreq
+Requested minimum F0 in Hz.
+
+argument:: maxFreq
+Maximum F0 in Hz, below Nyquist.
+
+argument:: frameSize
+Literal power-of-two frame size from 256 through 8192.
+
+argument:: hop
+Update hop as a frame fraction from 0.0625 through 1.
+
+argument:: algorithm
+Literal code::\yin:: or code::\mpm::.
+
+argument:: threshold
+Negative uses the method default. Otherwise this is YIN CMNDF threshold or MPM peak cutoff.
+
+argument:: smooth
+Positive frequency smoothing time in seconds, performed in log-frequency space; 0 disables smoothing.
+
+argument:: hold
+Nonzero retains the last valid frequency during unvoiced frames without retaining confidence or voicing.
+
+returns::
+An Array: frequency in Hz, confidence from 0 through 1, voiced flag, and octave ambiguity from 0 through 1.
+
+method:: latency
+Returns approximate first-result latency in seconds.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = Pitch2.kr(source, 40, 2000, 2048, 0.25, \mpm);
+        var uncertain = result[3];
+        var tone = SinOsc.ar(result[0].max(40) * [1, 2], 0, 0.04);
+        result.poll(5, "Pitch2 [Hz, confidence, voiced, octave ambiguity]");
+        tone * result[2] * uncertain.linlin(0, 1, 0.25, 1)
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch::
+link::Classes/PitchYIN::
+link::Classes/PitchMPM::
+link::Classes/Periodicity::
+link::Classes/Voicing::
+

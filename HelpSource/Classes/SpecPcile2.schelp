@@ -1,0 +1,63 @@
+class:: SpecPcile2
+summary:: Generalized spectral percentile frequency
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/SpecPcile
+
+description::
+Finds the frequency below which the requested fraction of selected spectral weight lies. Optional within-bin interpolation avoids quantizing every answer to a bin center. Silence returns zero.
+
+This is a non-destructive FFT reader. It is practically similar to link::Classes/SpecPcile:: and conventional spectral rolloff, but exposes the cumulative fraction, magnitude/power convention, bounds, interpolation, and units directly.
+
+classmethods::
+
+method:: kr
+
+argument:: chain
+An FFT chain matching code::fftSize::.
+
+argument:: fraction
+Cumulative fraction from 0 through 1; 0.85 is a common rolloff value.
+
+argument:: minFreq
+Lowest included frequency in Hz.
+
+argument:: maxFreq
+Highest included frequency in Hz; 0 selects Nyquist.
+
+argument:: interpolate
+Nonzero enables linear location within the crossing bin.
+
+argument:: spectrumMode
+Literal 0 uses magnitude and 1 uses power.
+
+argument:: fftSize
+Literal FFT size from 256 through 8192.
+
+returns::
+Percentile frequency in Hz.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        SpecPcile2.kr(chain, 0.85, fftSize: 1024).poll(5, "85% Hz");
+        (source * 0.15) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/SpecPcile::
+link::Classes/SpecCentroid2::
+link::Classes/SpecFlatness2::
+

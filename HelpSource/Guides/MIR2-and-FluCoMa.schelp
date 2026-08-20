@@ -1,0 +1,25 @@
+title:: MIR2 and FluCoMa
+summary:: Choosing complementary SuperCollider analysis tools
+categories:: Libraries>MIR
+related:: Guides/MIR2
+
+MIR2 is designed to complement FluCoMa, not reproduce its entire feature inventory.
+
+section:: Prefer FluCoMa
+
+FluCoMa is the stronger starting point for corpus and dataset workflows, PCA and dimensionality reduction, clustering, NMF, HPSS, novelty/transient slicing, and modern Mel/MFCC pipelines where migration from historical SC analyzers is irrelevant.
+
+section:: Prefer MIR2
+
+Version 0.1 is useful when a SynthDef needs a precisely documented successor to legacy code::Pitch::, code::MFCC::, spectral statistics, flux, or onset analysis; when YIN or MPM must be selected explicitly; or when periodicity, voicing, confidence, and octave ambiguity should become separate control signals.
+
+Later MIR2 releases are intended to cover paper-based HPCP, tuning, CENS, Tonnetz, harmonic descriptors, tempograms, wavelet descriptors, auditory filter banks, and richer pitch evidence. Those features are not claimed by version 0.1.
+
+section:: Interoperation
+
+Both projects output normal server control signals, so MIR2 evidence can drive FluCoMa slicing or dataset capture, and FluCoMa-derived features can be combined with MIR2 pitch or onset controls in the same SynthDef. Compare update rates and normalize deliberately; similarly named confidence values are not automatically equivalent.
+
+subsection:: See also
+link::Guides/MIR2::
+link::Guides/MIR2-legacy-migration::
+

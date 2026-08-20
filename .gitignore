@@ -1,0 +1,15 @@
+build/
+build-*/
+stage/
+dist/
+*.scx
+*.so
+*.dll
+*.dylib
+*.a
+*.o
+*.obj
+.DS_Store
+__pycache__/
+*.pyc
+

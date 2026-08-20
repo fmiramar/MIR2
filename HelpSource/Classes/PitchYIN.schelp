@@ -1,0 +1,66 @@
+class:: PitchYIN
+summary:: YIN fundamental frequency with explicit confidence and voicing
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch, Classes/Pitch2
+
+description::
+Implements the YIN difference function, cumulative mean normalized difference (CMNDF), absolute-threshold search, and parabolic period refinement described by de Cheveigné and Kawahara (2002). FFT autocorrelation and prefix energies evaluate the difference function with bounded code::N log N:: work. Confidence is code::1 - CMNDF:: at the selected period; it is not a calibrated probability.
+
+The analyzer consumes a trailing causal frame and updates every code::hop * frameSize:: samples. First output arrives after one frame, so latency is approximately code::frameSize / sampleRate:: with no lookahead. The largest searched lag is half a frame, making the effective minimum frequency no lower than code::2 * sampleRate / frameSize::. Silence and failed voicing return three zeros.
+
+It is practically similar to link::Classes/Pitch::, but uses YIN, never holds a stale frequency by default, and exposes continuous confidence separately from a binary voiced result.
+
+classmethods::
+
+method:: kr
+
+argument:: in
+Audio-rate signal. Multichannel expansion creates independent analyzers.
+
+argument:: minFreq
+Requested minimum F0 in Hz, subject to the frame-length limit described above.
+
+argument:: maxFreq
+Maximum F0 in Hz, below Nyquist.
+
+argument:: frameSize
+Literal power-of-two frame size from 256 through 8192.
+
+argument:: hop
+Update hop as a frame fraction from 0.0625 through 1.
+
+argument:: threshold
+YIN CMNDF threshold from 0.01 through 0.8. Lower values demand a deeper minimum.
+
+returns::
+An Array: frequency in Hz, CMNDF-derived confidence from 0 through 1, and voiced flag 0 or 1.
+
+method:: latency
+Returns approximate first-result latency in seconds for a sample rate and frame size.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = PitchYIN.kr(source, 40, 1500, 2048, 0.25, 0.1);
+        result.poll(5, "YIN [Hz, confidence, voiced]");
+        (source * 0.15) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch::
+link::Classes/Pitch2::
+link::Classes/PitchMPM::
+link::Classes/Periodicity::
+

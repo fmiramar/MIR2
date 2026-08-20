@@ -1,0 +1,66 @@
+class:: PitchMPM
+summary:: McLeod Pitch Method with NSDF clarity
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch, Classes/Pitch2
+
+description::
+Implements the McLeod Pitch Method from McLeod and Wyvill (2005). The normalized square difference function (NSDF) is derived from FFT autocorrelation and prefix energies; local maxima above code::cutoff:: times the strongest peak are considered, and the earliest qualifying peak is refined parabolically. Clarity is the selected NSDF peak height from 0 through 1, not a calibrated probability.
+
+The analyzer uses a trailing causal frame and updates every code::hop * frameSize:: samples. Approximate first-result latency is one frame. The effective minimum frequency cannot fall below code::2 * sampleRate / frameSize::. Silence and failed voicing return three zeros.
+
+It is practically similar to sc3-plugins link::Classes/Tartini::, which is historically MPM-based, and core link::Classes/Pitch::. MIR2 is an independent paper-based implementation with explicit frame, hop, silence, and clarity semantics rather than behavioral or numerical compatibility.
+
+classmethods::
+
+method:: kr
+
+argument:: in
+Audio-rate signal. Multichannel expansion creates independent analyzers.
+
+argument:: minFreq
+Requested minimum F0 in Hz.
+
+argument:: maxFreq
+Maximum F0 in Hz, below Nyquist.
+
+argument:: frameSize
+Literal power-of-two frame size from 256 through 8192.
+
+argument:: hop
+Update hop as a frame fraction from 0.0625 through 1.
+
+argument:: cutoff
+Fraction from 0.5 through 1 of the strongest NSDF peak used for peak selection.
+
+returns::
+An Array: frequency in Hz, NSDF clarity from 0 through 1, and voiced flag 0 or 1.
+
+method:: latency
+Returns approximate first-result latency in seconds.
+
+instancemethods::
+
+examples::
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = PitchMPM.kr(source, 40, 1500, 2048, 0.25, 0.93);
+        result.poll(5, "MPM [Hz, clarity, voiced]");
+        (source * 0.15) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Tartini::
+link::Classes/Pitch::
+link::Classes/Pitch2::
+link::Classes/PitchYIN::
+
