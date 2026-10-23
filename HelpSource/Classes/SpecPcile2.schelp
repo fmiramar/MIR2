@@ -39,19 +39,26 @@ Percentile frequency in Hz.
 instancemethods::
 
 examples::
+The 85-percent rolloff follows spectral brightness and controls the cutoff of the audible source.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-        SpecPcile2.kr(chain, 0.85, fftSize: 1024).poll(5, "85% Hz");
-        (source * 0.15) ! 2
+        var value = SpecPcile2.kr(chain, 0.85, fftSize: 1024);
+        LPF.ar(source, value.clip(150, 9000).lag(0.05)) * 0.3 * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 

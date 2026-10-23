@@ -39,20 +39,25 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
+Repeating-structure evidence crossfades between noise and a stable sine tone.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var periodicity = Periodicity.kr(source, 40, 2000, 2048, 0.25, \nsdf);
-        var resynth = SinOsc.ar(110, 0, 0.08);
-        periodicity.poll(5, "periodicity");
-        XFade2.ar(WhiteNoise.ar(0.05), resynth, periodicity.linlin(0, 1, -1, 1)) ! 2
+        var value = Periodicity.kr(source, 40, 2000, 2048, 0.25, \nsdf).lag(0.04);
+        (source * 0.12 + XFade2.ar(WhiteNoise.ar(0.04), SinOsc.ar(110, 0, 0.06), value.linlin(0, 1, -1, 1))) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 

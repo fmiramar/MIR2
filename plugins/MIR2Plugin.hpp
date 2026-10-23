@@ -32,7 +32,9 @@ inline void release(World* world, T*& pointer) noexcept {
 
 inline SndBuf* resolveBuffer(Unit* unit, int inputIndex) noexcept {
     const float value = IN0(inputIndex);
-    if (value < 0.0f)
+    if (!std::isfinite(value) || value < 0.0f
+        || static_cast<double>(value) >= static_cast<double>(unit->mWorld->mNumSndBufs)
+            + static_cast<double>(unit->mParent->localBufNum) + 1.0)
         return nullptr;
     const std::uint32_t index = static_cast<std::uint32_t>(value);
     World* world = unit->mWorld;
@@ -45,18 +47,43 @@ inline SndBuf* resolveBuffer(Unit* unit, int inputIndex) noexcept {
     return nullptr;
 }
 
-inline bool fillMagnitudes(SndBuf* buffer, int expectedFFTSize,
-                           double* magnitudes) noexcept {
+// Read without changing the shared FFT buffer's representation. The caller
+// holds the SndBuf lock; phase-sensitive analyzers can share this chain safely.
+inline bool readFFTFrame(SndBuf* buffer, int expectedFFTSize,
+                         double* magnitudes, double* phases = nullptr) noexcept {
     if (buffer == nullptr || buffer->data == nullptr
         || buffer->samples != expectedFFTSize || magnitudes == nullptr)
         return false;
-    SCPolarBuf* polar = ToPolarApx(buffer);
     const int interiorBins = (buffer->samples - 2) >> 1;
-    magnitudes[0] = std::abs(static_cast<double>(polar->dc));
-    for (int index = 0; index < interiorBins; ++index)
-        magnitudes[index + 1] = std::abs(static_cast<double>(polar->bin[index].mag));
-    magnitudes[interiorBins + 1] = std::abs(static_cast<double>(polar->nyq));
+    const auto* rectangular = reinterpret_cast<const SCComplexBuf*>(buffer->data);
+    magnitudes[0] = std::abs(mir2::sanitize(static_cast<double>(rectangular->dc)));
+    magnitudes[interiorBins + 1] = std::abs(mir2::sanitize(static_cast<double>(rectangular->nyq)));
+    if (phases) {
+        phases[0] = rectangular->dc < 0.0f ? mir2::kPi : 0.0;
+        phases[interiorBins + 1] = rectangular->nyq < 0.0f ? mir2::kPi : 0.0;
+    }
+    for (int index = 0; index < interiorBins; ++index) {
+        double magnitude, phase;
+        if (buffer->coord == coord_Polar) {
+            const auto* polar = reinterpret_cast<const SCPolarBuf*>(buffer->data);
+            magnitude = mir2::sanitize(static_cast<double>(polar->bin[index].mag));
+            phase = mir2::sanitize(static_cast<double>(polar->bin[index].phase));
+            if (magnitude < 0.0) { magnitude = -magnitude; phase += mir2::kPi; }
+        } else {
+            const double real = mir2::sanitize(static_cast<double>(rectangular->bin[index].real));
+            const double imaginary = mir2::sanitize(static_cast<double>(rectangular->bin[index].imag));
+            magnitude = std::hypot(real, imaginary);
+            phase = phases ? std::atan2(imaginary, real) : 0.0;
+        }
+        magnitudes[index + 1] = magnitude;
+        if (phases) phases[index + 1] = phase;
+    }
     return true;
+}
+
+inline bool fillMagnitudes(SndBuf* buffer, int expectedFFTSize,
+                           double* magnitudes) noexcept {
+    return readFFTFrame(buffer, expectedFFTSize, magnitudes);
 }
 
 struct PitchState {
@@ -190,5 +217,16 @@ inline void processPitchInput(Unit* unit, PitchState& state, int inNumSamples,
 
 void registerSpectralUnits();
 void registerPitchUnits();
+void registerOnsetUnits();
+void registerTemporalUnits();
+void registerStereoUnits();
+void registerFeatureDynamicsUnits();
+void registerAdvancedSpectralUnits();
+void registerAuditoryUnits();
+void registerPitchAdvancedUnits();
+void registerWaveletUnits();
+void registerConstantQUnits();
+
+
 
 } // namespace mir2plugin

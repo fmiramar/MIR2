@@ -1,0 +1,60 @@
+class:: FeatureDelta
+summary:: Regression derivative of a control feature
+categories:: UGens>Analysis
+related:: Guides/MIR2, Classes/Slope
+
+description::
+For a symmetric radius N, computes sum(n*(x[t+n]-x[t-n])) / (2*sum(n.squared)*frameTime). The window is evaluated causally with N updates of delay. This is the regression delta from the HTK Book, with an explicit seconds scale.
+
+A negative trigger accepts every control block. A nonnegative trigger accepts only positive edges and holds the output between edges; this lets the caller align updates with analysis frames. frameTime must match that regular update spacing. Irregular triggers do not create a nonuniform regression. Nonfinite input is replaced by zero. The first output appears after 2*radius+1 accepted values. Cost is O(radius) per accepted update and memory is fixed. Source: link::https://labrosa.ee.columbia.edu/doc/HTKBook21/node56.html::. Vanilla Slope is a one-step difference; regression uses a symmetric span of observations.
+
+classmethods::
+method:: kr
+
+argument:: in
+Control-rate or scalar feature, with multichannel expansion for feature arrays.
+
+argument:: radius
+Literal symmetric regression radius from 1 through 32; total support is 2*radius+1 per regression pass.
+
+argument:: trigger
+Negative: update every control block. Otherwise update on positive edges.
+
+argument:: frameTime
+Seconds between accepted values. Zero uses the server control period; supply the actual period when triggering sparsely.
+
+returns::
+Derivative in input units per second.
+
+examples::
+A level-derived feature updates 25 times per second. Its processed dynamics control the filter and reference tone, making the utility audible.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var tick = Impulse.kr(25);
+        var feature = Latch.kr(Amplitude.kr(source, 0.005, 0.02).linlin(0, 0.3, 200, 3000), tick);
+        var value = FeatureDelta.kr(feature, trigger: tick, frameTime: 0.04);
+        var control = value.linlin(-4000, 4000, 0, 1).clip(0, 1);
+        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 5000), 0.25);
+        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 160, 700), 0, 0.025))
+            * Line.kr(0, 1, 0.5) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+Stop and release the buffer:
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Slope::

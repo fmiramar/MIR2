@@ -1,57 +1,29 @@
 # MIR2
 
-MIR2 is a native SuperCollider music-information-retrieval family built from
-published signal-processing methods. It combines modern replacements for
-constrained historical analyzers with a Modern Pitch Analysis subsystem that
-keeps periodicity, voicing, confidence, and octave ambiguity distinct.
+MIR2 is a native SuperCollider library for music information retrieval and
+analysis-driven synthesis control. It belongs in Jumble SCience because its
+algorithms implement published research techniques rather than wrap one upstream
+library. It complements FluCoMa's corpus and data workflows.
 
-The project belongs in Jumble SCience because its primary purpose is to
-implement and document research techniques rather than port one upstream
-codebase. MIR2 is complementary to FluCoMa: it concentrates on SC-native
-real-time descriptors and modern legacy successors, while FluCoMa remains the
-better fit for corpus, decomposition, and data-analysis workflows.
-
-Version 0.1.0 establishes the shared engines and combined first sprint from
-the MIR2 and Modern Pitch Analysis plans.
+This is an unpublished development expansion of version 0.1. The broader roadmap
+is still in progress; see [current status](docs/roadmap-status.md).
 
 ## Included analyzers
 
-- `SpecCentroid2` reports the energy-weighted spectral center in Hz. It makes
-  the magnitude/power convention, frequency bounds, FFT size, and silence
-  result explicit rather than inheriting historical assumptions.
-- `SpecFlatness2` reports the geometric-to-arithmetic mean ratio from 0 to 1.
-  It uses a configurable logarithmic floor while returning exactly zero for a
-  silent spectrum.
-- `SpecPcile2` reports the frequency below a requested cumulative spectral
-  fraction. It generalizes rolloff with explicit interpolation and spectrum
-  conventions.
-- `MFCC2` returns configurable Mel-frequency cepstral coefficients, including
-  coefficient zero when requested. Slaney and HTK Mel mappings share a tested
-  triangular-filter-bank and DCT-II engine.
-- `FFTFlux2` reports normalized or absolute frame-to-frame spectral distance.
-  It supports full or positive differences and allocates its previous-frame
-  state only during unit construction.
-- `Onsets2` returns a trigger and continuous onset strength. Its initial
-  methods are full flux, positive flux, and a causal SuperFlux-style
-  maximum-filtered log-spectrum difference with time-based threshold state.
-- `PitchYIN` returns F0, CMNDF-derived confidence, and a voiced flag. It is a
-  clean implementation of YIN using FFT autocorrelation to evaluate the
-  difference function efficiently.
-- `PitchMPM` returns F0, NSDF clarity, and a voiced flag. It implements the
-  McLeod Pitch Method peak-selection strategy from the published description.
-- `Periodicity` reports repeating-structure evidence from 0 to 1 without
-  requiring the user to accept a final F0 decision.
-- `Voicing` returns a binary decision and continuous model-free voicing
-  evidence, combining periodicity, energy, and zero-crossing behavior.
-- `Pitch2` is the general YIN/MPM facade and returns F0, confidence, voicing,
-  and an explicit octave-competitor score. Its default MPM method can be
-  changed symbolically at SynthDef construction.
+- **Core**: `SpecCentroid2`, `SpecFlatness2`, `SpecPcile2`, `MFCC2`, `FFTFlux2`, `Onsets2`, `PitchYIN`, `PitchMPM`, `Periodicity`, `Voicing`, `Pitch2`.
+- **Auditory**: `BarkBands`, `ERBBands`, `BFCC`, `LFCC`, `GammatoneBands`, `GFCC`, `Loudness2`.
+- **FeatureDynamics**: `FeatureDelta`, `FeatureDeltaDelta`, `FeatureMedian`, `FeatureSmooth`.
+- **OnsetFeatures**: `FFTComplexDev2`, `FFTPhaseDev2`, `FFTMKL2`, `FFTFluxPos2`.
+- **PitchAdvanced**: `FundamentalCandidates`, `PitchProb`, `PitchAmbiguity`, `PitchSWIPE`, `PitchConsensus`, `PitchSalienceBuf`, `PitchSalience`, `MultiPitch`, `PredominantPitch`, `PitchContour`, `PitchStability`, `PitchDeviation`, `Vibrato2`.
+- **SpectralAdvanced**: `FFTCrest2`, `FFTSpread2`, `FFTSlope2`, `FFTPower2`, `SpecEntropy`, `SpecDecrease`, `SpecComplexity`, `SpecStrongPeak`, `SpecHFC`, `SpecBandwidth`, `SpecIrregularity`, `SpecVariation`, `SpecRMS`, `SpecEnergy`, `SpecBandEnergy`, `SpecBandRatio`, `SpecSparsity`, `FFTPeak2`, `FFTSubbandFlatness2`, `FFTSubbandFlux2`, `FFTSubbandPower2`, `SpecContrast`.
+- **Stereo**: `StereoBalance`, `StereoWidth`, `StereoCorrelation`, `MidSideRatio`, `StereoCoherence`, `StereoPanning`, `InterchannelPhase`.
+- **Temporal**: `TemporalCentroid`, `EnvelopeSpread`, `EnvelopeSkewness`, `EnvelopeKurtosis`, `EffectiveDuration`, `DynamicComplexity`, `StrongDecay`, `TemporalDecrease`, `SilenceRate`, `FadeDetection`, `AttackTime`, `AttackSlope2`, `DecayTime`, `LogAttackTime`.
 
-All analyzers produce control-rate outputs. Pitch analyzers receive audio-rate
-input internally and update once per configured hop. FFT analyzers consume a
-normal SuperCollider FFT chain without changing spectral values; stateful FFT
-analyzers require an explicit matching `fftSize` so callback-time allocation
-is unnecessary.
+The installed `Guides/MIR2` summarizes each class. Every class has an audible
+example using its measured features to control sound, as well as equations,
+units, timing, source references, and limits. Most output control-rate features;
+audio-input analyzers consume the complete audio block internally. FFT analyzers
+read the shared FFT buffer without changing its representation.
 
 ## Build and install
 
@@ -67,36 +39,30 @@ ctest --test-dir build --output-on-failure
 cmake --install build --prefix /path/to/SuperCollider/Extensions
 ```
 
-Recompile the SuperCollider class library after installation. Open
-`Guides/MIR2` for the family overview and runnable examples.
+Recompile the class library after installation and open `Guides/MIR2`.
+Use matching FFT sizes and hop fractions; literal frame/band/output dimensions
+bound runtime memory and computation. Check each class for startup delay,
+held values, and silence behavior. Pitch confidence, voicing, periodicity and
+ambiguity are distinct evidence measures.
 
-## Frame and silence policy
+## Implementation and evaluation
 
-FFT size, frame size, output count, filter-bank size, algorithm selectors, and
-hop fraction are initialization-time structure. Supported frame and FFT sizes
-are powers of two from 256 through 8192; pitch frames must be long enough to
-contain the requested low-frequency periods.
+- [Onsets2 audit and comparison](docs/onset-evaluation.md): all seven classical
+  methods, revised SuperFlux frontend and peak picker, and synthetic measurements.
+- [Spectral and auditory definitions](docs/spectral-auditory-implementation.md):
+  explicit descriptor conventions, actual time-domain gammatone filters and an
+  inherited informal loudness model with stated calibration limits.
+- [Temporal, stereo and feature dynamics](docs/temporal-stereo-implementation.md).
+- [Origins](ORIGINS.md) and [verification history](docs/implementation-log.md).
 
-Silence produces zero frequency, confidence, voicing, periodicity, centroid,
-percentile, flux, and onset strength. `SpecFlatness2` also returns zero on
-silence. FFT descriptors naturally hold their most recent result between FFT
-frames; pitch values are not held across failed analyses unless `Pitch2` is
-given `hold: 1`.
-
-## Scope and roadmap
-
-This release intentionally stops at the two plans' first implementation
-sprints. Probabilistic candidates, SWIPE', consensus, multipitch, predominant
-melody, tonal/rhythm families, CQT/VQT, neural inference, and high-dimensional
-buffer output remain later phases. No placeholder classes are installed for
-unfinished algorithms.
-
-Version 0.1.0 also does not claim numerical identity with legacy SC UGens,
-FluCoMa, librosa, or Essentia. See `docs/AUDIT.md`, `ORIGINS.md`, and the help
-guides for exact differences and provenance.
+No numeric equivalence with other MIR libraries or general accuracy on real
+recordings is implied. Advanced pitch includes causal adaptations of published
+methods; class help identifies their differences. Loudness2 is an informal MIR
+control feature and does not claim ISO conformance. See [CI notes](docs/CI.md)
+for the standalone build workflow; hosted CI has not been run for this expansion.
 
 ## License
 
-MIR2 is licensed under GPL-3.0-or-later. It includes no Essentia or librosa
-runtime, third-party model weights, datasets, or copied neural implementations.
-
+GPL-3.0-or-later. [Third-party notices](THIRD_PARTY_NOTICES.md) identify the
+SuperCollider loudness contour table retained under compatible GPL terms.
+MIR2 embeds no Essentia/librosa runtime, model weights, or datasets.

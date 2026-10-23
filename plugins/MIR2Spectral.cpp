@@ -201,7 +201,7 @@ void MFCC2_Ctor(MFCC2* unit) {
         Print("MFCC2: invalid output, coefficient, band, or FFT configuration\n");
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
-        ClearUnitOutputs(unit, unit->mNumOutputs);
+        ClearUnitOutputs(unit, 1);
         return;
     }
     mir2::makeMelEdges(unit->edges, unit->numBands, minFreq, maxFreq,
@@ -276,111 +276,6 @@ void FFTFlux2_Dtor(FFTFlux2* unit) {
     release(unit->mWorld, unit->previous);
 }
 
-struct Onsets2 : Unit {
-    double* magnitudes;
-    double* previous;
-    int fftSize;
-    int initialized;
-    int gapFrames;
-    double mean;
-    double variance;
-    double smoothedStrength;
-};
-
-void Onsets2_next(Onsets2* unit, int) {
-    ZOUT0(0) = 0.0f;
-    ZOUT0(1) = static_cast<float>(unit->smoothedStrength);
-    if (IN0(0) < 0.0f || !loadSpectrum(unit))
-        return;
-    const int numBins = unit->fftSize / 2 + 1;
-    const int method = mir2::clamp(static_cast<int>(IN0(2)), 0, 2);
-    const int radius = mir2::clamp(static_cast<int>(IN0(6)), 0, 12);
-    const double floor = std::max(1.0e-30, static_cast<double>(IN0(7)));
-    double strength = 0.0;
-    for (int bin = 0; bin < numBins; ++bin)
-        unit->magnitudes[bin] = std::log(std::max(floor, unit->magnitudes[bin]));
-    if (unit->initialized != 0) {
-        for (int bin = 0; bin < numBins; ++bin) {
-            double reference = unit->previous[bin];
-            if (method == 2) {
-                const int low = std::max(0, bin - radius);
-                const int high = std::min(numBins - 1, bin + radius);
-                for (int candidate = low; candidate <= high; ++candidate)
-                    reference = std::max(reference, unit->previous[candidate]);
-            }
-            double difference = unit->magnitudes[bin] - reference;
-            if (method != 0)
-                difference = std::max(0.0, difference);
-            else
-                difference = std::abs(difference);
-            strength += difference;
-        }
-        strength /= static_cast<double>(numBins);
-    } else {
-        unit->initialized = 1;
-    }
-
-    const double frameTime = static_cast<double>(unit->fftSize)
-        * mir2::clamp(static_cast<double>(IN0(9)), 0.0625, 1.0)
-        / unit->mWorld->mSampleRate;
-    const double historyTime = std::max(frameTime, static_cast<double>(IN0(5)));
-    const double coefficient = std::exp(-frameTime / historyTime);
-    const double deviation = strength - unit->mean;
-    const double adaptive = unit->mean
-        + std::max(0.0, static_cast<double>(IN0(1)))
-            * std::sqrt(std::max(0.0, unit->variance));
-    const int minGapFrames = std::max(1, static_cast<int>(std::ceil(
-        std::max(0.0, static_cast<double>(IN0(4))) / frameTime)));
-    const bool trigger = unit->initialized > 1 && unit->gapFrames >= minGapFrames
-        && strength > adaptive && strength > 1.0e-6;
-    if (trigger)
-        unit->gapFrames = 0;
-    else
-        unit->gapFrames = std::min(1000000, unit->gapFrames + 1);
-    unit->mean = coefficient * unit->mean + (1.0 - coefficient) * strength;
-    unit->variance = coefficient * unit->variance
-        + (1.0 - coefficient) * deviation * deviation;
-    const double relax = std::max(frameTime, static_cast<double>(IN0(3)));
-    unit->smoothedStrength = std::max(strength,
-        unit->smoothedStrength * std::exp(-frameTime / relax));
-    std::copy(unit->magnitudes, unit->magnitudes + numBins, unit->previous);
-    unit->initialized = std::min(2, unit->initialized + 1);
-    ZOUT0(0) = trigger ? 1.0f : 0.0f;
-    ZOUT0(1) = static_cast<float>(unit->smoothedStrength);
-}
-
-void Onsets2_Ctor(Onsets2* unit) {
-    unit->magnitudes = nullptr;
-    unit->previous = nullptr;
-    unit->fftSize = static_cast<int>(IN0(8));
-    unit->initialized = 0;
-    unit->gapFrames = 1000000;
-    unit->mean = 0.0;
-    unit->variance = 0.0;
-    unit->smoothedStrength = 0.0;
-    if (allocateMagnitudes(unit, unit->magnitudes, unit->fftSize)) {
-        unit->previous = allocate<double>(unit->mWorld,
-            static_cast<std::size_t>(unit->fftSize / 2 + 1));
-        if (unit->previous != nullptr)
-            std::fill(unit->previous, unit->previous + unit->fftSize / 2 + 1, 0.0);
-    }
-    if (unit->magnitudes == nullptr || unit->previous == nullptr) {
-        Print("Onsets2: real-time memory allocation failed\n");
-        SETCALC(ClearUnitOutputs);
-        unit->mDone = true;
-        ClearUnitOutputs(unit, 1);
-        return;
-    }
-    SETCALC(Onsets2_next);
-    ZOUT0(0) = 0.0f;
-    ZOUT0(1) = 0.0f;
-}
-
-void Onsets2_Dtor(Onsets2* unit) {
-    release(unit->mWorld, unit->magnitudes);
-    release(unit->mWorld, unit->previous);
-}
-
 } // namespace
 
 namespace mir2plugin {
@@ -391,7 +286,6 @@ void registerSpectralUnits() {
     DefineDtorUnit(SpecPcile2);
     DefineDtorUnit(MFCC2);
     DefineDtorUnit(FFTFlux2);
-    DefineDtorUnit(Onsets2);
 }
 
 } // namespace mir2plugin

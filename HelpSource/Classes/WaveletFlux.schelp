@@ -1,0 +1,55 @@
+class:: WaveletFlux
+summary:: Positive change in normalized wavelet scale energies
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/WaveletBands
+
+description::
+Computes the Euclidean norm of positive changes in normalized scale energy fractions. The first non-silent comparison and comparisons following silence return zero.
+
+Uses a critically sampled orthonormal discrete wavelet transform with Haar/db1 through db4 filters, following Daubechies, Orthonormal Bases of Compactly Supported Wavelets (1988), DOI 10.1002/cpa.3160410705. Each stage convolves and downsamples its approximation band; the high-pass filter is the quadrature mirror of the low-pass filter. Periodic extension is applied within each analysis frame. No external wavelet library is linked.
+
+No analysis window is applied, so periodic boundary discontinuities can affect the features. First output follows one full frame; results hold between hops. Silence returns zero. Higher orders increase filter support; this implementation currently supports periodic boundaries only. Memory is allocated at construction. Scale energies reveal multiscale structure; they should not be read as sharply separated frequency bands.
+
+Vanilla FFT spectral analyzers describe uniform frequency bins. This family describes dyadic time/frequency scales with short filters at finer scales.
+
+classmethods::
+method:: kr
+argument:: in
+Mono audio-rate input.
+argument:: frameSize
+Literal power of two from 32 through 8192. Default 1024; first output requires this many input samples.
+argument:: order
+Literal Daubechies order from 1 through 4; one is Haar, four has eight filter taps.
+argument:: levels
+Literal number of decomposition levels, 1 through log2(frameSize). Default 6; outputs run from the coarsest approximation to finest detail.
+argument:: hop
+Literal fraction of frameSize between analyses, 0.0625 through 1, default 0.5.
+
+examples::
+The measured scale structure controls the audible synthesis or filtering.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var value = WaveletFlux.kr(source);
+        var sound = source * 0.15 + HPF.ar(PinkNoise.ar(0.15), 1800) * (value * 5).clip(0,1).lag(0.02);
+        sound * Line.kr(0,1,0.25) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/WaveletBands::
+link::Classes/WaveletDaub2::

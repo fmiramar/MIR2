@@ -1,0 +1,70 @@
+class:: InterchannelPhase
+summary:: Circular mean of interchannel spectral phase
+categories:: UGens>Analysis
+related:: Guides/MIR2, Classes/FFT
+
+description::
+Averages L*conj(R) for each FFT bin over time, then sums cross spectra in the selected band. The phase is atan2(imaginary, real), and concentration is the magnitude of that vector divided by the sum of individual cross-spectrum magnitudes. Positive phase means the left channel leads the right. Low concentration indicates contradictory frequency-bin phases; silence returns zero for both outputs. This is a band phase statistic, not a time-delay estimate.
+
+Uses two private radix-2 FFTs and precomputed Hann windows. frameSize and hop are fixed at construction. CPU is O(frameSize*log(frameSize)) per hop; all storage is allocated before processing. First output is available after frameSize/sampleRate, with coherence held at zero for another three hops; reliable averaging takes approximately averageTime. Frequency selection is quantized to FFT bins. Source for the cross-spectral definition: link::https://www.mathworks.com/help/signal/ref/mscohere.html::.
+
+Vanilla FFT exposes separate spectral frames; this UGen combines two channels and maintains cross-spectral averages.
+
+classmethods::
+method:: kr
+
+argument:: left
+Left audio-rate input.
+
+argument:: right
+Right audio-rate input.
+
+argument:: frameSize
+Literal FFT power of two, 256..8192.
+
+argument:: hop
+Literal frame fraction, 0.0625..1; default 0.5.
+
+argument:: averageTime
+Exponential spectral averaging constant, clipped to 0.01..10 seconds.
+
+argument:: minFreq
+Lowest included frequency in Hz.
+
+argument:: maxFreq
+Highest included frequency in Hz; zero means Nyquist.
+
+returns::
+Array [phaseRadians, phaseConcentration], with phase in -pi..pi and concentration in 0..1.
+
+examples::
+Low and high source bands occupy opposite sides, with a small channel delay. The selected band measurement controls a tone's pitch and position.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var left = LPF.ar(source, 900) + HPF.ar(source, 1800) * 0.15;
+        var right = LPF.ar(source, 900) * 0.15 + HPF.ar(source, 1800);
+        var value = InterchannelPhase.kr(left, DelayC.ar(right, 0.01, 0.001), minFreq: 100, maxFreq: 2500);
+        var control = value[0].linlin(-pi, pi, 0, 1);
+        var tone = Pan2.ar(SinOsc.ar(control.linexp(0, 1, 180, 1100), 0, 0.035), control * 2 - 1);
+        ([left, right] * 0.2 + tone) * Line.kr(0, 1, 0.4)
+    }.play;
+}).play(AppClock);
+)
+::
+Stop and release the buffer:
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/FFT::

@@ -30,8 +30,18 @@ sc_check_sc_path("${SC_PATH}")
 set(mir2_cpp_files
     plugins/MIR2.cpp
     plugins/MIR2Spectral.cpp
-    plugins/MIR2Pitch.cpp)
-set(mir2_sc_files Classes/MIR2.sc)
+    plugins/MIR2Pitch.cpp
+    plugins/MIR2Onsets.cpp
+    plugins/MIR2Temporal.cpp
+    plugins/MIR2Stereo.cpp
+    plugins/MIR2FeatureDynamics.cpp
+    plugins/MIR2SpectralAdvanced.cpp
+    plugins/MIR2Auditory.cpp
+    plugins/MIR2PitchAdvanced.cpp
+    plugins/MIR2Wavelet.cpp
+    plugins/MIR2ConstantQ.cpp
+)
+file(GLOB mir2_sc_files CONFIGURE_DEPENDS Classes/*.sc)
 file(GLOB mir2_schelp_files CONFIGURE_DEPENDS HelpSource/Classes/*.schelp)
 
 sc_add_server_plugin(
@@ -82,26 +92,34 @@ install(DIRECTORY HelpSource/Guides/ DESTINATION MIR2/HelpSource/Guides)
 
 include(CTest)
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
-    add_executable(mir2_reference_tests tests/cpp/MIR2ReferenceTests.cpp)
-    target_include_directories(mir2_reference_tests PRIVATE include)
-    if(STRICT)
+    file(GLOB mir2_test_files CONFIGURE_DEPENDS tests/cpp/*.cpp)
+    foreach(test_file IN LISTS mir2_test_files)
+        get_filename_component(test_name "${test_file}" NAME_WE)
+        set(test_target "mir2_${test_name}")
+        add_executable(${test_target} "${test_file}")
+        target_include_directories(${test_target} PRIVATE include)
+        # Assertions are part of the numerical oracle, including Release builds.
         if(MSVC)
-            target_compile_options(mir2_reference_tests PRIVATE /W4)
+            target_compile_options(${test_target} PRIVATE /UNDEBUG)
         else()
-            target_compile_options(mir2_reference_tests PRIVATE
-                -Wall -Wextra -Wpedantic -Wconversion)
+            target_compile_options(${test_target} PRIVATE -UNDEBUG)
         endif()
-    endif()
-    if(MIR2_SANITIZE)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-            target_compile_options(mir2_reference_tests PRIVATE
-                -fsanitize=address,undefined -fno-omit-frame-pointer)
-            target_link_options(mir2_reference_tests PRIVATE
-                -fsanitize=address,undefined)
-        else()
-            message(FATAL_ERROR "MIR2_SANITIZE requires Clang or GCC")
+        if(STRICT)
+            if(MSVC)
+                target_compile_options(${test_target} PRIVATE /W4)
+            else()
+                target_compile_options(${test_target} PRIVATE -Wall -Wextra -Wpedantic)
+            endif()
         endif()
-    endif()
-    add_test(NAME mir2_reference_tests COMMAND mir2_reference_tests)
+        if(MIR2_SANITIZE)
+            if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+                target_compile_options(${test_target} PRIVATE
+                    -fsanitize=address,undefined -fno-omit-frame-pointer)
+                target_link_options(${test_target} PRIVATE -fsanitize=address,undefined)
+            else()
+                message(FATAL_ERROR "MIR2_SANITIZE requires Clang or GCC")
+            endif()
+        endif()
+        add_test(NAME ${test_target} COMMAND ${test_target})
+    endforeach()
 endif()
-

@@ -1,0 +1,69 @@
+class:: PitchConsensus
+summary:: Pitch agreement and disagreement across estimators
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+Combines YIN, MPM and SWIPE prime evidence after de Cheveigne and Kawahara (2002), McLeod and Wyvill (2005), and Camacho and Harris (2008). MIR2 chooses the confidence-weighted cluster within 50 cents of an estimate, and returns its weighted geometric mean. Agreement is cluster weight divided by all valid estimate weight. Spread includes every valid estimate; octave conflict is weight belonging to octave-related outliers divided by total weight. A single valid method yields agreement 1, so agreement alone is not voicing confidence. This fusion rule is an original deterministic utility, not a published consensus algorithm.
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal. Use one analyzer per channel; mix deliberately before analysis when appropriate.
+
+argument:: minFreq
+Initialization-time lower frequency bound in Hz. Time-domain methods need at least two periods in frameSize; SWIPE benefits from eight periods.
+
+argument:: maxFreq
+Initialization-time upper frequency bound in Hz, greater than minFreq and below Nyquist.
+
+argument:: frameSize
+Literal power of two from 256 through 8192. First result follows one full frame. SWIPE uses centred Hann windows from 256 samples through this maximum, aligned to the centre of the trailing frame.
+
+argument:: hop
+Literal frame fraction from 0.0625 through 1. Updates every round(frameSize * hop) samples; this is not seconds.
+
+argument:: methods
+Literal nonempty Array of \yin, \mpm and/or \swipe. Repeated methods count once. Current implementation computes all three shared engines, so selecting fewer methods does not reduce FFT cost.
+
+argument:: binsPerOctave
+Literal integer from 12 through 96. Spectral candidate frequencies are minFreq * 2 ** (index / binsPerOctave); higher density costs CPU and initialization memory.
+
+returns::
+An Array: winning cluster frequency in Hz, agreement, weighted RMS spread in cents, octave-conflict weight fraction.
+
+examples::
+High agreement produces a clean follower; disagreement adds audible noise. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = PitchConsensus.kr(source, 80, 1200);
+        var oscillator = SinOsc.ar(result[0].max(20), 0, 0.1 * (result[0] > 0));
+        var noise = PinkNoise.ar((1 - result[1]) * 0.05);
+        var sound = [source * 0.12, oscillator * result[1] + noise];
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

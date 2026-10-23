@@ -1,0 +1,58 @@
+class:: StereoWidth
+summary:: Side energy as a normalized stereo width measure
+categories:: UGens>Analysis
+related:: Guides/MIR2, Classes/Amplitude
+
+description::
+With M=(L+R)/2 and S=(L-R)/2, returns sqrt(sum(S.squared)/(sum(M.squared)+sum(S.squared))). Identical channels give zero, equal uncorrelated channels approach sqrt(0.5), and inverted channels give one. This is an M/S energy measure; it does not estimate a perceived source angle.
+
+Uses an exact rolling sample window, with output held at zero until it is full. The update cost is linear in the input block size, with a once-per-window sum rebase to bound roundoff drift. Memory is two windows of doubles, allocated at initialization. Formulas are independently implemented from energy, M/S decomposition, and Pearson correlation. Silence returns zero.
+
+Vanilla Amplitude can track channel levels separately; this UGen directly relates the channels over a fixed shared interval.
+
+classmethods::
+method:: kr
+
+argument:: left
+Left audio-rate input.
+
+argument:: right
+Right audio-rate input.
+
+argument:: windowTime
+Initialization-time rolling window, 0.001..2 seconds; default 0.05.
+
+returns::
+Width from zero through one.
+
+examples::
+The source pans slowly and its right analysis channel is delayed. The measured stereo relationship sets a quiet comparison-tone pitch.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var pan = SinOsc.kr(0.15);
+        var stereo = Pan2.ar(source, pan);
+        var value = StereoWidth.kr(stereo[0], DelayC.ar(stereo[1], 0.01, 0.002));
+        var control = value;
+        var tone = Pan2.ar(SinOsc.ar(control.linexp(0, 1, 200, 1000), 0, 0.035), pan.neg);
+        (stereo * 0.2 + tone) * Line.kr(0, 1, 0.1)
+    }.play;
+}).play(AppClock);
+)
+::
+Stop and release the buffer:
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Amplitude::

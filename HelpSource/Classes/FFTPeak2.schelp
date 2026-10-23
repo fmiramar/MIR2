@@ -1,0 +1,60 @@
+class:: FFTPeak2
+summary:: Frequency and magnitude of the strongest local spectral peak
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/SpecCentroid2
+
+description::
+Returns the strongest local maximum as [frequency in Hz, raw FFT magnitude]. Maxima exceed the left neighbor and equal or exceed the right neighbor. DC and Nyquist are excluded. With interpolation, a parabola through three log-magnitude bins estimates sub-bin frequency and height. Silence or a spectrum without interior maxima returns [0, 0]. This is a spectral peak descriptor, so a strong overtone can dominate; it is not a fundamental-frequency estimator.
+
+The shared MIR2 spectral peak kernel implements the standard quadratic spectral interpolation technique described by Julius O. Smith in Spectral Audio Signal Processing: link::https://www.dsprelated.com/freebooks/sasp/Quadratic_Interpolation_Spectral_Peaks.html::. Cost is linear in FFT bins for this single-peak output. It adds no lookahead beyond the FFT, whose 1024-sample window is 21.3 ms at 48 kHz.
+
+Vanilla link::Classes/Pitch:: estimates a periodic fundamental from audio; FFTPeak2 instead selects the most prominent local spectral peak from an existing FFT.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain whose buffer size matches fftSize.
+argument:: minFreq
+Minimum accepted frequency in Hz. Default 20.
+argument:: maxFreq
+Maximum accepted frequency in Hz. Zero selects Nyquist.
+argument:: interpolate
+Positive enables log-parabolic interpolation; 0 uses bin centers.
+argument:: fftSize
+Literal power of two from 256 through 8192.
+returns::
+Two controls: frequency in Hz and raw FFT magnitude.
+
+examples::
+A sine follows the strongest partial while the original recording stays quietly audible. Listen for overtone jumps when a different spectral peak becomes strongest.
+code::
+(
+s.waitForBoot {
+    Routine({
+        var buffer = Buffer.read(s, ExampleFiles.child);
+        s.sync;
+        ~mir2Example = {
+            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+            // For live input instead: source = SoundIn.ar(0);
+            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+            var peak = FFTPeak2.kr(chain, fftSize: 1024);
+            var voice = SinOsc.ar(Lag.kr(peak[0].clip(80, 4000), 0.03), 0, 0.08);
+            var gate = Lag.kr((peak[1] > 0.01), 0.03);
+            var fade = Line.kr(0, 1, 0.15);
+            ((source * 0.08) + (voice * gate)) * fade ! 2
+        }.play;
+        ~mir2Example.onFree { buffer.free };
+    }).play(AppClock);
+};
+)
+
+// Stop the example and release its sample buffer.
+(
+~mir2Example.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/SpecCentroid2::

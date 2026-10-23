@@ -41,19 +41,26 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
+The estimated fundamental drives a sine voice, gated by the voiced decision. Listen for octave changes and tracking delay.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = PitchMPM.kr(source, 40, 1500, 2048, 0.25, 0.93);
-        result.poll(5, "MPM [Hz, clarity, voiced]");
-        (source * 0.15) ! 2
+        var result = PitchMPM.kr(source, 60, 1500, 2048, 0.25, 0.93);
+        var tone = SinOsc.ar(result[0].clip(40, 1500).lag(0.03), 0, 0.07) * result[2].lag(0.02);
+        (source * 0.12 + tone) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 

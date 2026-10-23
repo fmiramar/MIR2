@@ -1,0 +1,68 @@
+class:: PitchProb
+summary:: Probabilistic YIN candidates with optional causal tracking
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+Inspired by pYIN Stage 1 (Mauch and Dixon, ICASSP 2014, DOI 10.1109/ICASSP.2014.6853678). When no trough meets a sampled threshold, only 0.01 of that threshold mass goes to the absolute minimum; the remainder is unvoiced mass. MIR2 reuses its shrinking-overlap CMNDF and adds a sparse causal candidate graph with explicit unvoiced and octave transition costs. This differs from the paper's fixed-overlap difference and offline 480-bin HMM; it is not a numerical pYIN clone. Tracking retains the current best path endpoint without lookahead. Silence resets the path and returns zero frequency.
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal. Use one analyzer per channel; mix deliberately before analysis when appropriate.
+
+argument:: minFreq
+Initialization-time lower frequency bound in Hz. Time-domain methods need at least two periods in frameSize; SWIPE benefits from eight periods.
+
+argument:: maxFreq
+Initialization-time upper frequency bound in Hz, greater than minFreq and below Nyquist.
+
+argument:: frameSize
+Literal power of two from 256 through 8192. First result follows one full frame. SWIPE uses centred Hann windows from 256 samples through this maximum, aligned to the centre of the trailing frame.
+
+argument:: hop
+Literal frame fraction from 0.0625 through 1. Updates every round(frameSize * hop) samples; this is not seconds.
+
+argument:: numThresholds
+Literal integer from 4 through 128. Each threshold interval receives its exact Beta(2,18) probability mass; its midpoint selects the earliest CMNDF trough below threshold.
+
+argument:: tracking
+Positive values enable causal dynamic programming over the candidate list and an unvoiced state; zero makes a framewise decision.
+
+returns::
+An Array: frequency in Hz, selected candidate probability, total voiced probability, and octave competitor ratio. The probability is from the threshold model, not an empirically calibrated correctness probability.
+
+examples::
+Source at left; a probabilistically gated oscillator follows the voice at right. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = PitchProb.kr(source);
+        var voice = SinOsc.ar(result[0].max(20), 0, Lag.kr(result[1] * (result[0] > 0), 0.03) * 0.16);
+        var sound = [source * 0.12, voice];
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

@@ -1,0 +1,64 @@
+class:: GammatoneBands
+summary:: Smoothed gammatone band power
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/ERBBands
+
+description::
+Hohmann (2002), Frequency analysis and synthesis using a Gammatone filterbank. The pole radius is exp(-2*pi*b/sampleRate), where b = (24.7 + centerHz/9.265) / (pi*720/(64*36)); its angle is 2*pi*centerHz/sampleRate. Four complex one-pole stages share this pole, with overall analytic gain 2*(1-radius).pow(4). The envelope power is half the squared complex-output magnitude. This directly implements the gammatone cascade, with one ERB bandwidth per filter. Equations are also documented in the author-origin AMT implementation: link::https://amtoolbox.org/amt-1.6.0/doc/modelstages/hohmann2002_filter_code.php::.
+
+Filter centers are evenly spaced on the Glasberg-Moore ERB-rate scale, including the requested endpoints. Band power is exponentially smoothed: envelope[n] = decay*envelope[n-1] + (1-decay)*power[n], where decay = exp(-1/(sampleRate*smoothing)). A center-frequency sinusoid of peak amplitude A approaches A.squared/2 power. The filters are initialized at rest; low-frequency channels take several tens of milliseconds to settle. 
+
+All parameters except the audio input are read at initialization. Outputs update every hop seconds and are retained between updates. Filtering costs four complex pole operations per band per audio sample; GFCC also performs its DCT on each hop. State uses O(numBands) memory and performs no runtime allocations. There is no lookahead; latency includes the frequency-dependent gammatone envelope delay, smoothing, and up to one hop. This is materially more CPU-intensive than a triangular FFT bank.
+
+Vanilla link::Classes/Amplitude:: tracks broadband level; GammatoneBands derives smoothed gammatone band power from separate auditory filters, exposing changes in spectral envelope.
+
+classmethods::
+method:: kr
+argument:: in
+Mono audio-rate input. Control-rate input is rejected.
+argument:: numBands
+Literal integer 4..128; 32 by default for GammatoneBands and 64 for GFCC.
+argument:: minFreq
+Lowest center frequency in Hz, default 50; clipped to at least 20 Hz.
+argument:: maxFreq
+Highest center frequency in Hz; zero selects 0.45*sampleRate. The same upper limit applies to explicit values.
+argument:: smoothing
+Exponential power-envelope time constant in seconds; clipped to 0.0001..2, default 0.01.
+argument:: hop
+Time between output updates in seconds; clipped to 0.001..1, default 0.01.
+returns::
+One power output per ascending filter center.
+
+examples::
+Auditory-band amplitudes drive an eight-sine resynthesis, allowing the filterbank distribution to be heard beside the quiet original.
+code::
+(
+s.waitForBoot {
+    Routine({
+        var buffer = Buffer.read(s, ExampleFiles.child);
+        s.sync;
+        ~mir2Example = {
+            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+            // For live input instead: source = SoundIn.ar(0);
+            var bands = GammatoneBands.kr(source, numBands: 8, minFreq: 100, maxFreq: 6000);
+            var balance = bands.sqrt / (bands.sqrt.sum + 1e-9);
+            var level = Amplitude.kr(source, 0.01, 0.1);
+            var voice = Mix(SinOsc.ar([180, 240, 320, 430, 580, 780, 1050, 1400], 0, Lag.kr(balance, 0.03))) * level;
+            var fade = Line.kr(0, 1, 0.2);
+            ((source * 0.06) + (voice * 0.2)) * fade ! 2
+        }.play;
+        ~mir2Example.onFree { buffer.free };
+    }).play(AppClock);
+};
+)
+
+// Stop and free the sample buffer.
+(
+~mir2Example.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/ERBBands::
+link::Classes/MFCC2::

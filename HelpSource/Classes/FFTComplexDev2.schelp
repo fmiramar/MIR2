@@ -1,0 +1,54 @@
+class:: FFTComplexDev2
+summary:: Complex spectral prediction error
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/Onsets2, Classes/FFTFlux2
+
+description::
+Sum of Euclidean distances between current complex bins and the previous magnitude with linearly extrapolated phase. The rectified variant skips bins whose magnitude decreased. Uses the factor two in the cross term of the squared complex distance. Independently implemented from Dixon, Onset Detection Revisited (DAFx 2006).
+
+DC and Nyquist are excluded from the evidence; normalization includes their two positions in the bin count. Raw FFT magnitudes are used without window or FFT-size compensation. The first two valid frames output zero while the phase predictor warms up. Results hold between FFT frames. Persistent storage is allocated at construction; the FFT buffer is read without modifying its representation. Like vanilla Onsets, this exposes spectral onset evidence, but it has no peak picking. Use Onsets2 for triggers.
+
+classmethods::
+method:: kr
+argument:: chain
+An FFT chain with the declared size.
+argument:: rectify
+Positive selects the rectified complex difference; zero includes increases and decreases.
+argument:: normalize
+Positive divides by the one-sided bin count.
+argument:: floor
+Positive weak-bin magnitude gate, default 1e-6.
+argument:: fftSize
+Literal matching FFT size, a power of two from 256 through 8192.
+returns::
+One nonnegative control-rate evidence value.
+
+examples::
+The measured spectral change opens a filtered noise accompaniment over the source.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source);
+        var value = FFTComplexDev2.kr(chain, rectify: 1);
+        var texture = BPF.ar(PinkNoise.ar(0.15), 1800, 0.5) * (value * 0.6).clip(0, 1).lag(0.03);
+        (source * 0.16 + texture) * Line.kr(0, 1, 0.25) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/FFTFlux2::

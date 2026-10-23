@@ -1,0 +1,65 @@
+class:: DecayTime
+summary:: Event decay duration after the largest RMS peak
+categories:: UGens>Analysis
+related:: Guides/MIR2, Classes/Slope
+
+description::
+A positive trigger edge begins a fixed maxTime capture of nonoverlapping RMS envelope frames. A new trigger restarts an unfinished capture. After capture, the largest RMS peak defines relative lowRatio and highRatio thresholds. The attack runs from the first upward low crossing to the first upward high crossing before the peak; decay runs from the first downward high crossing after the peak to the first downward low crossing. Linear interpolation refines crossing times between envelope frames. These are independent, externally segmented event measurements: onset detection is supplied by the caller. The output holds the last completed result while a new capture runs. The first result arrives after maxTime, resolution is limited by frameTime, and events crossing the capture boundaries can be truncated. An already-high first frame has no observable rise. CPU is O(maxTime/frameTime) once per completed capture and memory is fixed at construction. The convention follows relative-threshold envelope attack descriptors, with explicit segmentation and crossing definitions.
+
+Vanilla Slope differentiates a control stream; this UGen measures an entire captured attack or decay interval.
+
+classmethods::
+method:: kr
+
+argument:: in
+Audio-rate signal whose event envelope is measured.
+
+argument:: trigger
+Positive edge at audio or control rate; starts or restarts capture. Zero by default, so supply a trigger.
+
+argument:: maxTime
+Literal capture time, 2*frameTime..10 seconds. Default 0.5.
+
+argument:: frameTime
+Literal RMS frame duration, 0.001..0.1 seconds. Default 0.005.
+
+argument:: lowRatio
+Relative peak threshold, clipped to 0.001..0.98; default 0.1.
+
+argument:: highRatio
+Relative peak threshold, clipped above lowRatio through 0.999; default 0.9.
+
+returns::
+Decay duration in seconds; zero if the observation ends before both falling crossings.
+
+examples::
+One-second phrases have a shaped attack and decay. After each capture the measured event shape sets the reference-tone pitch; the audio content makes measurements vary.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var trigger = Impulse.kr(1);
+        var shaped = source * EnvGen.kr(Env([0, 1, 0], [0.12, 0.35]), trigger);
+        var value = DecayTime.kr(shaped, trigger, maxTime: 0.6);
+        var control = (value / 0.3).clip(0, 1);
+        var tone = SinOsc.ar(control.linexp(0, 1, 160, 1000), 0, 0.04);
+        (shaped * 0.3 + tone) * Line.kr(0, 1, 0.8) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+Stop and release the buffer:
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Slope::

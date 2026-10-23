@@ -1,72 +1,84 @@
 class:: Onsets2
-summary:: Causal flux and SuperFlux-style onset evidence
+summary:: Classical and SuperFlux onset detection with causal peak picking
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/Onsets
+related:: Guides/MIR2, Classes/Onsets, Classes/FFTComplexDev2
 
 description::
-Returns an onset trigger and a continuously decaying onset-strength value. code::\flux:: uses absolute log-spectral difference, code::\fluxPos:: keeps increases, and code::\superflux:: compares increases against a maximum-filtered neighborhood in the preceding log spectrum. A causal exponentially weighted mean and variance supply the adaptive threshold, and code::minGap:: suppresses clustered triggers.
+Returns a one-control-block trigger and normalized onset novelty. Independently implements the detection functions described by Dixon (DAFx 2006), adaptive spectral whitening after Stowell and Plumbley (ICMC 2007), and the logarithmic filter-bank and frequency maximum-filter principle of Böck and Widmer's SuperFlux (DAFx 2013).
 
-The FFT hop must match code::hop:: so time constants remain correct. The first frame and silence return zero. It is practically similar to link::Classes/Onsets::, but exposes continuous strength, a SuperFlux-style option, seconds-based state, and explicit FFT/hop configuration; it is not numerically equivalent to the legacy detector.
+SuperFlux maps the FFT magnitudes into triangular quarter-tone bands, computes code::log(1 + logGain * amplitude)::, and measures positive increases against a maximum-filtered earlier frame. Classical methods use magnitudes scaled by code::2 / fftSize::, with optional adaptive whitening. Complex deviation uses the full Euclidean distance to the previous magnitude with linearly predicted phase; phase history advances even in weak bins. MKL deliberately bypasses whitening. DC and Nyquist are excluded from phase, complex, and MKL evidence.
+
+All methods subtract a causal running median and normalize by a decaying peak reference with a minimum scale. A local maximum of the raw detection function is confirmed one FFT hop later, provided its normalized novelty exceeds the threshold; another detection requires novelty to fall below half the threshold first. This limits repeated detections on a plateau. SuperFlux also rejects frames whose window RMS falls faster than the exponential time constant releaseTime, reducing detections caused by abrupt releases. Set releaseTime to zero to disable this heuristic. This heuristic can suppress an attack masked by a much louder simultaneous release.
+
+The earliest SuperFlux trigger needs max(3, diffFrames + 2) frames, using the automatically selected lag when diffFrames is zero. Classical phase-history methods first permit detection after four frames. Analysis latency includes the FFT window and one-hop peak confirmation. The declared FFT hop must match the chain. Onsets2 applies the same server-block rounding as FFT when calculating its actual frame interval. Use a full-window FFT; a smaller explicit FFT winSize is not supported. Novelty holds between FFT frames, while the trigger resets every control block. The peak picker, amplitude normalization, release guard, and minimum novelty scale are MIR2 adaptations; this is not a numerically identical implementation of the authors' offline program. Continuous vibrato, soft overlapping attacks, and musical mixtures still require listening and parameter tuning. See the onset evaluation report distributed with MIR2 for measured synthetic cases and their limits.
+
+Like vanilla link::Classes/Onsets::, this detects changes in an FFT chain and offers all seven classical methods. It additionally provides SuperFlux and continuous novelty, explicit FFT/hop timing, and corrected independent phase/complex formulas. Thresholds and numeric method identifiers are not interchangeable with vanilla Onsets or MIR2 0.1.
 
 classmethods::
-
 method:: kr
-
 argument:: chain
-An FFT chain matching code::fftSize:: and code::hop::.
-
+FFT chain matching the declared FFT size and hop.
 argument:: threshold
-Nonnegative multiplier on the running onset-strength deviation.
-
+Novelty threshold from 0 to 1. Larger values reject weaker events. Tune per method and material.
 argument:: method
-Literal code::\flux::, code::\fluxPos::, or code::\superflux::.
-
+Literal symbol: code::\flux:: (absolute magnitude difference), code::\fluxPos:: (positive difference), code::\superflux::, code::\power::, code::\magsum::, code::\complex::, code::\rcomplex::, code::\phase::, code::\wphase:: (alias code::\weightedPhase::), code::\mkl::, or code::\hfc::. Numeric identifiers 0 through 10 follow this order; the first three retain the MIR2 0.1 ordering.
 argument:: relaxTime
-Decay time in seconds for the strength output.
-
+Seconds for the whitening spectral reference and novelty peak reference to decay by 20 dB. Positive; minimum one frame.
 argument:: minGap
-Minimum interval between triggers in seconds.
-
+Minimum seconds between detections. Nonnegative.
 argument:: medianTime
-History time in seconds for the causal adaptive mean and variance. The name preserves the planned interface, but version 0.1 uses exponential statistics rather than a literal median.
-
+Literal causal median history in seconds, 0 through 10, rounded up to frames with a minimum of three frames. Histories exceeding 65536 frames are rejected, not shortened. An exact indexed-heap median updates in logarithmic time without callback allocation.
 argument:: maxFilterBins
-Literal frequency-neighborhood radius from 0 through 12 for code::\superflux::.
-
+Literal SuperFlux band-neighborhood width, 0 through 25. Three means the band and one neighbor on either side; even widths use code::2 * floor(width / 2) + 1::. Zero or one disables neighbor suppression. MIR2 0.1 interpreted this as a radius in raw FFT bins.
 argument:: floor
-Positive floor before the natural logarithm.
-
+Positive whitening floor and weak-bin/epsilon parameter. Classical methods use amplitude magnitudes after normalization/whitening; MKL uses the normalized unwhitened magnitude.
 argument:: fftSize
-Literal FFT size from 256 through 8192.
-
+Literal matching FFT size: 256, 512, 1024, 2048, 4096, or 8192. Try 2048 for more useful pitch-band resolution.
 argument:: hop
-FFT hop as a fraction of code::fftSize::, from 0.0625 through 1.
-
+Literal requested FFT hop fraction, 0.0625 through 1. It is rounded down to a multiple of the server block size with a minimum of one block, matching FFT.
+argument:: whitening
+Positive enables adaptive per-bin peak whitening for classical methods except MKL. SuperFlux always uses its logarithmic band frontend.
+argument:: logGain
+SuperFlux compression gain, positive, default 100.
+argument:: silenceThreshold
+Windowed RMS floor, default 0.0001 (minus 80 dB relative to amplitude 1). Below it, novelty is zero. This is not a calibrated sound-pressure level.
+argument:: diffFrames
+Literal SuperFlux comparison lag, 1 through 16. Zero selects code::max(1, round(0.25 / hop)):: for a Hann-window reference separation.
+argument:: noveltyFloor
+Minimum raw-ODF scale in the normalization denominator, default 0.01. Prevents arbitrarily small fluctuations from eventually becoming full-scale novelty. Lower it for quiet/soft evidence; it interacts with the chosen method and logGain.
 returns::
-An Array: trigger and nonnegative strength.
-
-instancemethods::
+Array: trigger and novelty in 0 through 1. Novelty describes the current frame; a trigger confirms the preceding frame's peak.
 
 examples::
+Detected events excite a pitched resonator over the source. Change the method symbol and tune the threshold to hear how the onset decisions differ.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-        var onset = Onsets2.kr(chain, 0.3, \superflux, fftSize: 1024, hop: 0.5);
-        var click = Decay2.ar(K2A.ar(onset[0]), 0.001, 0.04) * PinkNoise.ar(0.1);
-        (source * 0.12 + click) ! 2
+        var chain = FFT(LocalBuf(2048), source, hop: 0.25);
+        var onset = Onsets2.kr(chain, 0.3, \superflux, fftSize: 2048, hop: 0.25);
+        var strike = Decay2.ar(K2A.ar(onset[0]), 0.001, 0.035) * PinkNoise.ar(0.12);
+        var bell = Ringz.ar(strike, [660, 990], 0.12).sum * 0.2;
+        (source * 0.18 + bell) * Line.kr(0, 1, 0.2) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
 link::Classes/Onsets::
-link::Classes/FFTFlux2::
-
+link::Classes/FFTFluxPos2::
+link::Classes/FFTComplexDev2::
+link::Classes/FFTPhaseDev2::
+link::Classes/FFTMKL2::

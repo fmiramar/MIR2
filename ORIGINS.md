@@ -1,6 +1,7 @@
 # Algorithm origins
 
-MIR2 is an original clean-room implementation. Papers and upstream projects
+MIR2 implements published equations independently, with the inherited loudness
+coefficient table identified in `THIRD_PARTY_NOTICES.md`. Papers and upstream projects
 are algorithmic, interface, or behavioral references; their implementations
 are not runtime dependencies.
 
@@ -46,3 +47,15 @@ comparisons. MIR2 does not link or embed them. Essentia source is not copied or
 translated because it is distributed under AGPL terms; librosa is likewise not
 a runtime dependency.
 
+
+## Expanded implementation references
+
+- `docs/onset-evaluation.md`: Dixon complex/phase equations, SuperFlux frontend,
+  native OnsetsDS audit and synthetic measurements.
+- `docs/spectral-auditory-implementation.md`: spectral definitions, Bark/ERB,
+  Hohmann gammatone cascade, cepstra, and inherited loudness contour data.
+- `docs/temporal-stereo-implementation.md`: event envelopes, regression dynamics,
+  time-domain stereo moments and frequency-bin coherence.
+- The advanced pitch class help describes Mauch/Dixon pYIN threshold mass,
+  Camacho/Harris SWIPE prime kernels, Klapuri-style cancellation, and bounded
+  causal contour adaptations, with their numerical differences and limits.

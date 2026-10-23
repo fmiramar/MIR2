@@ -39,19 +39,27 @@ Nonnegative spectral distance.
 instancemethods::
 
 examples::
+Spectral changes open a bright noise layer. The layer follows the measured flux rather than a fixed clock.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-        FFTFlux2.kr(chain, positive: 1, fftSize: 1024).poll(10, "positive flux");
-        (source * 0.15) ! 2
+        var value = FFTFlux2.kr(chain, positive: 1, fftSize: 1024);
+        var texture = HPF.ar(PinkNoise.ar(0.12), 2000) * (value * 8).clip(0, 1).lag(0.02);
+        (source * 0.18 + texture) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 

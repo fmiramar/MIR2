@@ -1,0 +1,60 @@
+class:: EffectiveDuration
+summary:: Fraction of the window occupied by significant envelope energy
+categories:: UGens>Analysis
+related:: Guides/MIR2, Classes/Amplitude
+
+description::
+Counts RMS frames at least 10 percent of the largest RMS value in the window, corresponding to a relative -20 dB amplitude threshold, and divides by the number of frames. Exact silence returns zero. This is a rolling duration ratio rather than an event duration in seconds.
+
+Frames contain nonoverlapping RMS measurements. Output stays zero until a complete observation window is available, then updates once per RMS frame. Silence returns zero. Runtime cost is linear in windowTime/frameTime per update; there is no callback allocation. These descriptors are rolling summaries and do not segment individual events. Formulas are independently implemented from standard weighted moments and linear regression.
+
+The nearest vanilla building block is link::Classes/Amplitude::, which tracks instantaneous level; this UGen summarizes its recent distribution in time.
+
+classmethods::
+method:: kr
+
+argument:: in
+Audio-rate signal.
+
+argument:: windowTime
+Initialization-time observation duration, 2*frameTime through 10 seconds. Rounded up to whole RMS frames.
+
+argument:: frameTime
+Initialization-time RMS frame duration, 0.001 through 0.1 seconds.
+
+argument:: floorDB
+Silence floor in dBFS, clipped to -160..0. Used by dynamic complexity and dB regression; temporal moments use the original energy.
+
+returns::
+Active fraction from zero through one.
+
+examples::
+The measured envelope shape moves the filter and a quiet reference tone; listen as the sample phrases change.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var value = EffectiveDuration.kr(source, 0.5);
+        var control = value;
+        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 4500), 0.25);
+        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 150, 650), 0, 0.025))
+            * Line.kr(0, 1, 0.7) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+Stop and release the buffer:
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Amplitude::

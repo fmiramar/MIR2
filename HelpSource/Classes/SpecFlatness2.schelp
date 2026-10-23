@@ -36,19 +36,28 @@ A ratio from 0 through 1.
 instancemethods::
 
 examples::
+Spectral flatness crossfades a pitched resonator with a noise texture, following tonal versus noisy passages.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-        SpecFlatness2.kr(chain, fftSize: 1024).poll(5, "flatness");
-        (source * 0.15) ! 2
+        var value = SpecFlatness2.kr(chain, fftSize: 1024).sqrt.lag(0.06);
+        var tone = SinOsc.ar(220, 0, 0.06);
+        var texture = BPF.ar(PinkNoise.ar(0.25), 1500, 0.5);
+        (source * 0.12 + XFade2.ar(tone, texture, value.linlin(0, 1, -1, 1))) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 

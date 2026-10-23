@@ -1,0 +1,60 @@
+class:: FeatureSmooth
+summary:: One-pole smoothing at feature update instants
+categories:: UGens>Analysis
+related:: Guides/MIR2, Classes/Lag
+
+description::
+Updates y = exp(-frameTime/time)*previous + (1-exp(-frameTime/time))*input at accepted update instants. The first accepted value initializes the state directly. time is the 1/e settling constant, unlike the 60 dB lag-time convention used by vanilla Lag.
+
+A negative trigger accepts every control block. A nonnegative trigger accepts only positive edges and holds the output between edges; this lets the caller align updates with analysis frames. frameTime must match that regular update spacing. Irregular triggers do not create a nonuniform regression. Nonfinite input is replaced by zero. Cost and state are constant. This is an independent one-pole low-pass recurrence. Vanilla Lag has a related purpose, while this UGen can update only when a feature frame arrives and uses a 1/e time constant.
+
+classmethods::
+method:: kr
+
+argument:: in
+Control-rate or scalar feature, with multichannel expansion for feature arrays.
+
+argument:: time
+Nonnegative 1/e smoothing time in seconds; zero bypasses smoothing.
+
+argument:: trigger
+Negative: update every control block. Otherwise update on positive edges.
+
+argument:: frameTime
+Seconds between accepted values. Zero uses the server control period; supply the actual period when triggering sparsely.
+
+returns::
+Smoothed input value.
+
+examples::
+A level-derived feature updates 25 times per second. Its processed dynamics control the filter and reference tone, making the utility audible.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var tick = Impulse.kr(25);
+        var feature = Latch.kr(Amplitude.kr(source, 0.005, 0.02).linlin(0, 0.3, 200, 3000), tick);
+        var value = FeatureSmooth.kr(feature, trigger: tick, frameTime: 0.04);
+        var control = value.linlin(200, 3000, 0, 1).clip(0, 1);
+        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 5000), 0.25);
+        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 160, 700), 0, 0.025))
+            * Line.kr(0, 1, 0.5) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+Stop and release the buffer:
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Lag::

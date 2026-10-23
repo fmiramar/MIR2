@@ -30,7 +30,7 @@ argument:: hop
 Update hop as a frame fraction from 0.0625 through 1.
 
 argument:: algorithm
-Literal code::\yin:: or code::\mpm::.
+Literal code::\yin::, code::\mpm::, or code::\swipe::. SWIPE dispatches to PitchSWIPE; use frameSize 8192 when the lower range needs about eight periods per window.
 
 argument:: threshold
 Negative uses the method default. Otherwise this is YIN CMNDF threshold or MPM peak cutoff.
@@ -50,21 +50,26 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
+A tracked sine voice follows the source. Octave ambiguity attenuates the added voice when the evidence is uncertain.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = Pitch2.kr(source, 40, 2000, 2048, 0.25, \mpm);
-        var uncertain = result[3];
-        var tone = SinOsc.ar(result[0].max(40) * [1, 2], 0, 0.04);
-        result.poll(5, "Pitch2 [Hz, confidence, voiced, octave ambiguity]");
-        tone * result[2] * uncertain.linlin(0, 1, 0.25, 1)
+        var result = Pitch2.kr(source, 60, 2000, 2048, 0.25, \mpm);
+        var tone = SinOsc.ar(result[0].clip(40, 2000).lag(0.03), 0, 0.07);
+        (source * 0.12 + tone * result[2].lag(0.02) * (1 - (result[3] * 0.75))) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 

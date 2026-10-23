@@ -36,11 +36,11 @@ void PitchYIN_Ctor(PitchYIN* unit) {
                                  IN0(4), IN0(1), IN0(2))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
-        ClearUnitOutputs(unit, unit->mNumOutputs);
+        ClearUnitOutputs(unit, 1);
         return;
     }
     SETCALC(PitchYIN_next);
-    ClearUnitOutputs(unit, unit->mNumOutputs);
+    ClearUnitOutputs(unit, 1);
 }
 
 void PitchYIN_Dtor(PitchYIN* unit) {
@@ -65,11 +65,11 @@ void PitchMPM_Ctor(PitchMPM* unit) {
                                  IN0(4), IN0(1), IN0(2))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
-        ClearUnitOutputs(unit, unit->mNumOutputs);
+        ClearUnitOutputs(unit, 1);
         return;
     }
     SETCALC(PitchMPM_next);
-    ClearUnitOutputs(unit, unit->mNumOutputs);
+    ClearUnitOutputs(unit, 1);
 }
 
 void PitchMPM_Dtor(PitchMPM* unit) {
@@ -96,7 +96,7 @@ void Periodicity_Ctor(Periodicity* unit) {
                                  IN0(4), IN0(1), IN0(2))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
-        ClearUnitOutputs(unit, unit->mNumOutputs);
+        ClearUnitOutputs(unit, 1);
         return;
     }
     SETCALC(Periodicity_next);
@@ -130,11 +130,11 @@ void Voicing_Ctor(Voicing* unit) {
                                  IN0(2), IN0(3), IN0(4))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
-        ClearUnitOutputs(unit, unit->mNumOutputs);
+        ClearUnitOutputs(unit, 1);
         return;
     }
     SETCALC(Voicing_next);
-    ClearUnitOutputs(unit, unit->mNumOutputs);
+    ClearUnitOutputs(unit, 1);
 }
 
 void Voicing_Dtor(Voicing* unit) {
@@ -187,11 +187,11 @@ void Pitch2_Ctor(Pitch2* unit) {
                                  IN0(4), IN0(1), IN0(2))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
-        ClearUnitOutputs(unit, unit->mNumOutputs);
+        ClearUnitOutputs(unit, 1);
         return;
     }
     SETCALC(Pitch2_next);
-    ClearUnitOutputs(unit, unit->mNumOutputs);
+    ClearUnitOutputs(unit, 1);
 }
 
 void Pitch2_Dtor(Pitch2* unit) {

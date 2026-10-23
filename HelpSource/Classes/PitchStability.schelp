@@ -1,0 +1,58 @@
+class:: PitchStability
+summary:: Confidence-weighted pitch spread over a time window
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+An original statistical descriptor of a supplied pitch trajectory. Frequency is converted to cents relative to 440 Hz; confidence-weighted first and second moments define population variance over the rolling window. Initial estimates use observations collected so far. Unvoiced observations have zero weight; a currently unvoiced input outputs zeros. Vibrato and glissando both increase spread, so this is pitch stability rather than a vibrato classifier. The method is a direct application of weighted variance and contains no borrowed DSP implementation.
+
+Vanilla link::Classes/Lag:: smooths a trajectory. PitchStability measures its spread without modifying the trajectory.
+
+classmethods::
+method:: kr
+argument:: freq
+Supplied control-rate pitch in Hz. Zero or a nonfinite value is excluded.
+
+argument:: confidence
+Weight from 0 through 1 for each supplied observation.
+
+argument:: windowTime
+Literal rolling window in seconds, 0.05 through 5. Storage is capped at 16384 control samples.
+
+returns::
+An Array: stability = exp(-deviationCents / 50), weighted population standard deviation in cents.
+
+examples::
+Steady pitch supports a sine tone; pitch motion opens a noise band. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var pitch = PitchMPM.kr(source, 80, 1200, 4096);
+        var stability = PitchStability.kr(pitch[0], pitch[1], 0.25);
+        var stableTone = SinOsc.ar(pitch[0].max(20), 0, stability[0] * 0.1 * pitch[2]);
+        var gestureNoise = BPF.ar(PinkNoise.ar(0.08), 500 + stability[1].clip(0, 1000) * 4, 0.3);
+        var sound = (source * 0.1 + stableTone + (gestureNoise * (1 - stability[0]) * pitch[2])) ! 2;
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

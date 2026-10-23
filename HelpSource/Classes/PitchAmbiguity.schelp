@@ -1,0 +1,70 @@
+class:: PitchAmbiguity
+summary:: Candidate entropy and octave competition
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+Uses the same fixed candidate engine as link::Classes/FundamentalCandidates::. For K nonzero candidates with weights p, entropy is -sum(q * log(q)) / log(K), with q = p / sum(p). Fewer than two candidates gives zero entropy. Octave ambiguity is the strongest octave competitor weight divided by the leading weight, clipped to 0 through 1; competitors within 80 cents of a half, double, quarter, or quadruple frequency count. This is MIR2's descriptive statistic, not a new pitch estimator or calibrated error probability. The probabilistic candidate model is inspired by Mauch and Dixon (ICASSP 2014).
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal. Use one analyzer per channel; mix deliberately before analysis when appropriate.
+
+argument:: minFreq
+Initialization-time lower frequency bound in Hz. Time-domain methods need at least two periods in frameSize; SWIPE benefits from eight periods.
+
+argument:: maxFreq
+Initialization-time upper frequency bound in Hz, greater than minFreq and below Nyquist.
+
+argument:: frameSize
+Literal power of two from 256 through 8192. First result follows one full frame. SWIPE uses centred Hann windows from 256 samples through this maximum, aligned to the centre of the trailing frame.
+
+argument:: hop
+Literal frame fraction from 0.0625 through 1. Updates every round(frameSize * hop) samples; this is not seconds.
+
+argument:: method
+Candidate engine: \probYin, \yin, \mpm, \harmonic, or \swipe.
+
+argument:: binsPerOctave
+Literal integer from 12 through 96. Spectral candidate frequencies are minFreq * 2 ** (index / binsPerOctave); higher density costs CPU and initialization memory.
+
+returns::
+An Array: normalized candidate entropy, octave ambiguity, strongest octave-related competitor in Hz.
+
+examples::
+Candidate entropy opens a noise band; octave competition adds a tone at the competing frequency. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = PitchAmbiguity.kr(source, method: \yin);
+        var pulse = SinOsc.ar(result[2].max(60), 0, result[1] * 0.06);
+        var noise = BPF.ar(PinkNoise.ar(0.06), 300 + (result[0] * 5000), 0.3);
+        var sound = (source * 0.1) + pulse + (noise * result[0]);
+        sound = sound ! 2;
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

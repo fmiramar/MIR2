@@ -1,0 +1,69 @@
+class:: Vibrato2
+summary:: Measure vibrato rate and extent from a supplied pitch contour
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+An original least-squares descriptor, operating on a supplied pitch contour without duplicating F0 estimation. It samples the cents trajectory at approximately 100 Hz, removes a confidence-weighted straight-line trend, and fits sine/cosine pairs on a 0.05 Hz rate grid. The best fit defines rate and twice its amplitude defines extent. Presence requires confidence at least 0.6, sufficient extent and two cycles of the slowest allowed rate. Sampling is intended for smooth pitch contours; modulation above the contour Nyquist rate can alias. Missing data and very short notes inhibit detection. This sinusoid model handles regular vibrato; irregular modulation may have low confidence.
+
+Vanilla link::Classes/Vibrato:: generates vibrato. Vibrato2 measures the modulation already present in a frequency control signal.
+
+classmethods::
+method:: kr
+argument:: freq
+Supplied control-rate frequency in Hz; zero means unvoiced.
+
+argument:: pitchConfidence
+Observation weight from 0 through 1. At least 80% weighted coverage is needed.
+
+argument:: minRate
+Lowest modulation frequency in Hz, at least 0.5. At least two periods at this rate must fit in the window.
+
+argument:: maxRate
+Highest modulation frequency in Hz; internally limited below the decimated contour Nyquist frequency.
+
+argument:: minExtent
+Minimum peak-to-peak extent in cents for present = 1.
+
+argument:: windowTime
+Literal analysis window from 0.1 through 5 seconds. First result waits for the full window; estimates update approximately 20 times per second.
+
+returns::
+An Array: presence flag, modulation rate in Hz, peak-to-peak extent in cents, explained residual-variance fraction times weighted coverage.
+
+examples::
+A known vibrato is added to the estimated contour; its detected rate controls the right-channel tremolo. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var pitch = PitchMPM.kr(source, 80, 1200, 4096);
+        // Add known vibrato to the extracted contour so its detection is audible.
+        var contour = pitch[0] * (SinOsc.kr(5.5) * 0.7).midiratio;
+        var result = Vibrato2.kr(contour, pitch[2], 3, 10, 10, 0.8);
+        var tone = SinOsc.ar(contour.max(20), 0, pitch[2] * 0.09);
+        var tremolo = 1 - (SinOsc.kr(result[1].max(0.1)).range(0, 0.7) * result[0]);
+        var sound = [source * 0.1 + tone, tone * tremolo];
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

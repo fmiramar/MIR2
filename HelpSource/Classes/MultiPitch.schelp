@@ -1,0 +1,75 @@
+class:: MultiPitch
+summary:: Estimate several simultaneous harmonic fundamentals
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+An independent Klapuri-style iterative estimator based on “Multiple Fundamental Frequency Estimation by Summing Harmonic Amplitudes” (ISMIR 2006, DOI 10.5281/zenodo.1416740). Hann frames are zero-padded to twice their length. Thirty critical-band triangles estimate whitening gains with exponent -0.67. Harmonic weights are (f0 + 52) / (harmonicFrequency + 320); candidates are selected, their Hann main-lobe neighbourhoods are suppressed, and extraction stops when sum(selectedSaliences) / count**0.7 decreases. MIR2 uses a bounded log-frequency grid, at most 80 partials, 0.9 cancellation, and a spectral-flatness gate; this changes the paper's continuous period search and reconstructed partial cancellation. Close notes, octave-related sources, dense chords, percussion and inharmonic sounds remain difficult. The first implementation is experimental and does not identify separate instruments.
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal. Use one analyzer per channel; mix deliberately before analysis when appropriate.
+
+argument:: maxPolyphony
+Literal capacity from 1 through 6. Unfilled frequencies and strengths are zero.
+
+argument:: minFreq
+Initialization-time lower frequency bound in Hz. Time-domain methods need at least two periods in frameSize; SWIPE benefits from eight periods.
+
+argument:: maxFreq
+Initialization-time upper frequency bound in Hz, greater than minFreq and below Nyquist.
+
+argument:: frameSize
+Literal power of two from 256 through 8192. First result follows one full frame. SWIPE uses centred Hann windows from 256 samples through this maximum, aligned to the centre of the trailing frame.
+
+argument:: hop
+Literal frame fraction from 0.0625 through 1. Updates every round(frameSize * hop) samples; this is not seconds.
+
+argument:: method
+The available method is \klapuri, a documented iterative adaptation.
+
+argument:: threshold
+Stop when the next residual score is below this fraction of the initial score, from 0 through 1; the polyphony objective also stops extraction.
+
+argument:: binsPerOctave
+Literal integer from 12 through 96. Spectral candidate frequencies are minFreq * 2 ** (index / binsPerOctave); higher density costs CPU and initialization memory.
+
+returns::
+An Array containing frequency Array, relative-strength Array, and detected count. Strength is residual salience relative to the first selected source, not probability.
+
+examples::
+A shifted copy creates a small mixture; each extracted F0 drives one spatialized oscillator. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var mixed = source + PitchShift.ar(source, 0.12, 1.5, 0, 0.01) * 0.5;
+        var result = MultiPitch.kr(mixed, 3, 100, 1200);
+        var voices = SinOsc.ar(result[0].max(20), 0, result[1] * (result[0] > 0) * 0.045);
+        var sound = Splay.ar(voices) + (mixed * 0.1);
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

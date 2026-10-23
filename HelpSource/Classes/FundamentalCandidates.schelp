@@ -1,0 +1,71 @@
+class:: FundamentalCandidates
+summary:: Expose competing fundamental frequencies and their weights
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+Retains multiple local extrema instead of discarding alternatives after one F0 decision. The YIN and MPM modes use the existing MIR2 CMNDF and NSDF kernels. The probabilistic mode integrates a Beta(2,18) prior over discrete thresholds following Mauch and Dixon, pYIN (ICASSP 2014, DOI 10.1109/ICASSP.2014.6853678). Harmonic and SWIPE modes use the spectral engines described in link::Classes/MultiPitch:: and link::Classes/PitchSWIPE::. A fixed 16-slot internal list bounds work and memory; truncation does not redistribute discarded probabilistic mass.
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes several candidate interpretations rather than only one frequency and a hasFreq flag.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal. Use one analyzer per channel; mix deliberately before analysis when appropriate.
+
+argument:: maxCandidates
+Literal output capacity from 1 through 16. Unused slots contain zeros.
+
+argument:: minFreq
+Initialization-time lower frequency bound in Hz. Time-domain methods need at least two periods in frameSize; SWIPE benefits from eight periods.
+
+argument:: maxFreq
+Initialization-time upper frequency bound in Hz, greater than minFreq and below Nyquist.
+
+argument:: frameSize
+Literal power of two from 256 through 8192. First result follows one full frame. SWIPE uses centred Hann windows from 256 samples through this maximum, aligned to the centre of the trailing frame.
+
+argument:: hop
+Literal frame fraction from 0.0625 through 1. Updates every round(frameSize * hop) samples; this is not seconds.
+
+argument:: method
+One of \yin, \mpm, \probYin, \harmonic, or \swipe. Candidate probabilities for probYin are threshold-prior mass; all other methods return normalized evidence weights multiplied by a frame evidence score.
+
+argument:: binsPerOctave
+Literal integer from 12 through 96. Spectral candidate frequencies are minFreq * 2 ** (index / binsPerOctave); higher density costs CPU and initialization memory.
+
+returns::
+An Array containing two Arrays: frequencies in Hz, and corresponding probabilities or evidence weights. Candidates are sorted strongest first; this represents alternative interpretations of a frame, not simultaneous notes.
+
+examples::
+Competing candidates become a softly weighted oscillator chord; changing uncertainty changes the harmony. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = FundamentalCandidates.kr(source, 4);
+        var voices = SinOsc.ar(result[0].max(20), 0, result[1] * 0.07);
+        var sound = Splay.ar(voices) + (source * 0.08);
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

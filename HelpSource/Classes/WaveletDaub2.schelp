@@ -1,0 +1,56 @@
+class:: WaveletDaub2
+summary:: Daubechies analysis, coefficient removal and audio reconstruction
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/WaveletBands
+
+description::
+Transforms non-overlapping frames, clears a prefix of the coefficient vector, and reconstructs with the transpose orthonormal transform. A zero removal count reconstructs the input with exactly frameSize samples of delay. Coefficients are ordered from the coarsest approximation to the finest detail; removal starts at the low-frequency end.
+
+Uses a critically sampled orthonormal discrete wavelet transform with Haar/db1 through db4 filters, following Daubechies, Orthonormal Bases of Compactly Supported Wavelets (1988), DOI 10.1002/cpa.3160410705. Each stage convolves and downsamples its approximation band; the high-pass filter is the quadrature mirror of the low-pass filter. Periodic extension is applied within each analysis frame. No external wavelet library is linked.
+
+Frame-boundary edits can cause discontinuities; this is a block transform effect, without overlap smoothing. Silence returns zero. Higher orders increase filter support; this implementation currently supports periodic boundaries only. Memory is allocated at construction. Scale energies reveal multiscale structure; they should not be read as sharply separated frequency bands.
+
+Vanilla DelayN can reproduce the delay when no coefficients are removed. WaveletDaub2 additionally removes components in a wavelet basis before reconstruction.
+
+classmethods::
+method:: ar
+argument:: in
+Mono audio-rate input.
+argument:: frameSize
+Literal power of two from 32 through 8192. Default 512; also the exact output delay in samples.
+argument:: order
+Literal Daubechies order from 1 through 4; one is Haar, four has eight filter taps.
+argument:: levels
+Literal number of decomposition levels, 1 through log2(frameSize). Default 6; outputs run from the coarsest approximation to finest detail.
+argument:: remove
+Number of leading wavelet coefficients to set to zero, 0 through frameSize, sampled each frame. Zero gives exact delayed reconstruction; frameSize gives silence.
+
+examples::
+Compare the delayed source at left with coefficient-filtered reconstruction at right.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var wet = WaveletDaub2.ar(source, remove: 64);
+        var dry = DelayN.ar(source, 0.1, 512 / SampleRate.ir);
+        var sound = [dry, wet] * 0.22;
+        sound * Line.kr(0,1,0.25)
+    }.play;
+}).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/WaveletBands::
+link::Classes/WaveletDaub2::

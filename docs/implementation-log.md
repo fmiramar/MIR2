@@ -98,3 +98,35 @@ were not run.
 These remain roadmap phases requiring their own paper-based implementation,
 tests, CPU evaluation, and any applicable code/model/data license review.
 
+
+## 2026-10-22 development expansion checkpoint
+
+The broader implementation remains active. The expansion currently contains
+82 integrated public classes in the onset, extended spectral, auditory,
+advanced pitch, temporal, stereo, and feature-dynamics families, plus seven
+newly completed wavelet classes awaiting the next installed example sweep.
+
+Verified at this checkpoint:
+
+- strict scsynth and supernova compilation for the 82-class integration;
+- six CTest executables passed, with assertions enabled even in Release;
+- installed class compilation and exact class-origin checks;
+- forced installed SCDoc indexing and rendering of all 82 class pages with no
+  warning or error;
+- construction of all 82 audible example SynthDefs and three-second NRT
+  execution of each; every output was finite, bounded and non-silent;
+- wavelet strict scsynth build plus exact Haar oracle, random db1–db4
+  reconstruction and energy conservation across frame sizes 32–8192 and all
+  legal levels.
+
+The Onsets2 synthetic report includes independently swept thresholds for
+revised, original MIR2, and external native OnsetsDS implementations. It does
+not claim listening approval or accuracy on annotated recordings. The shared
+FFT reader no longer changes the input buffer's coordinate representation.
+A review also corrected the old/new pitch constructor calls to
+ClearUnitOutputs: its second argument is a sample count, not an output count.
+
+Local installation was performed. No Git push, hosted CI, release upload, or
+publication occurred. Remaining mandatory families are tracked explicitly in
+roadmap-status.md. Parallel agents hit a usage limit; their work was preserved
+and integration continued in the parent agent.

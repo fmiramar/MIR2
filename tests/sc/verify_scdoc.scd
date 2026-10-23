@@ -1,11 +1,9 @@
 (
-var pages = [
-    "Classes/SpecCentroid2", "Classes/SpecFlatness2", "Classes/SpecPcile2",
-    "Classes/MFCC2", "Classes/FFTFlux2", "Classes/Onsets2",
-    "Classes/PitchYIN", "Classes/PitchMPM", "Classes/Periodicity",
-    "Classes/Voicing", "Classes/Pitch2",
-    "Guides/MIR2", "Guides/MIR2-legacy-migration", "Guides/MIR2-and-FluCoMa"
-];
+var sourceRoot = Pitch2.filenameSymbol.asString.dirname.dirname +/+ "HelpSource";
+var pages = ["Classes", "Guides"].collect { |folder|
+    PathName(sourceRoot +/+ folder).files.select { |p| p.extension == "schelp" }
+        .collect { |p| folder +/+ p.fileNameWithoutExtension }
+}.flat;
 var ok = true;
 
 SCDoc.verbosity = 2;

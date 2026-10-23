@@ -1,0 +1,68 @@
+class:: PredominantPitch
+summary:: Causal predominant melodic-contour estimate
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+A causal contour adaptation inspired by Salamon and Gomez, “Melody Extraction from Polyphonic Music Signals using Pitch Contour Characteristics”, IEEE TASLP 20(6), 2012, DOI 10.1109/TASL.2012.2188515. Harmonic-salience peaks are linked into up to 16 contours with exclusive nearest-frequency assignment. Each track accumulates duration, mean log pitch, variance, mean salience and continuity. Selection combines salience, duration maturity, continuity and a 15% incumbent preference; gaps are retained for 80 ms but emit zero frequency. A spectral-flatness gate rejects broadband noise. This is an experimental online adaptation: it does not reproduce MELODIA's whole-recording statistics, contour filtering or offline octave corrections. It can follow a salient accompaniment instead of the intended melody. Restrict the search range to the desired register.
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal. Use one analyzer per channel; mix deliberately before analysis when appropriate.
+
+argument:: minFreq
+Initialization-time lower frequency bound in Hz. Time-domain methods need at least two periods in frameSize; SWIPE benefits from eight periods.
+
+argument:: maxFreq
+Initialization-time upper frequency bound in Hz, greater than minFreq and below Nyquist.
+
+argument:: frameSize
+Literal power of two from 256 through 8192. First result follows one full frame. SWIPE uses centred Hann windows from 256 samples through this maximum, aligned to the centre of the trailing frame.
+
+argument:: hop
+Literal frame fraction from 0.0625 through 1. Updates every round(frameSize * hop) samples; this is not seconds.
+
+argument:: minDuration
+Minimum observed contour duration in seconds before output, from 0 through 1. Adds this much warmup after the first frame; default 0.06.
+
+argument:: binsPerOctave
+Literal integer from 12 through 96. Spectral candidate frequencies are minFreq * 2 ** (index / binsPerOctave); higher density costs CPU and initialization memory.
+
+returns::
+An Array: frequency in Hz, selected contour score divided by eligible contour score sum, voiced flag.
+
+examples::
+The source plays at left; the selected continuing melodic contour drives the right oscillator. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = PredominantPitch.kr(source, 100, 1200);
+        var follower = SinOsc.ar(result[0].max(20), 0, Lag.kr(result[1] * result[2], 0.04) * 0.16);
+        var sound = [source * 0.12, follower];
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

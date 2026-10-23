@@ -1,0 +1,88 @@
+class:: PitchSalienceBuf
+summary:: Write a dense pitch-salience grid into a Buffer
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+Exposes high-dimensional spectral pitch evidence through a Buffer to avoid hundreds of control outputs. Uses the prime SWIPE engine of Camacho and Harris (JASA 2008) or the harmonic summation engine adapted from Klapuri (ISMIR 2006); see link::Classes/PitchSWIPE:: and link::Classes/MultiPitch:: for exact conventions and limits. Values are salience, not a probability distribution. Audio is framed internally, with the same causal timing as the scalar pitch family. PitchSalience is a language convenience name for PitchSalienceBuf; both write the same representation.
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal. Use one analyzer per channel; mix deliberately before analysis when appropriate.
+
+argument:: bufnum
+Allocated mono Buffer with at least numBins samples. Allocation must finish before the Synth starts. Invalid buffers suppress writes and return a zero update flag.
+
+argument:: minFreq
+Initialization-time lower frequency bound in Hz. Time-domain methods need at least two periods in frameSize; SWIPE benefits from eight periods.
+
+argument:: maxFreq
+Initialization-time upper frequency bound in Hz, greater than minFreq and below Nyquist.
+
+argument:: binsPerOctave
+Literal integer from 12 through 96. Spectral candidate frequencies are minFreq * 2 ** (index / binsPerOctave); higher density costs CPU and initialization memory.
+
+argument:: frameSize
+Literal power of two from 256 through 8192. First result follows one full frame. SWIPE uses centred Hann windows from 256 samples through this maximum, aligned to the centre of the trailing frame.
+
+argument:: hop
+Literal frame fraction from 0.0625 through 1. Updates every round(frameSize * hop) samples; this is not seconds.
+
+argument:: method
+One of \swipe (normalized prime-kernel similarity) or \harmonic (whitened harmonic score relative to the largest frame score).
+
+returns::
+An Array: one-control-block update flag and number of written bins. Buffer bin i represents minFreq * 2 ** (i / binsPerOctave) Hz.
+
+method:: numBins
+Returns the required Buffer length for the selected frequency grid.
+
+argument:: minFreq
+Grid lower frequency in Hz.
+
+argument:: maxFreq
+Grid upper frequency in Hz.
+
+argument:: binsPerOctave
+Grid density from 12 through 96.
+
+examples::
+Read seven positions from the dense salience grid to animate a spectral oscillator bank. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    var salience = Buffer.alloc(s, PitchSalienceBuf.numBins(110, 880, 24), 1);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var update = PitchSalienceBuf.kr(source, salience, 110, 880, 24, 4096, 0.25);
+        var strengths = BufRd.kr(1, salience, [0, 12, 24, 36, 48, 60, 72]);
+        var freqs = 110 * (2 ** ([0, 12, 24, 36, 48, 60, 72] / 24));
+        var voices = SinOsc.ar(freqs, 0, Lag.kr(strengths, 0.04) * 0.06);
+        var sound = Splay.ar(voices) + source * 0.08;
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+    ~mir2SalienceBuffer = salience;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+~mir2SalienceBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

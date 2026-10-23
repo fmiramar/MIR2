@@ -1,0 +1,68 @@
+class:: PitchSWIPE
+summary:: Prime-harmonic SWIPE spectral pitch evidence
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+Paper-based SWIPE prime implementation after Camacho and Harris, JASA 124(3), 2008, DOI 10.1121/1.2951592. It resamples square-root magnitude onto a 0.1 ERB grid, applies signed cosine kernels at the first and prime harmonics with a 1/sqrt(frequency) envelope, and normalizes by positive-kernel and loudness norms. Candidate-dependent optimal window duration is eight periods; neighbouring power-of-two Hann-window strengths are blended in log window length. All windows share one causal frame centre. The longest window is capped at frameSize, so the low end deteriorates when eight periods do not fit; for 55 Hz at 48 kHz use 8192. MIR2 uses 2x FFT padding, linear ERB interpolation and parabolic interpolation on a log-frequency grid, rather than reproducing the reference offline interpolation exactly. No external implementation code is incorporated. Strength is spectral similarity, not probability.
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal. Use one analyzer per channel; mix deliberately before analysis when appropriate.
+
+argument:: minFreq
+Initialization-time lower frequency bound in Hz. Time-domain methods need at least two periods in frameSize; SWIPE benefits from eight periods.
+
+argument:: maxFreq
+Initialization-time upper frequency bound in Hz, greater than minFreq and below Nyquist.
+
+argument:: frameSize
+Literal power of two from 256 through 8192. First result follows one full frame. SWIPE uses centred Hann windows from 256 samples through this maximum, aligned to the centre of the trailing frame.
+
+argument:: hop
+Literal frame fraction from 0.0625 through 1. Updates every round(frameSize * hop) samples; this is not seconds.
+
+argument:: strengthThreshold
+Minimum spectral similarity for a voiced F0. Default 0.2. Strength remains available below threshold; frequency and voiced become zero.
+
+argument:: binsPerOctave
+Literal integer from 12 through 96. Spectral candidate frequencies are minFreq * 2 ** (index / binsPerOctave); higher density costs CPU and initialization memory.
+
+returns::
+An Array: frequency in Hz, strength from 0 through 1, voiced flag, octave competitor ratio.
+
+examples::
+Compare the source at left with prime-harmonic spectral pitch resynthesis at right. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var result = PitchSWIPE.kr(source, 80, 1200);
+        var follower = SinOsc.ar(Lag.kr(result[0].max(20), 0.02), 0, Lag.kr(result[1] * result[2], 0.02) * 0.16);
+        var sound = [source * 0.12, follower];
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

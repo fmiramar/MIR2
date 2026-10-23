@@ -1,0 +1,73 @@
+class:: PitchContour
+summary:: Causal dynamic-programming tracker for candidate arrays
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+Uses a fixed-capacity candidate graph and Viterbi-style min-sum dynamic programming: negative log observation weight plus continuity, octave and voicing transition costs. This follows the general candidate-tracking approach used by probabilistic pitch estimators such as Mauch and Dixon (ICASSP 2014); the sparse state graph and transition formula are MIR2 conventions, not the pYIN HMM. A ring of 32 predecessor rows supports bounded traceback. There is no hidden pitch analyzer. Frequency zero marks the unvoiced state; confidence is the selected observation weight, not a posterior path probability.
+
+Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
+
+classmethods::
+method:: kr
+argument:: candidateFreqs
+Array of 1 through 16 candidate frequencies in Hz. Zero means absent.
+
+argument:: candidateProbabilities
+Matching Array of nonnegative weights. Sum below 1 reserves unvoiced mass; sums above 1 are normalized.
+
+argument:: maxJump
+Cents per update before an additional transition cost of 8 is applied. This is a soft limit.
+
+argument:: transitionWeight
+Nonnegative cost multiplier for absolute cents motion divided by maxJump.
+
+argument:: octavePenalty
+Additional nonnegative cost for octave-related transitions within 80 cents.
+
+argument:: unvoicedPenalty
+Nonnegative cost for switching between voiced and unvoiced states.
+
+argument:: trig
+Positive values advance the candidate graph once this control block. Supply a hop-rate impulse to process each analysis observation once; default 1 advances every block.
+
+argument:: lag
+Literal traceback delay from 0 through 31 update ticks. Zero returns the latest best-path endpoint.
+
+returns::
+An Array: tracked frequency in Hz, selected candidate observation probability, signed pitch jump in cents.
+
+examples::
+A two-update traceback stabilizes the candidate-driven oscillator heard at right. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var candidates = FundamentalCandidates.kr(source, 5, frameSize: 4096, hop: 0.25);
+        var tick = Impulse.kr(SampleRate.ir / 1024);
+        var track = PitchContour.kr(candidates[0], candidates[1], trig: tick, lag: 2);
+        var voice = SinOsc.ar(track[0].max(20), 0, Lag.kr(track[1] * (track[0] > 0), 0.02) * 0.15);
+        var sound = [source * 0.12, voice];
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

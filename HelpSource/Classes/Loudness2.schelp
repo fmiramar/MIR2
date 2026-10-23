@@ -1,0 +1,66 @@
+class:: Loudness2
+summary:: Calibrated revision of the informal SuperCollider loudness model
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/Loudness
+
+description::
+Returns [sones, phons] using a modernization of Nick Collins's 2007 SuperCollider loudness model and its 42-band equal-loudness contour table. Source: link::https://github.com/supercollider/supercollider/blob/Version-3.14.1/server/plugins/Loudness.cpp::. This is an informal perceptual feature, not an ISO-compliant or EBU R128 meter. The original contour table does not document its acoustic-field provenance; MIR2 applies no diffuse-field or free-field correction. Absolute acoustic claims require externally calibrated and equalized input and independent validation.
+
+Band boundaries are stored in Hz from the original 44.1 kHz/1024 grid; each FFT bin contributes according to its overlap with a band. One-sided spectral power is converted to mean-square input power with Parseval scaling and the specified windowPower. A unit-peak sine corresponds to calibration dB SPL. Per-band SPL is interpolated through the inherited contour table, whose per-band range is 2..100 phon; lower levels contribute nothing and higher ones saturate at 100 phon. Intensities 10.pow(phon/10)-1 are summed, giving total phons = 10*log10(1+sum). The subtraction removes the legacy model's residual silence.
+
+After exponential attack/release smoothing of summed excitation, sones = 2.pow((phons-40)/10) above 40 phon. Below 40 phon, sones = (phons/40).pow(2.86), reaching zero at silence. Attack and release are e-folding time constants in seconds, measured using actual time between FFT frames. At zero smoothing, silence returns [0, 0] immediately; with release smoothing the previous excitation decays to zero. The model excludes DC and frequencies below about 21.5 Hz, and its table ends near 22.05 kHz.
+
+Memory is one magnitude frame. Cost is linear in FFT bins plus the 42-band contour conversions; no allocations occur during processing. It adds smoothing delay but no lookahead beyond the FFT window. A 1024-sample FFT window is 21.3 ms at 48 kHz.
+
+Like vanilla link::Classes/Loudness::, this estimates informal perceptual loudness in sones. Loudness2 supports explicit FFT size and window/calibration conventions, returns phons too, removes residual silence, and expresses smoothing in seconds. It omits the legacy per-bin spectral masking heuristic; its levels are therefore not a drop-in numerical match.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain whose buffer matches fftSize.
+argument:: calibration
+SPL assigned to a unit-peak sinusoid, clipped to 20..140 dB; default 100. This is a declared input convention, not an automatic microphone calibration.
+argument:: attack
+Excitation attack time constant in seconds; 0 disables attack smoothing. Default 0.01.
+argument:: release
+Excitation release time constant in seconds; 0 disables release smoothing. Default 0.1.
+argument:: windowPower
+Mean square of the FFT analysis window. Default 0.375 matches a full-length Hann window; use 1 for a rectangular window. Other windows and zero padding require their actual energy gain over fftSize.
+argument:: fftSize
+Literal power of two 256..8192, matching the FFT buffer.
+returns::
+Two control outputs: sones, then phons. Their accuracy is limited by the inherited informal model.
+
+examples::
+Estimated loudness opens a filter: louder passages become brighter. The recording remains the source of the audible result.
+code::
+(
+s.waitForBoot {
+    Routine({
+        var buffer = Buffer.read(s, ExampleFiles.child);
+        s.sync;
+        ~mir2Example = {
+            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+            // For live input instead: source = SoundIn.ar(0);
+            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+            var loudness = Loudness2.kr(chain, fftSize: 1024);
+            var amount = Lag.kr((loudness[1] / 80).clip(0, 1), 0.05);
+            var cutoff = amount.linexp(0, 1, 200, 6500);
+            var fade = Line.kr(0, 1, 0.2);
+            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
+        }.play;
+        ~mir2Example.onFree { buffer.free };
+    }).play(AppClock);
+};
+)
+
+// Stop and free the sample buffer.
+(
+~mir2Example.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Loudness::
+link::Classes/Amplitude::

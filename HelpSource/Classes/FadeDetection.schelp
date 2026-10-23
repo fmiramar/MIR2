@@ -1,0 +1,63 @@
+class:: FadeDetection
+summary:: Direction and fit of a rolling level fade
+categories:: UGens>Analysis
+related:: Guides/MIR2, Classes/Slope
+
+description::
+Fits RMS frame level in dB versus seconds using ordinary least squares. Returns a direction only when the absolute slope exceeds slopeThreshold and the coefficient of determination R.squared reaches minFit. Rising level gives +1, falling gives -1, otherwise zero. This describes the recent window rather than emitting a boundary trigger. The dB floor bounds silence. It is an independent regression descriptor.
+
+Output starts after windowTime and updates every frameTime. Runtime is linear in the number of envelope frames, with no callback allocation. Vanilla Slope measures a local control derivative; FadeDetection fits a longer level trend and reports its goodness of fit.
+
+classmethods::
+method:: kr
+
+argument:: in
+Audio-rate signal.
+
+argument:: windowTime
+Initialization-time observation duration, 2*frameTime through 10 seconds. Rounded up to whole RMS frames.
+
+argument:: frameTime
+Initialization-time RMS frame duration, 0.001 through 0.1 seconds.
+
+argument:: slopeThreshold
+Nonnegative required absolute slope in dB/second.
+
+argument:: minFit
+Required R.squared from zero through one.
+
+argument:: floorDB
+Level floor, -160..0 dBFS.
+
+returns::
+Array [direction, slopeDBPerSecond, fit].
+
+examples::
+A slow fade is applied to the source. Descending, neutral, and ascending trends select low, middle, and high tones; fit controls tone level.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var shaped = source * SinOsc.kr(0.25).range(0.03, 1);
+        var fade = FadeDetection.kr(shaped, 0.5, slopeThreshold: 2, minFit: 0.3);
+        var tone = SinOsc.ar(Select.kr(fade[0] + 1, [220, 440, 880]), 0, 0.03 * fade[2]);
+        (shaped * 0.2 + tone) * Line.kr(0, 1, 0.6) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+Stop and release the buffer:
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Slope::

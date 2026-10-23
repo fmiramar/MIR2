@@ -1,0 +1,59 @@
+class:: PitchDeviation
+summary:: Signed cents deviation from a reference or tuning grid
+categories:: UGens>Analysis>Pitch
+related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+
+description::
+Uses the logarithmic frequency-ratio definition of musical cents. The previous mode compares consecutive control blocks and resets its reference on an unvoiced block. Reference mode accepts a changing frequency, so a custom tuning system can supply its selected reference externally. There is no internal pitch estimation or smoothing.
+
+Vanilla link::Classes/UnaryOpUGen:: frequency-to-MIDI arithmetic can express the same cents conversion. This class also supplies reference/grid/previous policies and explicit undefined-input behavior.
+
+classmethods::
+method:: kr
+argument:: freq
+Control-rate frequency in Hz; invalid or nonpositive values return zero.
+
+argument:: reference
+Positive reference in Hz. In nearest12TET mode it anchors the equal-tempered grid; another reference can establish a custom anchor.
+
+argument:: mode
+One of \reference (1200 * log2(freq/reference)), \nearest12TET (nearest 100-cent grid point), or \previous (previous control-block frequency).
+
+returns::
+Signed deviation in cents. Positive is sharp; negative is flat. Exact half-semitone ties use round-away-from-zero in the grid index.
+
+examples::
+Compare the detected intonation at left with its nearest equal-tempered pitch at right. Boot the server before evaluation. The short fade masks analysis warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2PitchExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var pitch = PitchMPM.kr(source, 80, 1200, 4096);
+        var cents = PitchDeviation.kr(pitch[0]);
+        var snapped = pitch[0] * (cents.neg / 100).midiratio;
+        var original = SinOsc.ar(pitch[0].max(20), 0, pitch[1] * pitch[2] * 0.07);
+        var quantized = SinOsc.ar(snapped.max(20), 0, pitch[1] * pitch[2] * 0.07);
+        var sound = [original + source * 0.08, quantized + source * 0.08];
+        sound * Line.kr(0, 1, 0.25)
+    }.play;
+    ~mir2PitchBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release the example:
+code::
+(
+~mir2PitchExample.free;
+~mir2PitchBuffer.free;
+ )
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Pitch2::
+link::Classes/FundamentalCandidates::

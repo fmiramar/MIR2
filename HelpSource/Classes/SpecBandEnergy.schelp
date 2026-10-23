@@ -1,0 +1,68 @@
+class:: SpecBandEnergy
+summary:: Energy within a selected frequency band
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/SpecCentroid2
+
+description::
+Returns sum(w) between minFreq and maxFreq. It uses exactly the same kernel as SpecEnergy; its separate name emphasizes a restricted-band application. No FFT-size or window normalization is applied.
+
+For these formulas w is the raw FFT magnitude or its square, and f is the bin-center frequency in Hz. Silence returns 0. The reader preserves the FFT chain. Peeters (2004), A Large Set of Audio Features for Sound Description; mathematical definitions are implemented independently. Source: link::https://recherche.ircam.fr/anasyn/peeters/ARTICLES/Peeters_2003_cuidadoaudiofeatures.pdf::.
+
+CPU cost is linear in the number of FFT bins; no memory is allocated while processing. It adds no lookahead beyond the upstream FFT. At a 1024-sample window and 48 kHz the initial analysis window is about 21.3 ms. Changing FFT size or window affects unnormalized values.
+
+Like vanilla link::Classes/SpecCentroid::, this reads FFT frames and produces control-rate timbre information; this class measures energy within a selected frequency band instead of the average frequency.
+
+classmethods::
+method:: kr
+
+argument:: chain
+FFT chain from an FFT with the same literal fftSize. New-frame values update the output; between frames the previous output is retained.
+
+argument:: minFreq
+Lowest included bin center in Hz; default 0 includes DC.
+
+argument:: maxFreq
+Highest included bin center in Hz; 0 selects Nyquist. Empty ranges return 0.
+
+argument:: spectrumMode
+Literal 0 uses magnitude; literal 1 uses squared magnitude (power).
+
+argument:: fftSize
+Literal power of two from 256 through 8192. Must match the FFT buffer.
+
+returns::
+One control-rate descriptor value.
+
+examples::
+The descriptor opens a low-pass filter: stronger descriptor values make the sample brighter. The mapping is deliberately bounded so the result stays audible on this recording.
+code::
+(
+s.waitForBoot {
+    Routine({
+        var buffer = Buffer.read(s, ExampleFiles.child);
+        s.sync;
+        ~mir2Example = {
+            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+            // For live input instead: source = SoundIn.ar(0);
+            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+            var feature = SpecBandEnergy.kr(chain, minFreq: 300, maxFreq: 1800, fftSize: 1024);
+            var amount = Lag.kr(((feature + 1).log / 9).clip(0, 1), 0.08);
+            var cutoff = amount.linexp(0, 1, 250, 6500);
+            var fade = Line.kr(0, 1, 0.15);
+            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
+        }.play;
+        ~mir2Example.onFree { buffer.free };
+    }).play(AppClock);
+};
+)
+
+// Stop the example and release its sample buffer.
+(
+~mir2Example.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/SpecCentroid2::
+link::Classes/SpecFlatness2::

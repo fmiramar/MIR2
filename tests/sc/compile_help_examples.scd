@@ -34,8 +34,8 @@ files.do { |path|
     }
 };
 
-if(compiled != 12) {
-    "Expected 12 runnable help examples, compiled %".format(compiled).postln;
+if(compiled < files.size) {
+    "Expected at least one runnable example per page, compiled % for % pages".format(compiled, files.size).postln;
     ok = false
 };
 

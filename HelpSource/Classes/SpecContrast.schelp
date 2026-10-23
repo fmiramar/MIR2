@@ -1,0 +1,64 @@
+class:: SpecContrast
+summary:: Spectral peak to valley contrast by band
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/SpecCentroid2
+
+description::
+Each band sorts the bin weights. It averages the highest and lowest ceil(quantile * binCount) weights and returns their dB difference. Magnitude uses 20 log10 and power uses 10 log10; a 1e-20 floor keeps results finite. Silent bands return 0. Optional valleys are absolute dB values relative to raw FFT unit magnitude/power. This implements the peak/valley stage of Jiang et al. (ICME 2002), without their learned Karhunen-Loeve transform. In these equations w is magnitude or squared magnitude. Adjacent bands include their lower boundary and exclude their upper boundary, except for the final band, which includes its upper boundary. Bands outside Nyquist or without any bin centers return 0.
+
+Jiang et al. (2002), Music Type Classification by Spectral Contrast Feature: link::https://hcsi.cs.tsinghua.edu.cn/Paper/Paper02/200218.pdf::.
+
+These classes retain results between FFT frames and preserve the source FFT. Their cost is linear in bins, except SpecContrast's per-band sorting, which is O(M log M) for M bins in a band. They allocate work memory at construction and add no lookahead beyond the FFT window (21.3 ms for 1024 samples at 48 kHz).
+
+Like vanilla link::Classes/SpecFlatness::, this reads FFT timbre information; explicit band boundaries provide independent regional descriptors instead of one full-spectrum value.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain matching fftSize.
+argument:: boundaries
+Literal strictly increasing Array of 2..65 nonnegative frequencies in Hz. There is one band between each adjacent pair. The default uses octave bands from 200 Hz plus a bass and upper band; the final boundary is 20000 Hz, not a Nyquist sentinel.
+argument:: quantile
+Fraction selected at each end, clipped to 0.001..0.5; default 0.1.
+argument:: includeValleys
+Literal 0 returns one contrast per band. Literal 1 appends the valley vector after all contrast outputs.
+argument:: spectrumMode
+Literal 0 uses magnitude; 1 uses power.
+argument:: fftSize
+Literal power of two from 256 through 8192.
+returns::
+One value per band, with the optional SpecContrast valley vector appended.
+
+examples::
+The 300..1800 Hz band controls the output filter, making changes in this region audible as changes in brightness.
+code::
+(
+s.waitForBoot {
+    Routine({
+        var buffer = Buffer.read(s, ExampleFiles.child);
+        s.sync;
+        ~mir2Example = {
+            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+            // For live input instead: source = SoundIn.ar(0);
+            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+            var feature = SpecContrast.kr(chain, boundaries: #[0, 300, 1800, 6000, 20000], fftSize: 1024);
+            var amount = Lag.kr((feature[1] / 50).clip(0, 1), 0.05);
+            var cutoff = amount.linexp(0, 1, 250, 6500);
+            var fade = Line.kr(0, 1, 0.15);
+            (RLPF.ar(source, cutoff, 0.5) * 0.18 * fade) ! 2
+        }.play;
+        ~mir2Example.onFree { buffer.free };
+    }).play(AppClock);
+};
+)
+
+// Stop the example and release its sample buffer.
+(
+~mir2Example.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/SpecCentroid2::
+link::Classes/SpecFlatness2::

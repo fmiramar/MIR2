@@ -54,19 +54,28 @@ An Array of code::numCoeffs:: control-rate outputs.
 instancemethods::
 
 examples::
+Low cepstral coefficients steer a small oscillator bank, making timbral changes audible as a changing accompaniment.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-        MFCC2.kr(chain, 13, 40, fftSize: 1024).poll(5, "MFCC2");
-        (source * 0.15) ! 2
+        var coefficients = MFCC2.kr(chain, 6, 40, fftSize: 1024);
+        var pitches = coefficients.copyRange(1, 3).tanh.linexp(-1, 1, 160, 900).lag(0.08);
+        var tones = SinOsc.ar(pitches, 0, 0.025).sum;
+        (source * 0.15 + tones) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 

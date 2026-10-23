@@ -1,0 +1,54 @@
+class:: FFTPhaseDev2
+summary:: Wrapped second phase difference
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/Onsets2, Classes/FFTFlux2
+
+description::
+Mean or sum of absolute wrapped second phase differences. Weighted mode multiplies by current magnitude. Histories advance for every bin, including bins below the magnitude gate, so low-energy bins cannot misalign the phase history. Independently implemented from Dixon, Onset Detection Revisited (DAFx 2006).
+
+DC and Nyquist are excluded from the evidence; normalization includes their two positions in the bin count. Raw FFT magnitudes are used without window or FFT-size compensation. The first two valid frames output zero while the phase predictor warms up. Results hold between FFT frames. Persistent storage is allocated at construction; the FFT buffer is read without modifying its representation. Like vanilla Onsets, this exposes spectral onset evidence, but it has no peak picking. Use Onsets2 for triggers.
+
+classmethods::
+method:: kr
+argument:: chain
+An FFT chain with the declared size.
+argument:: weighted
+Positive multiplies each phase difference by its bin magnitude.
+argument:: normalize
+Positive divides by the one-sided bin count.
+argument:: floor
+Positive weak-bin magnitude gate, default 1e-6.
+argument:: fftSize
+Literal matching FFT size, a power of two from 256 through 8192.
+returns::
+One nonnegative control-rate evidence value.
+
+examples::
+The measured spectral change opens a filtered noise accompaniment over the source.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source);
+        var value = FFTPhaseDev2.kr(chain, weighted: 1);
+        var texture = BPF.ar(PinkNoise.ar(0.15), 1800, 0.5) * (value * 0.6).clip(0, 1).lag(0.03);
+        (source * 0.16 + texture) * Line.kr(0, 1, 0.25) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/FFTFlux2::

@@ -42,21 +42,26 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
+Voicing evidence changes the balance between breath-like noise and a pitched excitation.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
     s.sync;
-    {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
         var result = Voicing.kr(source, 1024, 0.25, 40, 1000, \hybrid, 0.5);
-        var excitation = XFade2.ar(WhiteNoise.ar(0.05), Pulse.ar(110, 0.3, 0.05),
-            result[1].linlin(0, 1, -1, 1));
-        result.poll(5, "voicing [flag, evidence]");
-        excitation ! 2
+        var excitation = XFade2.ar(WhiteNoise.ar(0.04), Pulse.ar(110, 0.3, 0.04), result[1].lag(0.04).linlin(0, 1, -1, 1));
+        (source * 0.12 + excitation) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
 )
 ::
 

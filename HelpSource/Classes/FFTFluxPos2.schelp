@@ -1,0 +1,56 @@
+class:: FFTFluxPos2
+summary:: Positive spectral flux convenience wrapper
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/Onsets2, Classes/FFTFlux2
+
+description::
+Delegates to FFTFlux2 with positive differences enabled. Uses the Euclidean norm of increases in the selected magnitude or power spectrum. This preserves FFTFlux2 conventions; it differs from the L1 novelty used within Onsets2.
+
+The first frame returns zero while history warms up. Results hold between FFT frames. Persistent storage is allocated at construction; the FFT buffer is read without modifying its representation. Like vanilla Onsets, this exposes spectral onset evidence, but it has no peak picking. Use Onsets2 for triggers.
+
+classmethods::
+method:: kr
+argument:: chain
+An FFT chain with the declared size.
+argument:: normalize
+Positive divides by current-spectrum Euclidean norm.
+argument:: spectrumMode
+Literal 0 for magnitudes or 1 for squared magnitudes.
+argument:: minFreq
+Lower included frequency, in Hz.
+argument:: maxFreq
+Upper included frequency, in Hz; zero means Nyquist.
+argument:: fftSize
+Literal matching FFT size, a power of two from 256 through 8192.
+returns::
+One nonnegative control-rate evidence value.
+
+examples::
+The measured spectral change opens a filtered noise accompaniment over the source.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source);
+        var value = FFTFluxPos2.kr(chain);
+        var texture = BPF.ar(PinkNoise.ar(0.15), 1800, 0.5) * (value * 2).clip(0, 1).lag(0.03);
+        (source * 0.16 + texture) * Line.kr(0, 1, 0.25) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/FFTFlux2::

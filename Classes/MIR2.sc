@@ -110,27 +110,34 @@ FFTFlux2 : UGen {
 Onsets2 : MultiOutUGen {
     *kr {
         |chain, threshold = 0.3, method = \superflux,
-        relaxTime = 0.1, minGap = 0.03, medianTime = 0.05,
-        maxFilterBins = 3, floor = 1e-6, fftSize = 1024,
-        hop = 0.5|
+        relaxTime = 1, minGap = 0.03, medianTime = 0.15,
+        maxFilterBins = 3, floor = 1e-5, fftSize = 1024,
+        hop = 0.5, whitening = 1, logGain = 100, silenceThreshold = 1e-4,
+        diffFrames = 0, noveltyFloor = 0.01, releaseTime = 0.15|
         var methodIndex;
+        var methods = #[flux, fluxPos, superflux, power, magsum, complex,
+            rcomplex, phase, wphase, mkl, hfc];
         MIR2FFTAnalyzer.validateFFTSize(fftSize);
-        methodIndex = case
-            { method == \flux } { 0 }
-            { method == \fluxPos } { 1 }
-            { method == \superflux } { 2 }
-            { method.isNumber } { method }
-            { Error("Onsets2: method must be \\flux, \\fluxPos, or \\superflux.").throw };
+        if(method == \weightedPhase) { method = \wphase };
+        methodIndex = if(method.isNumber) { method } { methods.indexOf(method) };
+        if(methodIndex.isInteger.not or: { methodIndex < 0 } or: { methodIndex > 10 }) {
+            Error("Onsets2: unknown detection method. See the help page for symbols.").throw
+        };
         if(maxFilterBins.isInteger.not or: { maxFilterBins < 0 }
-            or: { maxFilterBins > 12 }) {
-            Error("Onsets2: maxFilterBins must be a literal integer from 0 through 12.").throw
+            or: { maxFilterBins > 25 }) {
+            Error("Onsets2: maxFilterBins must be a literal integer from 0 through 25.").throw
+        };
+        if(hop.isNumber.not or: { hop < 0.0625 } or: { hop > 1 }
+            or: { medianTime.isNumber.not } or: { medianTime < 0 } or: { medianTime > 10 }
+            or: { diffFrames.isInteger.not } or: { diffFrames < 0 } or: { diffFrames > 16 }) {
+            Error("Onsets2: invalid literal hop, medianTime, or diffFrames.").throw
         };
         ^this.multiNewList([
             \control, 2, chain, threshold, methodIndex, relaxTime,
-            minGap, medianTime, maxFilterBins, floor, fftSize, hop
+            minGap, medianTime, maxFilterBins, floor, fftSize, hop,
+            whitening, logGain, silenceThreshold, diffFrames, noveltyFloor, releaseTime
         ])
     }
-
     *ar { Error("Onsets2 is control-rate only.").throw }
     init { |numOutputs ... theInputs|
         inputs = theInputs;
@@ -251,11 +258,18 @@ Pitch2 : MultiOutUGen {
         smooth = 0, hold = 0|
         var algorithmIndex;
         MIR2PitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
+        if(algorithm == \swipe) {
+            var result = PitchSWIPE.kr(in, minFreq, maxFreq, frameSize, hop,
+                if(threshold < 0) { 0.2 } { threshold });
+            var frequency = Select.kr(hold > 0, [result[0], Gate.kr(result[0], result[2])]);
+            frequency = Lag.kr(frequency.max(1e-12).log, smooth.max(0)).exp * (frequency > 0);
+            ^[frequency, result[1], result[2], result[3]]
+        };
         algorithmIndex = case
             { algorithm == \yin } { 0 }
             { algorithm == \mpm } { 1 }
             { algorithm.isNumber } { algorithm }
-            { Error("Pitch2: algorithm must be \\yin or \\mpm.").throw };
+            { Error("Pitch2: algorithm must be \\yin, \\mpm, or \\swipe.").throw };
         ^this.multiNewList([
             \control, 4, in, minFreq, maxFreq, frameSize, hop,
             algorithmIndex, threshold, smooth, hold

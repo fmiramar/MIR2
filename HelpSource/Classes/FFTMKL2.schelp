@@ -1,0 +1,52 @@
+class:: FFTMKL2
+summary:: Modified Kullback-Leibler spectral deviation
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/Onsets2, Classes/FFTFlux2
+
+description::
+Sum of log(1 + currentMagnitude / (previousMagnitude + epsilon)). This is the modified spectral divergence used by OnsetsDS, independently implemented. Stationary nonzero bins contribute approximately log(2), so this is an evidence function with a baseline, not a trigger or a zero-at-stationarity distance. No adaptive whitening is applied.
+
+DC and Nyquist are excluded from the evidence; normalization includes their two positions in the bin count. Raw FFT magnitudes are used without window or FFT-size compensation. The first two valid frames output zero while the phase predictor warms up. Results hold between FFT frames. Persistent storage is allocated at construction; the FFT buffer is read without modifying its representation. Like vanilla Onsets, this exposes spectral onset evidence, but it has no peak picking. Use Onsets2 for triggers.
+
+classmethods::
+method:: kr
+argument:: chain
+An FFT chain with the declared size.
+argument:: epsilon
+Positive denominator floor, default 1e-6.
+argument:: normalize
+Positive divides by the one-sided bin count.
+argument:: fftSize
+Literal matching FFT size, a power of two from 256 through 8192.
+returns::
+One nonnegative control-rate evidence value.
+
+examples::
+The measured spectral change opens a filtered noise accompaniment over the source.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source);
+        var value = FFTMKL2.kr(chain);
+        var texture = BPF.ar(PinkNoise.ar(0.15), 1800, 0.5) * (value * 1).clip(0, 1).lag(0.03);
+        (source * 0.16 + texture) * Line.kr(0, 1, 0.25) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/FFTFlux2::
