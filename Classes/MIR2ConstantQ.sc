@@ -44,3 +44,19 @@ CQCC : MIR2ConstantQ {
             0, 0, uniformBins, include0, logFloor])
     }
 }
+
+ChromaCQT : MIR2ConstantQ {
+    *kr { |in, fmin=55, octaves=5, binsPerOctave=12, tuning=440, normalize=\max,
+        threshold=0, hop=0.25, sparsity=1e-4|
+        var norm=[\none,\max,\sum,\l2].indexOf(normalize), minimum;
+        if(octaves.isInteger.not or: {octaves<1} or: {octaves>8}
+            or: {[12,24,36,48].includes(binsPerOctave).not}
+            or: {tuning.isNumber.not} or: {tuning<300} or: {tuning>500}
+            or: {threshold.isNumber.not} or: {threshold<0} or: {threshold>1}
+            or: {norm.isNil}) { Error("ChromaCQT: invalid literal chroma settings.").throw };
+        minimum=fmin * (tuning / 440);
+        this.validate(in,minimum,octaves*binsPerOctave,binsPerOctave,0,hop,sparsity);
+        ^this.multiNewList([\control,12,in,minimum,octaves*binsPerOctave,binsPerOctave,
+            0,hop,sparsity,tuning,norm,threshold])
+    }
+}

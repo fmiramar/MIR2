@@ -4,7 +4,7 @@ categories:: UGens>Analysis>Tonal
 related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
 
 description::
-Accumulates duration in 24 major/minor labels plus no-chord, using the time between accepted observations. Returns distribution entropy, state-change rate and no-chord occupancy together with the most occupied chord. This is an original streaming summary of supplied classifications; it does not run another chord detector. Statistics cover the interval since creation or reset, rather than a fixed rolling window.
+Accumulates duration in 24 major/minor labels plus no-chord (default), or 108 extended labels plus no-chord, using the time between accepted observations. Returns distribution entropy, state-change rate and no-chord occupancy together with the most occupied chord. This is an original streaming summary of supplied classifications; it does not run another chord detector. Statistics cover the interval since creation or reset, rather than a fixed rolling window.
 
 
 
@@ -14,7 +14,7 @@ argument:: root
 Root index 0=C through 11=B, or -1 for no chord.
 
 argument:: quality
-Quality 0=major, 1=minor, or -1 for no chord.
+Quality index from ChordTrack, or -1 for no chord. Out-of-vocabulary values count as no-chord.
 
 argument:: trig
 A positive value processes this control block. For FFT-derived features pass chain >= 0 so each analysis frame is used once; default 1 processes each control block.
@@ -22,8 +22,11 @@ A positive value processes this control block. For FFT-derived features pass cha
 argument:: reset
 Positive values clear accumulated statistics. Use an impulse for a single reset.
 
+argument:: vocabulary
+Literal code::\triads:: or code::\extended::. Match the vocabulary passed to ChordTrack; this determines the number of states used to normalize entropy. Fixed at construction.
+
 returns::
-An Array: normalized 25-state entropy, changes per second, no-chord duration fraction, dominant root, dominant quality.
+An Array: normalized 25-state or 109-state entropy, changes per second, no-chord duration fraction, dominant root, dominant quality.
 
 examples::
 The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
@@ -37,8 +40,8 @@ Routine({
         // For live input instead: source = SoundIn.ar(0);
         var chain = FFT(LocalBuf(4096), source, 0.25);
         var chroma = HPCP.kr(chain, harmonics: 1);
-        var chord = ChordTrack.kr(chroma, trig: chain >= 0);
-        var stats = ChordStats.kr(chord[0], chord[1], chain >= 0);
+        var chord = ChordTrack.kr(chroma, trig: chain >= 0, vocabulary: \extended);
+        var stats = ChordStats.kr(chord[0], chord[1], chain >= 0, vocabulary: \extended);
         var noise = BPF.ar(PinkNoise.ar(0.06), (300 + (stats[0] * 4000)).lag(0.05), 0.3);
         var sound = ((source * 0.12) + (noise * stats[0])) ! 2;
         sound * Line.kr(0, 1, 0.2)

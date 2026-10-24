@@ -14,8 +14,14 @@
 - Bounded integer control conversions before casting, corrected CQCC Hz-grid
   interpolation and post-silence wavelet flux, and audited audible-example
   arithmetic for SuperCollider's left-to-right binary operators.
-- Research-only extensions and recording-based quality evaluation remain
-  explicit gates; see docs/roadmap-status.md. Nothing has been published.
+- Evaluated and added ChromaCQT, RhythmTransform and RhythmPattern, bringing
+  the catalog to 135 classes; recorded independent references and comparison
+  fixtures with explicit latency and model differences.
+- Extended wavelets through db8 with redundant symmetric boundaries and
+  chords with an opt-in nine-quality vocabulary; existing defaults remain.
+- Audited CREPE, PESTO, RMVPE, FCPE and SPICE; selected PESTO v2 for a possible
+  separate prototype. Neural integration and recording-based quality evaluation
+  remain gated; see docs/roadmap-status.md. Nothing has been published.
 
 # Changelog
 

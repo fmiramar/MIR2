@@ -1,12 +1,12 @@
 class:: ChordTrack
-summary:: Major/minor chord tracking
+summary:: Causal chord tracking with optional extended vocabulary
 categories:: UGens>Analysis>Tonal
 related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
 
 description::
-An original deterministic major/minor template matcher over supplied chroma, following the standard pitch-class/template approach surveyed by Gomez (2006). Each of 24 triads receives cosine similarity multiplied by a coverage factor: min(1, weakestChordTone/(0.05*totalChroma)). An explicit no-chord state has score threshold. Causal min-sum dynamic programming adds transitionPenalty when the state changes; exponential chroma smoothing is optional. Root is 0=C through 11=B; quality 0=major, 1=minor. Silence forces both indices to -1. Extended, suspended, inverted or incomplete chords can be ambiguous; this initial vocabulary deliberately contains only major/minor/no-chord.
+An original template matcher over supplied chroma, following the pitch-class/template approach surveyed by Gomez (2006), DOI 10.1287/ijoc.1040.0126. Each chord receives cosine similarity multiplied by a coverage factor: min(1, weakestChordTone/(0.05*totalChroma)). An explicit no-chord state has score threshold. Causal min-sum dynamic programming adds transitionPenalty when the state changes; optional exponential chroma smoothing follows elapsed time. The default major/minor vocabulary is unchanged; the extended vocabulary adds diminished, augmented, seventh and suspended chords.
 
-
+Chroma discards octave and bass position. It cannot distinguish inversions, augmented roots separated by four semitones, or sus2/sus4 labels with identical pitch-class sets (Csus2 and Gsus4, for example). A new path breaks equal-cost ties by lower quality index, then lower root; accumulated transition costs can preserve an existing equivalent label. Missing defining tones can cause no-chord or a simpler complete template. This is a bounded template vocabulary, not a general chord transcriber. Silence immediately selects no-chord despite smoothing or transition penalty.
 
 classmethods::
 method:: kr
@@ -25,11 +25,24 @@ Minimum similarity required to beat the no-chord state; default 0.65.
 argument:: trig
 A positive value processes this control block. For FFT-derived features pass chain >= 0 so each analysis frame is used once; default 1 processes each control block.
 
+argument:: vocabulary
+Literal symbol: code::\triads:: (default, major/minor/no-chord) or code::\extended:: (nine qualities/no-chord). Quality indices are 0=major, 1=minor, 2=diminished, 3=augmented, 4=dominant seventh, 5=major seventh, 6=minor seventh, 7=sus2, 8=sus4. Root is 0=C through 11=B; no-chord uses -1 for both root and quality. The vocabulary is fixed when the SynthDef is built.
+
 returns::
 An Array: root, quality, strength, one-control-block change trigger.
 
+method:: qualityNames
+argument:: vocabulary
+As for kr. Returns the language-side array of short quality labels in output-index order.
+
+method:: label
+argument:: root
+A language Integer root index. Invalid indices produce "N".
+argument:: quality
+A language Integer quality index. Returns a label such as "C:maj7"; this helper does not accept UGen signals.
+
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+The source is heard on the left; the selected extended chord is synthesized on the right. Speech can legitimately produce no-chord. Boot the server first; use moderate volume.
 code::
 (
 Routine({
@@ -40,9 +53,15 @@ Routine({
         // For live input instead: source = SoundIn.ar(0);
         var chain = FFT(LocalBuf(4096), source, 0.25);
         var chroma = HPCP.kr(chain, harmonics: 1);
-        var chord = ChordTrack.kr(chroma, smooth: 0.05, trig: chain >= 0);
+        var chord = ChordTrack.kr(chroma, smooth: 0.05, trig: chain >= 0, vocabulary: \extended);
         var root = (48 + chord[0].max(0)).midicps;
-        var voice = SinOsc.ar(root, 0, chord[2] * (chord[0] >= 0) * 0.06);
+        var quality = chord[1].max(0);
+        var third = Select.kr(quality, [4, 3, 3, 4, 4, 4, 3, 2, 5]);
+        var fifth = Select.kr(quality, [7, 7, 6, 8, 7, 7, 7, 7, 7]);
+        var seventh = Select.kr(quality, [0, 0, 0, 0, 10, 11, 10, 0, 0]);
+        var gains = [1, 1, 1, (quality >= 4) * (quality <= 6)];
+        var voice = Mix(SinOsc.ar(root * [0, third, fifth, seventh].midiratio,
+            0, gains * chord[2] * (chord[0] >= 0) * 0.025));
         var sound = [source * 0.12, voice];
         sound * Line.kr(0, 1, 0.2)
     }.play;

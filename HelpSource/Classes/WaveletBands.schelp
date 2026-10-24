@@ -6,9 +6,9 @@ related:: Guides/MIR2, Classes/WaveletBands
 description::
 Uses the same native scale-energy engine and output conventions as Wavelets2. The output count is levels + 1.
 
-Uses a critically sampled orthonormal discrete wavelet transform with Haar/db1 through db4 filters, following Daubechies, Orthonormal Bases of Compactly Supported Wavelets (1988), DOI 10.1002/cpa.3160410705. Each stage convolves and downsamples its approximation band; the high-pass filter is the quadrature mirror of the low-pass filter. Periodic extension is applied within each analysis frame. No external wavelet library is linked.
+Uses an orthonormal discrete wavelet transform with Haar/db1 through db8 filters, following Daubechies, Orthonormal Bases of Compactly Supported Wavelets (1988), DOI 10.1002/cpa.3160410705. Each stage convolves and downsamples its approximation band; the high-pass filter is the quadrature mirror of the low-pass filter. Periodic mode transforms each frame directly. Symmetric mode transforms the doubled frame [x0, ..., xN-1, xN-1, ..., x0]; this is a redundant reflected-frame transform, not a conventional critically sampled symmetric-boundary DWT. No external wavelet library is linked.
 
-No analysis window is applied, so periodic boundary discontinuities can affect the features. First output follows one full frame; results hold between hops. Silence returns zero. Higher orders increase filter support; this implementation currently supports periodic boundaries only. Memory is allocated at construction. Scale energies reveal multiscale structure; they should not be read as sharply separated frequency bands.
+No analysis window is applied. Periodic mode joins the last sample to the first; symmetric mode avoids that endpoint jump but can still contain slope discontinuities at the reflection. First output follows one full frame; results hold between hops. Silence returns zero. Higher orders increase filter support; symmetric mode doubles transform work and coefficient storage while keeping the same frame timing and output count. Memory is allocated at construction. Scale energies reveal multiscale structure; they should not be read as sharply separated frequency bands.
 
 Vanilla FFT spectral analyzers describe uniform frequency bins. This family describes dyadic time/frequency scales with short filters at finer scales.
 
@@ -19,7 +19,7 @@ Mono audio-rate input.
 argument:: frameSize
 Literal power of two from 32 through 8192. Default 1024; first output requires this many input samples.
 argument:: order
-Literal Daubechies order from 1 through 4; one is Haar, four has eight filter taps.
+Literal Daubechies order from 1 through 8; the filter has twice this many taps and this many vanishing moments. One is Haar.
 argument:: levels
 Literal number of decomposition levels, 1 through log2(frameSize). Default 6; outputs run from the coarsest approximation to finest detail.
 argument:: hop
@@ -30,10 +30,10 @@ Literal symbol: \energy, \rms or \entropy. Default energy.
 argument:: family
 Literal \db or \haar. Haar selects order one; db uses the requested order. Default db.
 argument:: boundary
-Literal \periodic; this is the only supported boundary mode. Other modes are rejected.
+Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
-The measured scale structure controls the audible synthesis or filtering.
+The measured scale structure controls the audible synthesis or filtering. This example uses db8 with symmetric frame boundaries; change boundary to \periodic to hear the original mode.
 code::
 (
 Routine({
@@ -42,7 +42,7 @@ Routine({
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var bands = WaveletBands.kr(source, mode: \rms);
+        var bands = WaveletBands.kr(source, order: 8, boundary: \symmetric, mode: \rms);
         var tones = SinOsc.ar([110,220,440,880,1760,3520,7040], 0, bands * 0.3).sum;
         var sound = source * 0.12 + tones;
         sound * Line.kr(0,1,0.25) ! 2

@@ -6,9 +6,9 @@ related:: Guides/MIR2, Classes/WaveletBands
 description::
 Transforms non-overlapping frames, clears a prefix of the coefficient vector, and reconstructs with the transpose orthonormal transform. A zero removal count reconstructs the input with exactly frameSize samples of delay. Coefficients are ordered from the coarsest approximation to the finest detail; removal starts at the low-frequency end.
 
-Uses a critically sampled orthonormal discrete wavelet transform with Haar/db1 through db4 filters, following Daubechies, Orthonormal Bases of Compactly Supported Wavelets (1988), DOI 10.1002/cpa.3160410705. Each stage convolves and downsamples its approximation band; the high-pass filter is the quadrature mirror of the low-pass filter. Periodic extension is applied within each analysis frame. No external wavelet library is linked.
+Uses an orthonormal discrete wavelet transform with Haar/db1 through db8 filters, following Daubechies, Orthonormal Bases of Compactly Supported Wavelets (1988), DOI 10.1002/cpa.3160410705. Each stage convolves and downsamples its approximation band; the high-pass filter is the quadrature mirror of the low-pass filter. Periodic mode transforms each frame directly. Symmetric mode transforms the doubled frame [x0, ..., xN-1, xN-1, ..., x0]; this is a redundant reflected-frame transform, not a conventional critically sampled symmetric-boundary DWT. No external wavelet library is linked.
 
-Frame-boundary edits can cause discontinuities; this is a block transform effect, without overlap smoothing. Silence returns zero. Higher orders increase filter support; this implementation currently supports periodic boundaries only. Memory is allocated at construction. Scale energies reveal multiscale structure; they should not be read as sharply separated frequency bands.
+Frame-boundary edits can cause discontinuities; this is a block transform effect, without overlap smoothing. Silence returns zero. Higher orders increase filter support; symmetric mode doubles transform work and coefficient storage while keeping the same frame timing and output count. Memory is allocated at construction. Scale energies reveal multiscale structure; they should not be read as sharply separated frequency bands.
 
 Vanilla DelayN can reproduce the delay when no coefficients are removed. WaveletDaub2 additionally removes components in a wavelet basis before reconstruction.
 
@@ -19,16 +19,16 @@ Mono audio-rate input.
 argument:: frameSize
 Literal power of two from 32 through 8192. Default 512; also the exact output delay in samples.
 argument:: order
-Literal Daubechies order from 1 through 4; one is Haar, four has eight filter taps.
+Literal Daubechies order from 1 through 8; the filter has twice this many taps and this many vanishing moments. One is Haar.
 argument:: levels
 Literal number of decomposition levels, 1 through log2(frameSize). Default 6; outputs run from the coarsest approximation to finest detail.
 argument:: remove
-Number of leading wavelet coefficients to set to zero, 0 through frameSize, sampled each frame. Default zero gives exact delayed reconstruction; frameSize gives silence.
+Number of leading wavelet coefficients to set to zero, sampled at each frame completion. Range 0 through frameSize in periodic mode, or 0 through (2 * frameSize) in symmetric mode. Zero gives exact delayed reconstruction; the upper bound gives silence. Symmetric reconstruction averages corresponding reflected samples; the same removal count therefore does not remove the same coefficient fraction in both modes.
 
 argument:: family
 Literal \db or \haar. Haar selects order one; db uses the requested order. Default db.
 argument:: boundary
-Literal \periodic; this is the only supported boundary mode. Other modes are rejected.
+Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
 Compare the delayed source at left with coefficient-filtered reconstruction at right.
@@ -40,7 +40,7 @@ Routine({
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var wet = WaveletDaub2.ar(source, remove: 64);
+        var wet = WaveletDaub2.ar(source, order: 8, remove: 128, boundary: \symmetric);
         var dry = DelayN.ar(source, 0.1, 512 / SampleRate.ir);
         var sound = [dry, wet] * 0.22;
         sound * Line.kr(0,1,0.25)

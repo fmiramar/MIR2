@@ -35,13 +35,30 @@ not imported implementation code. A silent current frame has no key even while
 the context decays. Causal smoothing controls context and is not a global key
 annotation algorithm.
 
-`ChordTrack` and `ChordStrength` compare cosine triad templates with an explicit
+`ChordTrack` and `ChordStrength` compare cosine templates with an explicit
 weakest-tone coverage factor, then use causal min-sum dynamic programming with
-a transition penalty and a no-chord state. Root is 0=C through 11=B; quality
-0=major, 1=minor; no-chord is -1. `ChordStats` accumulates state durations and
-changes. Extended, suspended, inverted and incomplete chords remain outside the
-initial vocabulary. Expanding the vocabulary is a later accuracy/ambiguity gate;
-these labels are not silently mapped to a supposedly complete chord taxonomy.
+a transition penalty and a no-chord state. The default `\triads` vocabulary
+preserves major/minor/no-chord behavior. The opt-in `\extended` vocabulary
+contains 109 states: twelve roots for nine qualities, plus no-chord. Quality
+indices are 0 major, 1 minor, 2 diminished, 3 augmented, 4 dominant seventh,
+5 major seventh, 6 minor seventh, 7 sus2 and 8 sus4. `ChordStats` uses the same
+vocabulary to normalize duration entropy by log(25) or log(109). No allocations
+occur during updates; state arrays have fixed maximum capacity.
+
+The optional vocabulary gate passed on independently specified musical
+pitch-class masks for all 108 complete templates, incomplete-chord rejection,
+silence, delayed changes under a transition penalty and unchanged default
+major/minor behavior. Symmetric labels are deliberately not assigned fake
+certainty: augmented roots four semitones apart and equivalent sus2/sus4
+rotations have identical chroma. Equal-cost new paths select lower quality,
+then lower root; an existing path can preserve an equivalent label. Chroma
+cannot determine inversion or bass position. These tests establish vocabulary
+and state-machine correctness, not recording-based recognition accuracy.
+
+`ChordTrack.qualityNames` and `ChordTrack.label` expose language-side labels.
+The three chord help examples exercise the extended vocabulary audibly. The
+additional test executable `MIR2ExtendedChordTests.cpp` uses independent bitmask
+templates and reports an optimized-kernel microbenchmark, excluding SC overhead.
 
 ## Harmonic descriptors
 

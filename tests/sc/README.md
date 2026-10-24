@@ -40,3 +40,17 @@ These checks establish construction, buffer synchronization, rendering and
 numerical/audio stability. They do not replace listening or annotated-corpus
 recognition tests. The older dedicated pitch/FFT smoke scripts remain useful
 for focused diagnostics; they are not the complete current class catalog.
+
+`research_contracts.scd` checks the installed research APIs numerically: tuned
+chroma/silence/normalization, two AM magnitudes and phase advances, global rhythm
+pattern normalization, extended chord labels and 109-state statistics, plus
+sample-exact wavelet reconstruction through current and legacy SynthDef inputs.
+It requires an output prefix in an existing ignored build directory:
+
+```sh
+sclang -D tests/sc/research_contracts.scd /absolute/build/contracts 48000 scsynth
+```
+
+Use 44100, 48000 or 96000 for the sample rate; their block sizes are 32, 64 and
+128. The final argument can be `supernova`. Logs must contain
+`MIR2_RESEARCH_CONTRACTS_OK` and no reported failures.

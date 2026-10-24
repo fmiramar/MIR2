@@ -100,7 +100,7 @@ template<VectorKind kind>void chromaNext(ChromaUnit* unit,int){
         double energy=0;for(double x:folded)energy+=x;
         double silence[12]{};
         const auto chord=unit->chord.process(energy>1e-20?unit->smoothed:silence,
-            mir2::clamp(mir2::sanitize(IN0(4)),0.0,1.0),std::max(0.0,mir2::sanitize(IN0(3))));
+            mir2::clamp(mir2::sanitize(IN0(4)),0.0,1.0),std::max(0.0,mir2::sanitize(IN0(3))), unit->windowSize > 1);
         if(kind==VectorKind::strength)ZOUT0(0)=float(chord.strength);
         else{ZOUT0(0)=float(chord.root);ZOUT0(1)=float(chord.quality);ZOUT0(2)=float(chord.strength);ZOUT0(3)=chord.changed?1:0;}
     }
@@ -122,23 +122,28 @@ template<VectorKind kind>void chromaInit(ChromaUnit* unit){
 VECTOR_UNIT(Tonnetz,tonnetz) VECTOR_UNIT(HPCPEntropy,entropy) VECTOR_UNIT(HPCPCrest,crest)
 VECTOR_UNIT(ChromaCENS,cens) VECTOR_UNIT(ChordTrack,chord) VECTOR_UNIT(ChordStrength,strength) VECTOR_UNIT(HarmonicChange,change)
 #undef VECTOR_UNIT
-struct ChordStats:Unit{double duration[25],elapsed,total,changes;int previous;bool ready;};
+struct ChordStats:Unit{double duration[mir2::kChordStates],elapsed,total,changes;int previous,states,noChord;bool ready;};
 void ChordStats_next(ChordStats* unit,int){
-    if(IN0(3)>0){std::fill(unit->duration,unit->duration+25,0);unit->total=unit->changes=0;unit->ready=false;}
+    if(IN0(3)>0){std::fill(unit->duration,unit->duration+mir2::kChordStates,0);unit->total=unit->changes=unit->elapsed=0;unit->ready=false;}
     unit->elapsed+=unit->mWorld->mFullRate.mBufLength/unit->mWorld->mSampleRate;
     if(!(IN0(2)>0))return;
-    const int root=indexInput(IN0(0),-1,11),quality=indexInput(IN0(1),-1,1);
-    const int state=root<0||quality<0?24:quality*12+root;
+    const int root=indexInput(IN0(0),-1,12),quality=indexInput(IN0(1),-1,mir2::kChordQualities);
+    const int state=root<0||root>11||quality<0||quality>=unit->noChord/12?unit->noChord:quality*12+root;
     unit->duration[state]+=unit->elapsed;unit->total+=unit->elapsed;unit->elapsed=0;
     if(unit->ready&&state!=unit->previous)unit->changes+=1;
     unit->ready=true;unit->previous=state;
     const double total=std::max(1e-30,unit->total);int dominant=0;
-    for(int i=1;i<25;++i)if(unit->duration[i]>unit->duration[dominant])dominant=i;
-    ZOUT0(0)=float(mir2::chromaEntropy(unit->duration,25));ZOUT0(1)=float(unit->changes/total);
-    ZOUT0(2)=float(unit->duration[24]/total);ZOUT0(3)=dominant==24?-1:float(dominant%12);
-    ZOUT0(4)=dominant==24?-1:float(dominant/12);
+    for(int i=1;i<unit->states;++i)if(unit->duration[i]>unit->duration[dominant])dominant=i;
+    ZOUT0(0)=float(mir2::chromaEntropy(unit->duration,unit->states));ZOUT0(1)=float(unit->changes/total);
+    ZOUT0(2)=float(unit->duration[unit->noChord]/total);ZOUT0(3)=dominant==unit->noChord?-1:float(dominant%12);
+    ZOUT0(4)=dominant==unit->noChord?-1:float(dominant/12);
 }
-void ChordStats_Ctor(ChordStats* unit){std::fill(unit->duration,unit->duration+25,0);unit->elapsed=unit->total=unit->changes=0;unit->previous=24;unit->ready=false;SETCALC(ChordStats_next);ClearUnitOutputs(unit,1);}
+void ChordStats_Ctor(ChordStats* unit){
+    std::fill(unit->duration,unit->duration+mir2::kChordStates,0);
+    unit->noChord=unit->mNumInputs>4&&IN0(4)>0 ? 12*mir2::kChordQualities : 24;
+    unit->states=unit->noChord+1;unit->elapsed=unit->total=unit->changes=0;
+    unit->previous=unit->noChord;unit->ready=false;SETCALC(ChordStats_next);ClearUnitOutputs(unit,1);
+}
 }
 namespace mir2plugin{void registerTonalUnits(){
     DefineDtorUnit(HPCP);DefineDtorUnit(Chromagram2);DefineDtorUnit(TuningFrequency);

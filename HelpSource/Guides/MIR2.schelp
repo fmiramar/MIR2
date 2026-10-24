@@ -2,7 +2,7 @@ title:: MIR2
 summary:: Native spectral, pitch, onset, tonal, rhythm, auditory and wavelet analysis
 categories:: Libraries>MIR
 
-MIR2 provides 132 public classes for real-time musical analysis and analysis-driven sound. Each class page explains the technique, units, timing, limits and an audible example. Most return control-rate features; audio-input analyzers consume the full audio block internally. FFT readers preserve the shared buffer representation.
+MIR2 provides 135 public classes for real-time musical analysis and analysis-driven sound. Each class page explains the technique, units, timing, limits and an audible example. Most return control-rate features; audio-input analyzers consume the full audio block internally. FFT readers preserve the shared buffer representation.
 
 Pitch confidence, periodicity and voicing describe different evidence. Neither confidence nor tonal/rhythm labels imply calibrated recognition accuracy. Use matching FFT sizes and hops, allow analysis warmup, and increase server real-time memory for large filter banks or CQT kernels.
 
@@ -40,6 +40,7 @@ definitionlist::
 ## link::Classes/CQT:: || Sparse constant-Q magnitude analysis on a logarithmic frequency grid.
 ## link::Classes/VQT:: || Variable-Q spectral analysis with a bandwidth offset.
 ## link::Classes/CQCC:: || Constant-Q cepstra after uniform-frequency resampling.
+## link::Classes/ChromaCQT:: || Twelve tuned pitch classes from constant-Q power, with explicit resolution/latency tradeoffs.
 ::
 
 section:: Feature dynamics
@@ -117,6 +118,8 @@ definitionlist::
 ## link::Classes/TempoRubato:: || Signed relative tempo change.
 ## link::Classes/BeatLoudness:: || Beat-synchronous RMS and peak amplitude.
 ## link::Classes/BeatBandRatio:: || Beat-synchronous spectral band fractions.
+## link::Classes/RhythmTransform:: || Per-band modulation magnitudes and optional phases on an arbitrary-Hz grid.
+## link::Classes/RhythmPattern:: || Bark/log-power modulation pattern with fluctuation emphasis and smoothing.
 ::
 
 section:: Spectral descriptors
@@ -190,13 +193,15 @@ definitionlist::
 ## link::Classes/HPCPEntropy:: || Normalized pitch-class distribution entropy.
 ## link::Classes/HPCPCrest:: || Peak-to-average pitch-class strength.
 ## link::Classes/ChromaCENS:: || Quantized and smoothed chroma-energy statistics.
-## link::Classes/ChordTrack:: || Major/minor chord tracking.
-## link::Classes/ChordStrength:: || Major/minor chord template strength.
+## link::Classes/ChordTrack:: || Causal chord tracking with default major/minor or optional nine-quality vocabulary.
+## link::Classes/ChordStrength:: || Strength of the selected chord template and vocabulary.
 ## link::Classes/HarmonicChange:: || Causal tonal-centroid change magnitude.
 ## link::Classes/ChordStats:: || Duration-weighted statistics of chord states.
 ::
 
 section:: Wavelets
+
+Haar/db1 through db8 are supported. Periodic boundaries remain the default; the optional symmetric mode analyzes a reflected frame with redundant coefficients and preserves the same input-frame streaming delay.
 
 definitionlist::
 ## link::Classes/Wavelets2:: || Daubechies scale energies, RMS or entropy contributions.
@@ -214,4 +219,4 @@ Class examples use a looping bundled sound, synchronized buffer setup and featur
 
 section:: Further work
 
-The initial chord vocabulary is major/minor/no-chord. Neural models, ChromaCQT, extra wavelet families and multiband rhythm transforms remain explicit research gates. See the installed docs/roadmap-status.md for implementation and verification status.
+The native research extensions include ChromaCQT, multiband rhythm modulation, db1–db8 with symmetric boundaries, and extended chord templates. The neural audit selects PESTO v2 for a possible separate prototype; weight-license scope, frontend parity and real-time deployment remain unresolved. Recording-based accuracy and release qualification remain later work. See the installed docs/roadmap-status.md for exact evidence and limits.

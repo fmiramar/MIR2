@@ -1,0 +1,76 @@
+class:: RhythmTransform
+summary:: Per-band modulation magnitude and phase
+categories:: UGens>Analysis>Rhythm
+related:: Guides/MIR2, Classes/RhythmPattern, Classes/FourierTempogram, Classes/BarkBands
+
+description::
+Measures how quickly each input envelope changes. Each band gets a trailing Hann window and a direct complex Fourier projection at a linear grid of modulation frequencies in Hz. This is an independent MIR2 implementation of ordinary windowed Fourier analysis, extended from one novelty curve to a band-by-modulation matrix. It can distinguish, for example, a slow bass pulse from faster treble activity that a single summed novelty curve conceals.
+
+Control values are averaged over a whole number of control blocks. Held FFT features are interpreted as a continuous, zero-order-held envelope; they are not counted as separate FFT observations. This boxcar averaging offers limited antialiasing: keep envelope bandwidth below the actual feature Nyquist frequency and use a sufficiently short upstream FFT hop. Frequencies above 0.4 times the actual feature rate are rejected. The first matrix arrives after a full history, then outputs hold between analyses. Effective time resolution depends on windowTime, not just the number of modulation bins.
+
+There are at most 1024 output channels, including phase. The product of bands, bins and actual history frames must not exceed 524288; otherwise the server rejects construction. Tables and history are allocated once. No allocation occurs in processing. The closest vanilla tool is FFT applied to an envelope; RhythmTransform provides arbitrary-Hz projections, explicit per-band layout, and timing in seconds without an external control-to-audio conversion.
+
+classmethods::
+method:: kr
+argument:: bands
+Literal Array containing 1–32 control-rate or scalar envelopes. Signed inputs are allowed. Nonfinite samples become zero and samples are bounded to plus/minus 1e12.
+argument:: numBins
+Literal number of modulation bins per band, 2–128; default 16.
+argument:: minHz
+Lowest modulation frequency, at least zero; default 0.5 Hz.
+argument:: maxHz
+Highest modulation frequency, greater than minHz; default 8 Hz. Must be at most 0.4 times both the requested and actual feature rates.
+argument:: windowTime
+Trailing history in seconds, 0.25–12; default 4. Rounded upward to whole feature frames. Outputs are zero until this history fills.
+argument:: hopTime
+Matrix update interval in seconds, 0.02–2; default 0.1. Rounded upward to whole feature frames.
+argument:: featureRate
+Requested envelope sample rate, 20–200 Hz; default 100. Pool size is round(controlRate / featureRate), at least one block. Actual feature rate is controlRate divided by this pool size.
+argument:: normalization
+Literal symbol: code::\none:: retains coherent-gain-corrected amplitudes in input units; code::\global:: gives the whole magnitude matrix unit L2 norm; code::\band:: normalizes each band separately. Silence remains zero. Default code::\none::.
+argument:: removeMean
+Literal 1 subtracts the Hann-weighted mean before projection; 0 retains DC. Default 1.
+argument:: phase
+Literal 1 appends a second matrix of phase values in radians, in [-pi, pi]; 0 gives magnitudes only. Phase uses a cosine convention referred to the newest pooled sample, whose timestamp is the center of its pooling interval. Near-zero coefficients have phase zero. Default 0.
+
+method:: frequencies
+Returns the modulation-frequency grid for minHz, maxHz and numBins. Defaults match kr.
+
+returns::
+A flat band-major Array: all numBins magnitudes of band zero, then band one, etc. If phase is 1, all phase channels follow all magnitudes. Use code::values.clump(numBins):: to form rows (or first take the magnitude portion when phase is enabled). All parameters except the envelope values are fixed at construction.
+
+examples::
+The sample is split into slow bass and fast treble pulses. Their measured 2 Hz and 5 Hz modulation amplitudes control two audible resonant accents after a 1.5-second warmup.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2RhythmTransformExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var low = LPF.ar(source, 600) * SinOsc.kr(2).range(0.1, 1);
+        var high = HPF.ar(source, 1200) * SinOsc.kr(5).range(0.1, 1);
+        var bands = [Amplitude.kr(low, 0.005, 0.02), Amplitude.kr(high, 0.005, 0.02)];
+        var matrix = RhythmTransform.kr(bands, windowTime: 1.5, normalization: \band).clump(16);
+        var bass = SinOsc.ar(110, 0, matrix[0][3].lag(0.1) * 0.07);
+        var treble = SinOsc.ar(880, 0, matrix[1][9].lag(0.1) * 0.05);
+        [((low + high) * 0.3) + bass, ((low + high) * 0.3) + treble] * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2RhythmTransformBuffer = buffer;
+}).play(AppClock);
+)
+::
+Stop and release:
+code::
+(
+~mir2RhythmTransformExample.free;
+~mir2RhythmTransformBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/RhythmPattern::
+link::Classes/FourierTempogram::
+link::Classes/BarkBands::

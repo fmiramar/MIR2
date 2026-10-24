@@ -195,3 +195,60 @@ The user-deferred Onsets2 representative-recording evaluation remains deferred.
 Optional ChromaCQT, later rhythm representations, expanded wavelet/chord choices,
 neural inference, hosted/native-platform CI and broader corpus/performance
 qualification remain visible in `roadmap-status.md`.
+
+## 2026-10-24 — optional research extension integrated
+
+The catalog now contains 135 public classes. Three native analyzers were added:
+ChromaCQT, RhythmTransform and RhythmPattern. The CQT gate includes a reproducible
+400-row synthetic comparison showing specific low-register benefits, longer
+window delays and cases where HPCP is better. Rhythm modulation preserves the
+association between spectral bands and modulation rates; RhythmPattern clearly
+documents its Bark/log-power differences from the canonical psychoacoustic
+descriptor. Independent correlation/DFT oracles verify the numerical definitions.
+
+The seven wavelet classes now support db1–db8 and a redundant reflected symmetric
+mode. Independent spectral factorization, dense finite matrices, energy and
+streaming reconstruction checks cover the extension. ChordTrack/ChordStrength
+and ChordStats support nine qualities and 109 states, with all 108 pitch-class
+templates checked and symmetric-label ambiguities documented. Default periodic
+wavelets and major/minor chords remain available, including previous SynthDefs.
+
+Verification completed against the installed SuperCollider 3.14.1 extension:
+
+| Check | Result |
+| --- | --- |
+| Strict macOS x86_64 scsynth and supernova builds | Passed without compiler warnings |
+| Strict Windows x86_64 MinGW cross-build | Passed; native Windows execution remains unperformed |
+| Full C++ numerical suite | 16/16 passed, 30.08 seconds |
+| ASan/UBSan for affected kernels and related CQT/tonal code | 6/6 passed, 31.76 seconds |
+| Installed class-origin check | All 135 public classes resolve to MIR2 |
+| Forced SCDoc indexing and rendering | 135 class pages and three guides; no final SCDoc warnings/errors |
+| All audible examples at 48 kHz / block 64 | 135/135 passed |
+| Thirteen new/changed examples at 44.1 kHz / block 32 and 96 kHz / block 128 | 13/13 passed at each rate |
+| Thirteen new/changed examples on supernova at 48 kHz / block 64 | 13/13 passed |
+| Thirteen new/changed examples with silent playback | 13/13 finite/stable |
+| Installed numerical API checks at all three rates and on supernova | Passed |
+
+The installed numerical script checks known chroma concentration, exact silence,
+normalizations, two modulation amplitudes and their phase advances, the extended
+Cmaj7 label, 109-state chord entropy, and exact 1024-sample wavelet reconstruction
+delay. Both current symmetric/db8 and previous periodic/db4 SynthDef input layouts
+match the separately recorded delayed source exactly in these float WAV fixtures.
+Maximum observed phase-advance error is below 0.000136 radians. The check samples
+K2A at block boundaries so interpolation is not mistaken for analyzer updates.
+The two initial RhythmPattern argument-documentation warnings were corrected
+before the final clean SCDoc run. No DSP changes were required by the server runs.
+
+The neural audit covers pinned CREPE, PESTO, RMVPE, FCPE and SPICE sources,
+separate code/weight terms, training data, frontends, context and deployment.
+PESTO v2 is the first candidate for a separate prototype. Its integration gate
+remains closed pending established checkpoint-license scope, frontend/decoder
+parity and bounded runtime measurements. No neural weights/runtime are included,
+and author-reported performance is not presented as a local measurement.
+
+Both server variants and the final docs are installed in the user Extensions
+tree. Generated builds, scores, WAVs and detailed logs remain ignored. These
+checks establish mathematical and server behavior, not human listening approval
+or general recognition accuracy. The user-deferred Onsets2 recording test and
+release-platform/endurance qualification remain later work. Git tracking is
+local; nothing has been pushed or published.

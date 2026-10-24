@@ -1,0 +1,119 @@
+class:: RhythmPattern
+summary:: Bark/log-power modulation pattern for rhythmic timbre control
+categories:: UGens>Analysis>Rhythm
+related:: Guides/MIR2, Classes/RhythmTransform, Classes/BarkBands, Classes/BeatHistogram
+
+description::
+Extracts a band-by-modulation-frequency matrix from Bark-band power. MIR2 applies log1p compression, Hann-windowed modulation analysis, optional emphasis around 4 Hz, separable Gaussian smoothing and L2 normalization. Changes in rhythmic activity across frequency bands can control an effect or synthesized accompaniment.
+
+This is a bounded MIR2 adaptation inspired by Lidy and Rauber, “Evaluation of Feature Extractors and Psycho-Acoustic Transformations for Music Genre Classification” (ISMIR 2005), link::https://ismir2005.ismir.net/proceedings/1033.pdf::. It does not reproduce the canonical Rhythm Patterns descriptor: spectral masking, calibrated phon/sone conversion, gradient filtering and whole-track median aggregation are omitted. Neither the output nor its weighting is calibrated in psychoacoustic units. No genre-classification accuracy is claimed. The krBands method permits externally prepared envelopes.
+
+Timing, warmup, held-input pooling and work bounds follow link::Classes/RhythmTransform::. Wait for a full history before expecting modulation results. At most 1024 matrix elements and 524288 band-by-bin-by-history products are accepted. Normalize removes absolute level; use code::\none:: when level matters. The closest vanilla analysis tool is FFT; RhythmPattern adds a Bark/log-power frontend and a bounded matrix of modulation features, rather than an audio-frequency spectrum.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. BarkBands reads each fresh FFT frame and holds the resulting envelope between frames. Choose an FFT hop fast enough to represent the desired modulation rates.
+argument:: numBands
+Literal Bark-band count, 4–32; default 24. Triangular, weight-normalized Bark filters use power input.
+argument:: numBins
+Literal modulation-bin count per band, 2–128; default 16. Total output channels must not exceed 1024.
+argument:: minHz
+Lowest modulation frequency, at least zero; default 0.5 Hz.
+argument:: maxHz
+Highest modulation frequency; default 8 Hz. Must exceed minHz and be no more than 0.4 times the requested and actual feature rates.
+argument:: windowTime
+Trailing history, 0.25–12 seconds; default 4. Rounded upward to whole feature frames. Outputs stay zero until the full history has arrived.
+argument:: hopTime
+Matrix update interval, 0.02–2 seconds; default 0.1. Rounded upward to whole feature frames.
+argument:: featureRate
+Requested envelope rate, 20–200 Hz; default 100. Average pooling spans round(controlRate / featureRate) control blocks, at least one. Actual timing uses the resulting rate.
+argument:: gain
+Nonnegative literal gain before log1p compression, at most 1e6; default 1. Compression is log(1 + gain * max(power, 0)).
+argument:: normalization
+Literal code::\none::, code::\global:: or code::\band::. The latter modes give unit L2 norm to the whole matrix or each band respectively; silence stays zero. Default code::\global::.
+argument:: fluctuation
+Literal 1 weights modulation frequency f by 2 / ((f / 4) + (4 / f)), with zero at DC and one at 4 Hz. Literal 0 disables this emphasis. Default 1.
+argument:: smoothBands
+Gaussian standard deviation across band indices, 0–3; default 0.5. Zero disables. A radius of ceil(3 sigma) is used with truncated-edge renormalization.
+argument:: smoothBins
+Gaussian standard deviation across modulation-bin indices, 0–3; default 0.5. Zero disables. Smoothing follows weighting, before normalization.
+argument:: minFreq
+Lowest audio frequency for the Bark frontend; default 20 Hz.
+argument:: maxFreq
+Highest audio frequency; zero uses Nyquist. Default zero.
+argument:: fftSize
+FFT size, power of two from 256–8192, matching chain; default 1024.
+
+returns::
+A flat band-major Array of numBands * numBins nonnegative magnitudes. Use code::values.clump(numBins):: to form rows. No phase channels are produced. All parameters except chain or envelope values are fixed at construction.
+
+method:: krBands
+Accepts already prepared band envelopes. Shared arguments have the same meaning as kr; no Bark frontend is inserted.
+argument:: bands
+Literal Array of 1–32 scalar or control-rate band envelopes. Nonfinite samples become zero; values are bounded to plus/minus 1e12.
+argument:: numBins
+As in kr.
+argument:: minHz
+As in kr.
+argument:: maxHz
+As in kr.
+argument:: windowTime
+As in kr.
+argument:: hopTime
+As in kr.
+argument:: featureRate
+As in kr.
+argument:: compression
+Literal code::\none:: (default) for externally prepared envelopes, or code::\logPower:: for log(1 + gain * max(input, 0)). Mean subtraction is always enabled.
+argument:: gain
+As in kr; used only with logPower compression.
+argument:: normalization
+As in kr.
+argument:: fluctuation
+As in kr.
+argument:: smoothBands
+As in kr.
+argument:: smoothBins
+As in kr.
+
+returns::
+The same matrix layout as kr, with bands.size rows.
+
+method:: frequencies
+Returns the modulation-frequency grid for minHz, maxHz and numBins. Defaults match kr.
+
+examples::
+A repeating sample drives a second filtered layer. The relative modulation activity of the upper Bark bands opens its filter. The first feature update occurs after 1.5 seconds.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2RhythmPatternExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
+            * SinOsc.kr(3).range(0.1, 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var matrix = RhythmPattern.kr(chain, numBands: 8, windowTime: 1.5).clump(16);
+        var activity = matrix.copyRange(4, 7).flat.sum / (matrix.flat.sum + 1e-9);
+        var filtered = RLPF.ar(source, activity.clip(0, 1).lag(0.15).linexp(0, 1, 150, 6000), 0.3);
+        [source * 0.3, filtered * 0.2] * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2RhythmPatternBuffer = buffer;
+}).play(AppClock);
+)
+::
+Stop and release:
+code::
+(
+~mir2RhythmPatternExample.free;
+~mir2RhythmPatternBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/RhythmTransform::
+link::Classes/BarkBands::
+link::Classes/BeatHistogram::

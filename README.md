@@ -6,22 +6,23 @@ algorithms implement published research techniques rather than wrap one upstream
 library. It complements FluCoMa's corpus and data workflows.
 
 This is an unpublished development expansion of version 0.1 covering all primary
-classical roadmap families. Optional research extensions and recording-based
-quality evaluation remain explicit in the [current status](docs/roadmap-status.md).
+classical roadmap families and the evaluated native research extensions.
+Neural integration, recording-based quality evaluation and release qualification
+remain explicit in the [current status](docs/roadmap-status.md).
 
 ## Included analyzers
 
-The development tree provides 132 public classes.
+The development tree provides 135 public classes.
 
 - **Core**: `SpecCentroid2`, `SpecFlatness2`, `SpecPcile2`, `MFCC2`, `FFTFlux2`, `Onsets2`, `PitchYIN`, `PitchMPM`, `Periodicity`, `Voicing`, `Pitch2`.
 - **Auditory filters and cepstra**: `BarkBands`, `ERBBands`, `BFCC`, `LFCC`, `GammatoneBands`, `GFCC`, `Loudness2`.
-- **Constant-Q analysis**: `CQT`, `VQT`, `CQCC`.
+- **Constant-Q analysis**: `CQT`, `VQT`, `CQCC`, `ChromaCQT`.
 - **Feature dynamics**: `FeatureDelta`, `FeatureDeltaDelta`, `FeatureMedian`, `FeatureSmooth`.
 - **Harmonic analysis**: `HarmonicPeaks`, `Inharmonicity`, `Tristimulus`, `OddEvenRatio`, `HarmonicEnergyRatio`, `HarmonicCentroid`, `HarmonicDeviation`, `HarmonicSpread`, `HarmonicVariation`, `Noisiness`, `SensoryDissonance2`.
 - **Onset evidence**: `FFTComplexDev2`, `FFTPhaseDev2`, `FFTMKL2`, `FFTFluxPos2`.
 - **Power-normalized cepstra**: `PNCC`.
 - **Advanced pitch**: `FundamentalCandidates`, `PitchProb`, `PitchAmbiguity`, `PitchSWIPE`, `PitchConsensus`, `PitchSalienceBuf`, `PitchSalience`, `MultiPitch`, `PredominantPitch`, `PitchContour`, `PitchStability`, `PitchDeviation`, `Vibrato2`.
-- **Rhythm analysis**: `Tempogram`, `FourierTempogram`, `BeatHistogram`, `Tempo`, `BeatStatistics2`, `PulseClarity`, `BeatTrack3`, `AutoTrack2`, `OnsetStatistics2`, `OnsetRate`, `TempoStability`, `TempoRubato`, `BeatLoudness`, `BeatBandRatio`.
+- **Rhythm analysis**: `Tempogram`, `FourierTempogram`, `BeatHistogram`, `Tempo`, `BeatStatistics2`, `PulseClarity`, `BeatTrack3`, `AutoTrack2`, `OnsetStatistics2`, `OnsetRate`, `TempoStability`, `TempoRubato`, `BeatLoudness`, `BeatBandRatio`, `RhythmTransform`, `RhythmPattern`.
 - **Spectral descriptors**: `FFTCrest2`, `FFTSpread2`, `FFTSlope2`, `FFTPower2`, `SpecEntropy`, `SpecDecrease`, `SpecComplexity`, `SpecStrongPeak`, `SpecHFC`, `SpecBandwidth`, `SpecIrregularity`, `SpecVariation`, `SpecRMS`, `SpecEnergy`, `SpecBandEnergy`, `SpecBandRatio`, `SpecSparsity`, `FFTPeak2`, `FFTSubbandFlatness2`, `FFTSubbandFlux2`, `FFTSubbandPower2`, `SpecContrast`.
 - **Stereo analysis**: `StereoBalance`, `StereoWidth`, `StereoCorrelation`, `MidSideRatio`, `StereoCoherence`, `StereoPanning`, `InterchannelPhase`.
 - **Temporal descriptors**: `TemporalCentroid`, `EnvelopeSpread`, `EnvelopeSkewness`, `EnvelopeKurtosis`, `EffectiveDuration`, `DynamicComplexity`, `StrongDecay`, `TemporalDecrease`, `SilenceRate`, `FadeDetection`, `AttackTime`, `AttackSlope2`, `DecayTime`, `LogAttackTime`.
@@ -33,6 +34,12 @@ example using its measured features to control sound, as well as equations,
 units, timing, source references, and limits. Most output control-rate features;
 audio-input analyzers consume the complete audio block internally. FFT analyzers
 read the shared FFT buffer without changing its representation.
+
+Wavelets support Haar/db1–db8 and periodic or redundant symmetric boundaries.
+Chord tracking offers an optional nine-quality vocabulary alongside the default
+major/minor set. `ChromaCQT` provides a measured low-register resolution option
+with longer analysis delay; `RhythmTransform` preserves modulation by band and
+`RhythmPattern` adds an explicitly documented Bark/log-power adaptation.
 
 ## Build and install
 
@@ -63,9 +70,12 @@ ambiguity are distinct evidence measures.
   inherited informal loudness model with stated calibration limits.
 - [Temporal, stereo and feature dynamics](docs/temporal-stereo-implementation.md).
 - [Wavelets and constant-Q](docs/wavelet-constantq-implementation.md).
+- [ChromaCQT comparison and latency tradeoffs](docs/chroma-cqt-evaluation.md).
 - [PNCC equations and independent oracle](docs/pncc-implementation.md).
 - [Tonal and harmonic analysis](docs/tonal-harmonic-implementation.md).
 - [Rhythm conventions and verification](docs/rhythm-implementation.md).
+- [Multiband rhythm modulation](docs/rhythm-modulation-implementation.md).
+- [Neural pitch source and deployment audit](docs/neural-pitch-research.md).
 - [Origins](ORIGINS.md) and [verification history](docs/implementation-log.md).
 
 No numeric equivalence with other MIR libraries or general accuracy on real

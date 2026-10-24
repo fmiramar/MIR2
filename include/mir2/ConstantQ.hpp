@@ -80,6 +80,28 @@ inline void constantQ(const Complex* spectrum,const CQEntry* entries,const int* 
         magnitude[band]=2.0*std::hypot(real,imaginary);
     }
 }
+// Power folding into twelve C-first pitch classes. Half-semitone ties go up.
+// A 4e-6-semitone tolerance absorbs float32 SynthDef frequency/reference rounding.
+inline void cqChroma(const double* magnitude, int bands, double minimum, int binsPerOctave,
+                     double tuning, int normalization, double threshold, double* chroma) noexcept {
+    std::fill(chroma, chroma + 12, 0.0);
+    const double firstMidi = 69.0 + 12.0 * std::log2(minimum / tuning);
+    for (int band = 0; band < bands; ++band) {
+        const int note = static_cast<int>(std::floor(firstMidi + 12.0 * band / binsPerOctave + 0.5 + 4.e-6));
+        const int pc = (note % 12 + 12) % 12;
+        chroma[pc] += magnitude[band] * magnitude[band];
+    }
+    const double maximum = *std::max_element(chroma, chroma + 12);
+    double divisor = normalization == 1 ? maximum : 0.0;
+    for (int pc = 0; pc < 12; ++pc) {
+        if (chroma[pc] < maximum * threshold) chroma[pc] = 0.0;
+        if (normalization == 2) divisor += chroma[pc];
+        if (normalization == 3) divisor += chroma[pc] * chroma[pc];
+    }
+    if (normalization == 3) divisor = std::sqrt(divisor);
+    if (normalization != 0 && divisor > 0.0)
+        for (int pc = 0; pc < 12; ++pc) chroma[pc] /= divisor;
+}
 // Uniform-Hz interpolation of log power, followed by orthonormal DCT-II.
 inline void cqCepstra(const double* magnitude,int bands,double minimum,int binsPerOctave,
                       double* uniform,int uniformCount,double* coefficients,int count,

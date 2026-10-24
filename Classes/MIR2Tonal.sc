@@ -82,8 +82,24 @@ ChromaCENS : MIR2ChromaVector {
 }
 ChordTrack : MIR2ChromaVector {
     *outputs { ^4 }
-    *kr { |chroma, smooth=0.1, transitionPenalty=0.2, threshold=0.65, trig=1|
-        ^this.build(this.outputs,chroma,trig,smooth,transitionPenalty,threshold)
+    *vocabularyIndex { |vocabulary|
+        var index=[\triads,\extended].indexOf(vocabulary);
+        if(index.isNil) { Error("ChordTrack: vocabulary must be triads or extended.").throw };
+        ^index
+    }
+    *qualityNames { |vocabulary=\triads|
+        ^#[maj,min,dim,aug,7,maj7,min7,sus2,sus4].copyRange(0,
+            if(this.vocabularyIndex(vocabulary)==0){1}{8})
+    }
+    *label { |root,quality|
+        if(root.isInteger.not or: {quality.isInteger.not}
+            or: {root<0} or: {root>11} or: {quality<0} or: {quality>8}) { ^"N" };
+        ^#["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"][root]
+            ++ ":" ++ this.qualityNames(\extended)[quality].asString
+    }
+    *kr { |chroma, smooth=0.1, transitionPenalty=0.2, threshold=0.65, trig=1, vocabulary=\triads|
+        ^this.build(this.outputs,chroma,trig,smooth,transitionPenalty,threshold,
+            this.vocabularyIndex(vocabulary)+1)
     }
 }
 ChordStrength : ChordTrack { *outputs { ^1 } }
@@ -91,8 +107,8 @@ HarmonicChange : MIR2ChromaVector {
     *kr { |chroma, smooth=0.1, trig=1| ^this.build(1,chroma,trig,smooth) }
 }
 ChordStats : MultiOutUGen {
-    *kr { |root, quality, trig=1, reset=0|
-        ^this.multiNewList([\control,5,root,quality,trig,reset])
+    *kr { |root, quality, trig=1, reset=0, vocabulary=\triads|
+        ^this.multiNewList([\control,5,root,quality,trig,reset,ChordTrack.vocabularyIndex(vocabulary)])
     }
     *ar { Error("ChordStats produces control-rate outputs.").throw }
     init { |numOutputs ... theInputs| inputs=theInputs; ^this.initOutputs(numOutputs, \control) }

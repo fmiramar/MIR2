@@ -164,34 +164,67 @@ inline KeyResult estimateKey(const double* chroma, int profile, double threshold
     if(best<threshold) result.root=result.mode=-1;
     return result;
 }
-inline double chordSimilarity(const double* chroma,int root,int quality) noexcept {
-    double energy=0,total=0;
-    for(int i=0;i<12;++i) { const double x=std::max(0.0,sanitize(chroma[i]));energy+=x*x;total+=x; }
-    if(energy<=1.0e-30) return 0;
-    const double a=chroma[root],b=chroma[(root+(quality==0?4:3))%12],c=chroma[(root+7)%12];
-    const double coverage=clamp(std::min({a,b,c})/(0.05*total),0.0,1.0);
-    return clamp((a+b+c)/std::sqrt(3.0*energy),0.0,1.0)*coverage;
+// Quality order is stable: maj,min,dim,aug,7,maj7,min7,sus2,sus4.
+constexpr int kChordQualities = 9;
+constexpr int kChordStates = 12 * kChordQualities + 1;
+inline int chordIntervals(int quality, const int*& intervals) noexcept {
+    static constexpr int patterns[kChordQualities][4] {
+        {0,4,7,0}, {0,3,7,0}, {0,3,6,0}, {0,4,8,0},
+        {0,4,7,10}, {0,4,7,11}, {0,3,7,10}, {0,2,7,0}, {0,5,7,0}
+    };
+    if (quality < 0 || quality >= kChordQualities) { intervals = nullptr; return 0; }
+    intervals = patterns[quality];
+    return quality >= 4 && quality <= 6 ? 4 : 3;
+}
+inline double chordSimilarity(const double* chroma, int root, int quality) noexcept {
+    const int* intervals = nullptr;
+    const int tones = chordIntervals(quality, intervals);
+    if (tones == 0 || root < 0 || root > 11) return 0.0;
+    double energy = 0.0, total = 0.0;
+    for (int i = 0; i < 12; ++i) {
+        const double x = std::max(0.0, sanitize(chroma[i])); energy += x*x; total += x;
+    }
+    if (energy <= 1.0e-30) return 0.0;
+    double matched = 0.0, weakest = total;
+    for (int i = 0; i < tones; ++i) {
+        const double x = std::max(0.0, sanitize(chroma[(root + intervals[i]) % 12]));
+        matched += x; weakest = std::min(weakest, x);
+    }
+    const double coverage = clamp(weakest / (0.05 * total), 0.0, 1.0);
+    return clamp(matched / std::sqrt(tones * energy), 0.0, 1.0) * coverage;
 }
 struct ChordResult { int root=-1,quality=-1; double strength=0.0; bool changed=false; };
 struct ChordTracker {
-    double costs[25] {}; bool ready=false; int selected=24;
+    double costs[kChordStates] {};
+    bool ready=false;
+    int selected=24, qualities=2;
     void reset() noexcept { *this=ChordTracker{}; }
-    ChordResult process(const double* chroma,double threshold=0.65,double transitionPenalty=0.2) noexcept {
-        double next[25],scores[25];double total=0,bestScore=0;
-        for(int i=0;i<12;++i) total+=std::max(0.0,sanitize(chroma[i]));
-        for(int i=0;i<24;++i) { scores[i]=chordSimilarity(chroma,i%12,i/12);bestScore=std::max(bestScore,scores[i]); }
-        scores[24]=total<=1e-20?1.0:clamp(threshold,0.0,1.0);
-        double global=ready?*std::min_element(costs,costs+25):0;
-        double minimum=1e30;int best=24;
-        for(int i=0;i<25;++i) {
-            const double prior=ready?std::min(costs[i],global+std::max(0.0,transitionPenalty)):0;
-            next[i]=prior-std::log(std::max(scores[i],1e-12));
-            if(next[i]<minimum) { minimum=next[i];best=i; }
+    ChordResult process(const double* chroma, double threshold=0.65,
+                        double transitionPenalty=0.2, bool extended=false) noexcept {
+        const int requestedQualities = extended ? kChordQualities : 2;
+        if (qualities != requestedQualities) { reset(); qualities = requestedQualities; }
+        const int noChord = qualities * 12, states = noChord + 1;
+        double next[kChordStates], scores[kChordStates];
+        double total=0.0, bestScore=0.0;
+        for (int i=0; i<12; ++i) total += std::max(0.0,sanitize(chroma[i]));
+        for (int i=0; i<noChord; ++i) {
+            scores[i]=chordSimilarity(chroma,i%12,i/12); bestScore=std::max(bestScore,scores[i]);
         }
-        if(total<=1e-20) { best=24;minimum=next[24]; }
-        for(int i=0;i<25;++i) costs[i]=next[i]-minimum;
-        const bool changed=ready&&best!=selected;selected=best;ready=true;
-        return {best==24?-1:best%12,best==24?-1:best/12,best==24?bestScore:scores[best],changed};
+        scores[noChord]=total<=1.0e-20 ? 1.0 : clamp(sanitize(threshold),0.0,1.0);
+        const double global=ready ? *std::min_element(costs,costs+states) : 0.0;
+        double minimum=1.0e30; int best=noChord;
+        for (int i=0; i<states; ++i) {
+            const double prior=ready ? std::min(costs[i],global+std::max(0.0,sanitize(transitionPenalty))) : 0.0;
+            next[i]=prior-std::log(std::max(scores[i],1.0e-12));
+            // Treat roundoff-level equalities as ties. Lower quality/root wins
+            // a new path; continuation costs can preserve an existing alias.
+            if (next[i]<minimum-1.0e-12) { minimum=next[i]; best=i; }
+        }
+        if (total<=1.0e-20) { best=noChord; minimum=next[noChord]; }
+        for (int i=0; i<states; ++i) costs[i]=next[i]-minimum;
+        const bool changed=ready&&best!=selected; selected=best; ready=true;
+        return {best==noChord?-1:best%12,best==noChord?-1:best/12,
+                best==noChord?bestScore:scores[best],changed};
     }
 };
 } // namespace mir2

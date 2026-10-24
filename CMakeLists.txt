@@ -44,6 +44,7 @@ set(mir2_cpp_files
     plugins/MIR2Tonal.cpp
     plugins/MIR2Harmonic.cpp
     plugins/MIR2Rhythm.cpp
+    plugins/MIR2RhythmModulation.cpp
 )
 file(GLOB mir2_sc_files CONFIGURE_DEPENDS Classes/*.sc)
 file(GLOB mir2_schelp_files CONFIGURE_DEPENDS HelpSource/Classes/*.schelp)

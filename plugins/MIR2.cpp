@@ -20,6 +20,7 @@ PluginLoad(MIR2) {
     mir2plugin::registerTonalUnits();
     mir2plugin::registerHarmonicUnits();
     mir2plugin::registerRhythmUnits();
+    mir2plugin::registerRhythmModulationUnits();
 
 
 }

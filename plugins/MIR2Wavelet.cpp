@@ -6,18 +6,21 @@ namespace {
 using namespace mir2plugin;
 struct WaveletState : Unit {
     double* ring; double* work; double* scratch;
-    int size, levels, position, filled, hop, countdown;
+    int size, transformSize, levels, position, filled, hop, countdown;
+    bool symmetric;
     bool analyzed;
     double bands[14], previous[14];
     mir2::WaveletFilter filter;
     mir2::WaveletMeasurements result;
 };
 
-bool waveletInit(WaveletState* unit) {
+bool waveletInit(WaveletState* unit, unsigned int boundaryInput) {
     unit->ring = nullptr; unit->work = nullptr; unit->scratch = nullptr;
     unit->size = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(1)), 32.0, 8192.0));
     unit->levels = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(3)), 1.0, static_cast<double>(mir2::waveletMaxLevels(unit->size))));
-    unit->filter = mir2::daubechiesFilter(static_cast<int>(mir2::clamp(mir2::sanitize(IN0(2)), 1.0, 4.0)));
+    unit->filter = mir2::daubechiesFilter(static_cast<int>(mir2::clamp(mir2::sanitize(IN0(2)), 1.0, 8.0)));
+    unit->symmetric = unit->mNumInputs > boundaryInput && IN0(boundaryInput) > 0.5f;
+    unit->transformSize = unit->size * (unit->symmetric ? 2 : 1);
     unit->hop = mir2::clamp(static_cast<int>(std::lround(unit->size * mir2::clamp(mir2::sanitize(IN0(4)), 0.0625, 1.0))), 1, unit->size);
     unit->position = 0; unit->filled = 0; unit->countdown = unit->size; unit->result = {};
     unit->analyzed = false;
@@ -27,8 +30,8 @@ bool waveletInit(WaveletState* unit) {
         SETCALC(ClearUnitOutputs); unit->mDone = true; return false;
     }
     unit->ring = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->size));
-    unit->work = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->size));
-    unit->scratch = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->size));
+    unit->work = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->transformSize));
+    unit->scratch = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->transformSize));
     if (!unit->ring || !unit->work || !unit->scratch) {
         SETCALC(ClearUnitOutputs); unit->mDone = true; return false;
     }
@@ -45,8 +48,9 @@ void waveletProcess(WaveletState* unit) {
         unit->filled = std::min(unit->size, unit->filled + 1);
         if (--unit->countdown <= 0 && unit->filled == unit->size) {
             for (int j = 0; j < unit->size; ++j) unit->work[j] = unit->ring[(unit->position + j) % unit->size];
-            mir2::waveletForward(unit->work, unit->scratch, unit->size, unit->levels, unit->filter);
-            mir2::waveletEnergies(unit->work, unit->size, unit->levels, unit->bands);
+            mir2::waveletEmbed(unit->work, unit->work, unit->size, unit->symmetric);
+            mir2::waveletForward(unit->work, unit->scratch, unit->transformSize, unit->levels, unit->filter);
+            mir2::waveletEnergies(unit->work, unit->transformSize, unit->levels, unit->bands);
             unit->result = mir2::waveletMeasurements(unit->bands, unit->previous, unit->levels, unit->mWorld->mSampleRate);
             if (!unit->analyzed) unit->result.flux = 0.0;
             unit->analyzed = true;
@@ -68,16 +72,16 @@ void Wavelets2_next(Wavelets2* unit, int) {
         OUT0(i) = static_cast<float>(value);
     }
 }
-void Wavelets2_Ctor(Wavelets2* unit) { if (waveletInit(unit)) SETCALC(Wavelets2_next); }
+void Wavelets2_Ctor(Wavelets2* unit) { if (waveletInit(unit, 6)) SETCALC(Wavelets2_next); }
 void Wavelets2_Dtor(Wavelets2* unit) { waveletDestroy(unit); }
 struct WaveletBands : Wavelets2 {};
-void WaveletBands_Ctor(WaveletBands* unit) { if (waveletInit(unit)) SETCALC(Wavelets2_next); }
+void WaveletBands_Ctor(WaveletBands* unit) { if (waveletInit(unit, 6)) SETCALC(Wavelets2_next); }
 void WaveletBands_Dtor(WaveletBands* unit) { waveletDestroy(unit); }
 
 #define MIR2_WAVELET(NAME, MEMBER) \
 struct NAME : WaveletState {}; \
 void NAME##_next(NAME* unit, int) { waveletProcess(unit); ZOUT0(0) = static_cast<float>(unit->result.MEMBER); } \
-void NAME##_Ctor(NAME* unit) { if (waveletInit(unit)) SETCALC(NAME##_next); } \
+void NAME##_Ctor(NAME* unit) { if (waveletInit(unit, 5)) SETCALC(NAME##_next); } \
 void NAME##_Dtor(NAME* unit) { waveletDestroy(unit); }
 MIR2_WAVELET(WaveletEntropy, entropy)
 MIR2_WAVELET(WaveletFlux, flux)
@@ -87,29 +91,32 @@ MIR2_WAVELET(WaveletSpread, spread)
 
 struct WaveletDaub2 : Unit {
     double* frame; double* output; double* scratch;
-    int size, levels, position;
+    int size, transformSize, levels, position;
+    bool symmetric;
     mir2::WaveletFilter filter;
 };
 void WaveletDaub2_next(WaveletDaub2* unit, int samples) {
     const float* input = IN(0); float* output = OUT(0);
-    const int remove = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(4)), 0.0, static_cast<double>(unit->size)));
+    const int remove = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(4)), 0.0, static_cast<double>(unit->transformSize)));
     for (int i = 0; i < samples; ++i) {
         output[i] = static_cast<float>(mir2::waveletReconstructSample(input[i], unit->frame,
-            unit->output, unit->scratch, unit->position, unit->size, unit->levels, unit->filter, remove));
+            unit->output, unit->scratch, unit->position, unit->size, unit->levels, unit->filter, remove, unit->symmetric));
     }
 }
 void WaveletDaub2_Ctor(WaveletDaub2* unit) {
     unit->size = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(1)), 32.0, 8192.0));
     unit->levels = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(3)), 1.0, static_cast<double>(mir2::waveletMaxLevels(unit->size))));
-    unit->filter = mir2::daubechiesFilter(static_cast<int>(mir2::clamp(mir2::sanitize(IN0(2)), 1.0, 4.0)));
+    unit->filter = mir2::daubechiesFilter(static_cast<int>(mir2::clamp(mir2::sanitize(IN0(2)), 1.0, 8.0)));
+    unit->symmetric = unit->mNumInputs > 5 && IN0(5) > 0.5f;
+    unit->transformSize = unit->size * (unit->symmetric ? 2 : 1);
     unit->position = 0; unit->frame = nullptr; unit->output = nullptr; unit->scratch = nullptr;
     ZOUT0(0) = 0.0f;
     if (!mir2::isPowerOfTwo(unit->size) || INRATE(0) != calc_FullRate) {
         SETCALC(ClearUnitOutputs); unit->mDone = true; return;
     }
-    unit->frame = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->size));
+    unit->frame = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->transformSize));
     unit->output = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->size));
-    unit->scratch = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->size));
+    unit->scratch = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->transformSize));
     if (!unit->frame || !unit->output || !unit->scratch) {
         SETCALC(ClearUnitOutputs); unit->mDone = true; return;
     }

@@ -230,6 +230,7 @@ void registerPNCCUnits();
 void registerTonalUnits();
 void registerHarmonicUnits();
 void registerRhythmUnits();
+void registerRhythmModulationUnits();
 
 
 

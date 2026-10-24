@@ -10,8 +10,9 @@ struct CQUnit : Unit {
     int offsets[mir2::kCQMaxBins+1];
     double magnitude[mir2::kCQMaxBins],outputs[mir2::kCQMaxBins],uniform[1024];
     int size,bands,bpo,position,filled,hop,countdown,uniformCount,coefficients;
-    double minimum;
-    bool cepstral;
+    double minimum, tuning, threshold;
+    int normalization;
+    bool cepstral, chroma;
 };
 void CQ_next(CQUnit* unit,int){
     const float* input=IN(0);
@@ -26,13 +27,15 @@ void CQ_next(CQUnit* unit,int){
             if(unit->cepstral)mir2::cqCepstra(unit->magnitude,unit->bands,unit->minimum,unit->bpo,
                 unit->uniform,unit->uniformCount,unit->outputs,unit->coefficients,IN0(10)>0,
                 std::max(1.e-30,static_cast<double>(mir2::sanitize(IN0(11)))));
+            else if(unit->chroma)mir2::cqChroma(unit->magnitude,unit->bands,unit->minimum,unit->bpo,
+                unit->tuning,unit->normalization,unit->threshold,unit->outputs);
             else for(int j=0;j<unit->bands;++j)unit->outputs[j]=unit->magnitude[j];
             unit->countdown=unit->hop;
         }
     }
     for(int i=0;i<static_cast<int>(unit->mNumOutputs);++i)OUT0(i)=static_cast<float>(unit->outputs[i]);
 }
-void CQ_init(CQUnit* unit,bool cepstral){
+void CQ_init(CQUnit* unit,bool cepstral,bool chroma=false){
     unit->ring=nullptr;unit->work=nullptr;unit->entries=nullptr;
     unit->minimum=mir2::sanitize(IN0(1));
     unit->bands=static_cast<int>(mir2::clamp(mir2::sanitize(IN0(2)),2.0,static_cast<double>(mir2::kCQMaxBins)));
@@ -40,13 +43,17 @@ void CQ_init(CQUnit* unit,bool cepstral){
     const double gamma=std::max(0.0,static_cast<double>(mir2::sanitize(IN0(4))));
     const double sparsity=mir2::clamp(static_cast<double>(mir2::sanitize(IN0(6))),1.e-8,.01);
     unit->size=mir2::cqFrameSize(unit->mWorld->mSampleRate,unit->minimum,unit->bpo,gamma);
-    unit->position=unit->filled=0;unit->cepstral=cepstral;
+    unit->position=unit->filled=0;unit->cepstral=cepstral;unit->chroma=chroma;
+    unit->tuning=chroma?mir2::clamp(static_cast<double>(mir2::sanitize(IN0(7))),300.0,500.0):440.0;
+    unit->normalization=chroma?mir2::clamp(mir2::boundedInteger(IN0(8)),0,3):0;
+    unit->threshold=chroma?mir2::clamp(static_cast<double>(mir2::sanitize(IN0(9))),0.0,1.0):0.0;
     unit->uniformCount=cepstral?static_cast<int>(mir2::clamp(mir2::sanitize(IN0(9)),16.0,1024.0)):16;
     unit->coefficients=cepstral?static_cast<int>(unit->mNumOutputs):0;
     std::fill(unit->outputs,unit->outputs+mir2::kCQMaxBins,0.0);
     bool valid=unit->size>0 && INRATE(0)==calc_FullRate
         && unit->minimum*std::exp2(static_cast<double>(unit->bands-1)/unit->bpo)<unit->mWorld->mSampleRate*.5
         && static_cast<int>(unit->mNumOutputs)<=mir2::kCQMaxBins
+        && (!chroma || (unit->mNumOutputs==12 && unit->bpo%12==0))
         && (!cepstral || (unit->coefficients <= 64
             && unit->coefficients + (IN0(10) > 0 ? 0 : 1) <= unit->uniformCount));
     if(valid){
@@ -77,8 +84,10 @@ void CQ_destroy(CQUnit* unit){release(unit->mWorld,unit->ring);release(unit->mWo
 struct CQT : CQUnit {};
 struct VQT : CQUnit {};
 struct CQCC : CQUnit {};
+struct ChromaCQT : CQUnit {};
+void ChromaCQT_Ctor(ChromaCQT* unit){CQ_init(unit,false,true);} void ChromaCQT_Dtor(ChromaCQT* unit){CQ_destroy(unit);}
 void CQT_Ctor(CQT* unit){CQ_init(unit,false);} void CQT_Dtor(CQT* unit){CQ_destroy(unit);}
 void VQT_Ctor(VQT* unit){CQ_init(unit,false);} void VQT_Dtor(VQT* unit){CQ_destroy(unit);}
 void CQCC_Ctor(CQCC* unit){CQ_init(unit,true);} void CQCC_Dtor(CQCC* unit){CQ_destroy(unit);}
 }
-namespace mir2plugin {void registerConstantQUnits(){DefineDtorUnit(CQT);DefineDtorUnit(VQT);DefineDtorUnit(CQCC);}}
+namespace mir2plugin {void registerConstantQUnits(){DefineDtorUnit(CQT);DefineDtorUnit(VQT);DefineDtorUnit(CQCC);DefineDtorUnit(ChromaCQT);}}

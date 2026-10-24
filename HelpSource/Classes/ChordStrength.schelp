@@ -1,12 +1,12 @@
 class:: ChordStrength
-summary:: Major/minor chord template strength
+summary:: Causal chord template strength
 categories:: UGens>Analysis>Tonal
 related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
 
 description::
-An original deterministic major/minor template matcher over supplied chroma, following the standard pitch-class/template approach surveyed by Gomez (2006). Each of 24 triads receives cosine similarity multiplied by a coverage factor: min(1, weakestChordTone/(0.05*totalChroma)). An explicit no-chord state has score threshold. Causal min-sum dynamic programming adds transitionPenalty when the state changes; exponential chroma smoothing is optional. Root is 0=C through 11=B; quality 0=major, 1=minor. Silence forces both indices to -1. Extended, suspended, inverted or incomplete chords can be ambiguous; this initial vocabulary deliberately contains only major/minor/no-chord.
+An original template matcher over supplied chroma, following the pitch-class/template approach surveyed by Gomez (2006), DOI 10.1287/ijoc.1040.0126. Each chord receives cosine similarity multiplied by a coverage factor: min(1, weakestChordTone/(0.05*totalChroma)). An explicit no-chord state has score threshold. Causal min-sum dynamic programming adds transitionPenalty when the state changes; optional exponential chroma smoothing follows elapsed time. The default major/minor vocabulary is unchanged; the extended vocabulary adds diminished, augmented, seventh and suspended chords.
 
-
+Chroma discards octave and bass position. It cannot distinguish inversions, augmented roots separated by four semitones, or sus2/sus4 labels with identical pitch-class sets (Csus2 and Gsus4, for example). A new path breaks equal-cost ties by lower quality index, then lower root; accumulated transition costs can preserve an existing equivalent label. Missing defining tones can cause no-chord or a simpler complete template. This is a bounded template vocabulary, not a general chord transcriber. Silence immediately selects no-chord despite smoothing or transition penalty.
 
 classmethods::
 method:: kr
@@ -25,11 +25,14 @@ Minimum similarity required to beat the no-chord state; default 0.65.
 argument:: trig
 A positive value processes this control block. For FFT-derived features pass chain >= 0 so each analysis frame is used once; default 1 processes each control block.
 
+argument:: vocabulary
+Literal symbol: code::\triads:: (default, major/minor/no-chord) or code::\extended:: (nine qualities/no-chord). Quality indices are 0=major, 1=minor, 2=diminished, 3=augmented, 4=dominant seventh, 5=major seventh, 6=minor seventh, 7=sus2, 8=sus4. Root is 0=C through 11=B; no-chord uses -1 for both root and quality. The vocabulary is fixed when the SynthDef is built.
+
 returns::
 Selected chord similarity, or the best frame similarity when no chord is selected. This is not probability.
 
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+Chord template strength opens the right-channel low-pass filter. The dry source is on the left. Boot the server first; use moderate volume.
 code::
 (
 Routine({
@@ -40,7 +43,7 @@ Routine({
         // For live input instead: source = SoundIn.ar(0);
         var chain = FFT(LocalBuf(4096), source, 0.25);
         var chroma = HPCP.kr(chain, harmonics: 1);
-        var strength = ChordStrength.kr(chroma, trig: chain >= 0);
+        var strength = ChordStrength.kr(chroma, trig: chain >= 0, vocabulary: \extended);
         var sound = [source * 0.1, RLPF.ar(source, 200 + (strength * 5000), 0.3) * 0.2];
         sound * Line.kr(0, 1, 0.2)
     }.play;

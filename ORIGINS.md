@@ -69,3 +69,9 @@ a runtime dependency.
   templates, harmonic descriptors and Sethares-style roughness.
 - `docs/rhythm-implementation.md`: Grosche/Müller/Kurth periodicity analysis
   and explicitly documented MIR2 causal tracking/statistical conventions.
+- `docs/rhythm-modulation-implementation.md`: Lidy/Rauber per-band modulation
+  patterns, with explicit differences from their psychoacoustic frontend.
+- `docs/chroma-cqt-evaluation.md`: standard pitch-class folding over the
+  Brown/Puckette engine and reproducible comparison with MIR2 FFT routes.
+- `docs/neural-pitch-research.md`: pinned source and model references for the
+  optional neural audit; no audited neural code or weights are embedded.

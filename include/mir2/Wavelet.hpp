@@ -4,10 +4,11 @@
 
 namespace mir2 {
 
-struct WaveletFilter { double low[8]; int taps; };
+struct WaveletFilter { double low[16]; int taps; };
 
-// Orthonormal extremal-phase Daubechies scaling coefficients, orders 1..4.
-// Mathematical constants from Daubechies (1988), Table 1; not copied library code.
+// Orthonormal extremal-phase Daubechies scaling coefficients, orders 1..8.
+// db1..db4: Daubechies (1988), Table 1. db5..db8: independent spectral
+// factorization; tests/python/wavelet_filter_reference.py reproduces all orders.
 inline WaveletFilter daubechiesFilter(int order) noexcept {
     switch (order) {
     case 1: return {{0.7071067811865475244, 0.7071067811865475244}, 2};
@@ -16,6 +17,32 @@ inline WaveletFilter daubechiesFilter(int order) noexcept {
     case 3: return {{0.3326705529500826159, 0.8068915093110925765,
                     0.4598775021184915701, -0.1350110200102545887,
                     -0.0854412738820266617, 0.0352262918857095366}, 6};
+    case 5: return {{0.16010239797419296, 0.60382926979718976,
+                    0.72430852843777294, 0.13842814590132085,
+                    -0.24229488706638222, -0.032244869584638312,
+                    0.077571493840045733, -0.0062414902127982874,
+                    -0.012580751999082002, 0.0033357252854737747}, 10};
+    case 6: return {{0.11154074335010945, 0.49462389039845295,
+                    0.75113390802109559, 0.31525035170919774,
+                    -0.22626469396543974, -0.12976686756726194,
+                    0.097501605587323043, 0.02752286553030572,
+                    -0.031582039317486023, 0.00055384220116149537,
+                    0.0047772575109455099, -0.0010773010853084792}, 12};
+    case 7: return {{0.077852054085009101, 0.39653931948191701,
+                    0.72913209084623487, 0.46978228740519323,
+                    -0.14390600392856442, -0.22403618499387465,
+                    0.071309219266830093, 0.080612609151082884,
+                    -0.038029936935014219, -0.016574541630666909,
+                    0.012550998556099818, 0.00042957797292136993,
+                    -0.0018016407040474874, 0.0003537137999745191}, 14};
+    case 8: return {{0.054415842243104001, 0.31287159091429989,
+                    0.67563073629728954, 0.58535468365420706,
+                    -0.015829105256349726, -0.28401554296154641,
+                    0.00047248457391311984, 0.12874742662047833,
+                    -0.017369301001807377, -0.044088253930794789,
+                    0.013981027917398258, 0.0087460940474057836,
+                    -0.0048703529934515733, -0.00039174037337694727,
+                    0.00067544940645056901, -0.00011747678412476943}, 16};
     default: return {{0.2303778133088965009, 0.7148465705529156471,
                      0.6308807679298589079, -0.0279837694168598542,
                      -0.1870348117190930841, 0.0308413818355607636,
@@ -25,6 +52,22 @@ inline WaveletFilter daubechiesFilter(int order) noexcept {
 
 inline int waveletMaxLevels(int size) noexcept {
     int result = 0; while (size > 1) { size >>= 1; ++result; } return result;
+}
+
+// Symmetric mode is a redundant reflected-frame embedding, not a critically
+// sampled symmetric-boundary DWT. E=[I; reverse(I)] and synthesis is E^T/2.
+inline void waveletEmbed(const double* input, double* extended, int size,
+                         bool symmetric) noexcept {
+    for (int i = 0; i < size; ++i) {
+        extended[i] = input[i];
+        if (symmetric) extended[2 * size - 1 - i] = input[i];
+    }
+}
+
+inline void waveletProject(const double* extended, double* output, int size,
+                           bool symmetric) noexcept {
+    for (int i = 0; i < size; ++i)
+        output[i] = symmetric ? 0.5 * (extended[i] + extended[2 * size - 1 - i]) : extended[i];
 }
 
 // Periodic critically sampled analysis. Output: A_L, D_L, ..., D_1.
@@ -69,14 +112,17 @@ inline void waveletInverse(double* data, double* scratch, int size, int levels,
 // One-sample streaming adapter. The transform block is independent of the host block.
 inline double waveletReconstructSample(double input, double* frame, double* output,
                                        double* scratch, int& position, int size, int levels,
-                                       const WaveletFilter& filter, int remove) noexcept {
+                                       const WaveletFilter& filter, int remove,
+                                       bool symmetric = false) noexcept {
     const double result = output[position];
     frame[position] = clamp(sanitize(input), -1.0e6, 1.0e6);
+    if (symmetric) frame[2 * size - 1 - position] = frame[position];
     if (++position == size) {
-        waveletForward(frame, scratch, size, levels, filter);
-        std::fill(frame, frame + clamp(remove, 0, size), 0.0);
-        waveletInverse(frame, scratch, size, levels, filter);
-        std::copy(frame, frame + size, output);
+        const int transformSize = symmetric ? 2 * size : size;
+        waveletForward(frame, scratch, transformSize, levels, filter);
+        std::fill(frame, frame + clamp(remove, 0, transformSize), 0.0);
+        waveletInverse(frame, scratch, transformSize, levels, filter);
+        waveletProject(frame, output, size, symmetric);
         position = 0;
     }
     return result;

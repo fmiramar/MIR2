@@ -1,0 +1,71 @@
+class:: ChromaCQT
+summary:: Twelve pitch classes from a tunable constant-Q filter bank
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/CQT, Classes/HPCP, Classes/Chromagram2
+
+description::
+ChromaCQT squares constant-Q magnitudes and folds each bin into its nearest equal-tempered semitone, summing across octaves. Its twelve outputs are C, C-sharp, D, E-flat, E, F, F-sharp, G, A-flat, A, B-flat, B. Half-semitone ties go to the higher note, using a 4e-6-semitone tolerance to absorb float32 SynthDef frequency rounding. The optional threshold removes weak folded powers before normalization. The native unit shares MIR2's sparse variable-length Hann kernels and exposes twelve outputs without an intermediate graph of up to 192 CQT outputs.
+
+The constant-Q technique follows Judith Brown (1991) and Brown and Puckette (1992); see link::Classes/CQT::. Pitch-class folding follows the standard chromagram definition described by Meinard Mueller's FMP material: link::https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html::. This independent implementation uses unit-sum Hann kernels and nearest-semitone power folding; it does not claim numerical equivalence to librosa.
+
+Synthetic comparisons in the installed docs/chroma-cqt-evaluation.md show a useful option for low-register close intervals and triads, especially where the public HPCP FFT limit restricts frequency resolution. HPCP is more concentrated and faster on many isolated tones and well-separated chords. This result is not evidence of better recognition on recorded music. More bins per octave can improve semitone isolation but require longer kernels and more memory. Even densities place bins on semitone boundaries; a 36-bin grid avoids those exact ties.
+
+The common frame N is a power of two, limited to 32768 samples. Outputs start at zero, first update after N samples and then hold between hops. They describe approximately N/2 samples in the past. At 48 kHz, the default 55 Hz, 12-bin grid needs 16384 samples: 341 ms warmup and 171 ms centre age. All filters share the same centre, including short high-frequency filters. At 96 kHz, 110 Hz with 36 bins per octave exceeds the frame limit and is rejected. Use the inherited frameSize helper with the tuned minimum frequency to check sizing.
+
+Kernel storage is limited to 262144 sparse complex entries; construction prepares the kernels and allocates their storage. Invalid frame/range/Nyquist or storage configurations disable the unit with an error. Callback processing allocates no memory. Silence returns zero in all normalization modes. Input safety and sparsification limits are the same as CQT. Tuning shifts the analysis grid as well as the pitch-class reference, so it must be specified when constructing the synth.
+
+Vanilla FFT provides uniform frequency bins. ChromaCQT instead summarizes a variable-resolution bank into octave-independent pitch classes, at the cost of its longest low-frequency window.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate source.
+argument:: fmin
+Positive first-bin frequency for A4=440 Hz, default 55. Actual first frequency is fmin * (tuning / 440).
+argument:: octaves
+Literal number of octaves, 1..8, default 5. The product with binsPerOctave must not exceed 192.
+argument:: binsPerOctave
+Literal 12, 24, 36 or 48, default 12. Fine-grid bins are summed into twelve semitone classes.
+argument:: tuning
+Literal A4 reference from 300 to 500 Hz, default 440.
+argument:: normalize
+Literal symbol: code::\none:: retains folded power, code::\max:: divides by the maximum (default), code::\sum:: by the sum, code::\l2:: by the Euclidean norm.
+argument:: threshold
+Literal fraction 0..1 of the largest folded power; bins below it are zeroed before normalization. Default 0.
+argument:: hop
+Literal common-frame fraction 0.0625..1, default 0.25.
+argument:: sparsity
+Literal kernel spectrum cutoff relative to each row maximum, 1e-8..0.01; default 1e-4. Smaller values increase memory and construction work.
+returns::
+Twelve control-rate pitch-class powers, C first, with the selected normalization.
+
+examples::
+The sample's pitch-class distribution controls a sustained octave-folded oscillator bank. The dry source helps make the analysis delay audible.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2ChromaExample = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chroma = ChromaCQT.kr(source, fmin: 110, normalize: \sum);
+        var voices = SinOsc.ar((60 + (0..11)).midicps, 0, chroma.lag(0.08) * 0.16).sum;
+        ((source * 0.15) + voices) * Line.kr(0, 1, 0.5) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+code::
+(
+~mir2ChromaExample.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/CQT::
+link::Classes/HPCP::
+link::Classes/Chromagram2::
+link::Classes/FFT::
