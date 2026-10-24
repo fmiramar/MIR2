@@ -62,11 +62,13 @@ Each band's SPL is interpolated through the inherited table. The table is used o
 
 The source table does not document whether its contours assume a free or diffuse field. MIR2 makes no such claim and applies no acoustic-field correction; externally calibrated and equalized input plus independent validation are required for absolute acoustic uses. This model remains an informal MIR control feature, without ISO conformance or claims of modern perceptual accuracy. It is not an EBU R128 meter.
 
-## PNCC evaluation and explicit remaining gate
+## PNCC reference gate
 
-[Kim and Stern (2016)](https://www.cs.cmu.edu/~robust/Papers/KimStern16_proof.pdf), DOI 10.1109/TASLP.2016.2545928, supplies a clear paper basis. The method comprises squared gammatone integration, medium-time smoothing, asymmetric noise suppression, temporal masking, frequency smoothing, online mean normalization, and power-law compression. Replacing only a log with a root would omit most of PNCC.
-
-The mandatory plan says not to implement PNCC until a paper-based implementation **and test oracle** are clear. The paper has been located and reviewed, but an independently reproduced reference covering online initialization, nonstationary noise, silence, gain changes, and adaptation transients has not yet been established here. PNCC remains intentionally unregistered. The next step is to reproduce the paper's online equations in an independent offline script, record per-stage fixtures and provenance, then implement and compare the native state machine. This is a concrete remaining gate, not a placeholder UGen or an unsupported quality claim.
+The initial paper/oracle gate has now been addressed in the separate PNCC module.
+See [PNCC implementation and independent oracle](pncc-implementation.md) for
+its exact equations, frontend differences, initialization, stage fixtures and
+limitations. This is not a log-to-root shortcut or an imported recognition
+library; all medium-time suppression and normalization stages are present.
 
 ## Validation and cost
 
@@ -86,4 +88,4 @@ Per-class help includes a playable analysis-driven example with `ExampleFiles.ch
 - [Glasberg and Moore (1990), Derivation of auditory filter shapes from notched-noise data](https://doi.org/10.1016/0378-5955(90)90170-T).
 - Hohmann (2002), Frequency analysis and synthesis using a Gammatone filterbank, Acta Acustica united with Acustica 88:433–442. [Author-origin AMT equations and implementation](https://amtoolbox.org/amt-1.6.0/doc/modelstages/hohmann2002_filter_code.php) were consulted for the equations; MIR2's implementation is independently written.
 - [SuperCollider 3.14.1 Loudness.cpp](https://github.com/supercollider/supercollider/blob/Version-3.14.1/server/plugins/Loudness.cpp): GPL-2.0-or-later contour table and immediate loudness model source.
-- [Kim and Stern (2016), Power-Normalized Cepstral Coefficients for Robust Speech Recognition](https://www.cs.cmu.edu/~robust/Papers/KimStern16_proof.pdf): gated future PNCC implementation.
+- [Kim and Stern (2016), Power-Normalized Cepstral Coefficients for Robust Speech Recognition](https://www.cs.cmu.edu/~robust/Papers/KimStern16_proof.pdf): independently implemented PNCC stages, evaluated in the PNCC report.

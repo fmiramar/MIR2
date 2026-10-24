@@ -13,7 +13,7 @@ struct FeatureState : Unit {
 };
 
 bool featureInit(FeatureState* unit, bool median) {
-    unit->radius = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(1))), 1, median ? 127 : 32);
+    unit->radius = mir2::clamp(mir2::boundedInteger(IN0(1)), 1, median ? 127 : 32);
     unit->count = median ? unit->radius : 2 * unit->radius + 1;
     unit->history = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->count));
     unit->scratch = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->count));

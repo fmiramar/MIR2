@@ -35,7 +35,7 @@ Routine({
         var pitch = PitchMPM.kr(source, 80, 1200, 4096);
         var stability = PitchStability.kr(pitch[0], pitch[1], 0.25);
         var stableTone = SinOsc.ar(pitch[0].max(20), 0, stability[0] * 0.1 * pitch[2]);
-        var gestureNoise = BPF.ar(PinkNoise.ar(0.08), 500 + stability[1].clip(0, 1000) * 4, 0.3);
+        var gestureNoise = BPF.ar(PinkNoise.ar(0.08), 500 + (stability[1].clip(0, 1000) * 4), 0.3);
         var sound = (source * 0.1 + stableTone + (gestureNoise * (1 - stability[0]) * pitch[2])) ! 2;
         sound * Line.kr(0, 1, 0.25)
     }.play;

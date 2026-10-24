@@ -40,6 +40,10 @@ set(mir2_cpp_files
     plugins/MIR2PitchAdvanced.cpp
     plugins/MIR2Wavelet.cpp
     plugins/MIR2ConstantQ.cpp
+    plugins/MIR2PNCC.cpp
+    plugins/MIR2Tonal.cpp
+    plugins/MIR2Harmonic.cpp
+    plugins/MIR2Rhythm.cpp
 )
 file(GLOB mir2_sc_files CONFIGURE_DEPENDS Classes/*.sc)
 file(GLOB mir2_schelp_files CONFIGURE_DEPENDS HelpSource/Classes/*.schelp)
@@ -98,6 +102,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         set(test_target "mir2_${test_name}")
         add_executable(${test_target} "${test_file}")
         target_include_directories(${test_target} PRIVATE include)
+        target_compile_definitions(${test_target} PRIVATE MIR2_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
         # Assertions are part of the numerical oracle, including Release builds.
         if(MSVC)
             target_compile_options(${test_target} PRIVATE /UNDEBUG)

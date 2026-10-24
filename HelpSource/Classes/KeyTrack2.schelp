@@ -1,0 +1,76 @@
+class:: KeyTrack2
+summary:: Tonal key estimate
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Uses tuning-aware HPCP with exponential time averaging, followed by Pearson correlation against all 24 rotated major/minor profiles. Krumhansl-Kessler data are reported by Temperley (1999); Temperley's 1999 profiles and Faraldo et al.'s EDMA ECIR 2016 measured profiles are also available. The key is the strongest correlation, subject to threshold. This independent implementation uses a twelve-bin HPCP and does not reproduce any external implementation's full preprocessing. Mode 0 means major, 1 minor; root 0 is C through 11 B. Silence or insufficient correlation gives root/mode -1. A local chord, speech or short excerpt may not establish a musical key.
+
+Vanilla link::Classes/KeyTrack:: also estimates tonality. MIR2 accepts configurable FFT sizes and tuning, exposes separate root/mode/strength, and uses selectable profiles.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. This analyzer updates when a new frame arrives and holds its output between frames.
+
+argument:: tuning
+Reference A in Hz, positive; default 440. This retunes the pitch-class grid.
+
+argument:: profile
+One of \krumhansl, \temperley (1999), or \edma (ECIR 2016 measured profiles).
+
+argument:: decay
+Exponential key-context averaging time in seconds. Zero gives framewise decisions; default 2 seconds.
+
+argument:: minFreq
+Lowest included spectral frequency in Hz.
+
+argument:: maxFreq
+Highest included spectral frequency in Hz; zero means Nyquist.
+
+argument:: threshold
+Correlation threshold from 0 through 1 for a valid key; default 0.3.
+
+argument:: peakThreshold
+Minimum local-peak magnitude relative to the largest included spectral peak, from 0 through 1. Up to 128 strongest peaks are retained.
+
+argument:: fftSize
+Literal power of two from 256 through 8192, matching the FFT buffer. Frequency resolution and first-result latency depend on this size.
+
+returns::
+An Array: root index, mode index, and positive Pearson correlation from 0 through 1.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var key = KeyTrack2.kr(chain, decay: 0.5);
+        var tonic = SinOsc.ar((48 + key[0].max(0)).midicps, 0, (key[0] >= 0) * key[2] * 0.07);
+        var sound = [source * 0.12, tonic];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

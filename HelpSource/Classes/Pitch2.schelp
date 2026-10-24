@@ -61,7 +61,7 @@ Routine({
         // For live input instead: source = SoundIn.ar(0);
         var result = Pitch2.kr(source, 60, 2000, 2048, 0.25, \mpm);
         var tone = SinOsc.ar(result[0].clip(40, 2000).lag(0.03), 0, 0.07);
-        (source * 0.12 + tone * result[2].lag(0.02) * (1 - (result[3] * 0.75))) * Line.kr(0, 1, 0.3) ! 2
+        ((source * 0.12) + (tone * result[2].lag(0.02) * (1 - (result[3] * 0.75)))) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
 )

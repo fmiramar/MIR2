@@ -50,6 +50,7 @@ inline void waveletForward(double* data, double* scratch, int size, int levels,
 // Transpose of each orthonormal analysis stage: exact periodic reconstruction.
 inline void waveletInverse(double* data, double* scratch, int size, int levels,
                            const WaveletFilter& filter) noexcept {
+    if (levels <= 0) return;
     int length = size >> (levels - 1);
     for (int level = 0; level < levels; ++level) {
         std::fill(scratch, scratch + length, 0.0);
@@ -63,6 +64,22 @@ inline void waveletInverse(double* data, double* scratch, int size, int levels,
         std::copy(scratch, scratch + length, data);
         length *= 2;
     }
+}
+
+// One-sample streaming adapter. The transform block is independent of the host block.
+inline double waveletReconstructSample(double input, double* frame, double* output,
+                                       double* scratch, int& position, int size, int levels,
+                                       const WaveletFilter& filter, int remove) noexcept {
+    const double result = output[position];
+    frame[position] = clamp(sanitize(input), -1.0e6, 1.0e6);
+    if (++position == size) {
+        waveletForward(frame, scratch, size, levels, filter);
+        std::fill(frame, frame + clamp(remove, 0, size), 0.0);
+        waveletInverse(frame, scratch, size, levels, filter);
+        std::copy(frame, frame + size, output);
+        position = 0;
+    }
+    return result;
 }
 
 inline void waveletEnergies(const double* coefficients, int size, int levels,
@@ -100,7 +117,7 @@ inline WaveletMeasurements waveletMeasurements(const double* bands, const double
     for (int i = 0; i <= levels; ++i)
         result.spread += bands[i] / total * std::pow(waveletBandFrequency(i, levels, sampleRate) - result.centroid, 2);
     result.entropy /= std::log2(levels + 1.0);
-    result.flux = oldTotal > 1e-24 ? std::sqrt(result.flux) : 0.0;
+    result.flux = std::sqrt(result.flux);
     result.spread = std::sqrt(result.spread);
     return result;
 }

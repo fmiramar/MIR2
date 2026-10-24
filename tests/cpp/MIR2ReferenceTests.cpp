@@ -199,6 +199,10 @@ void testNoiseAndFiniteGuards() {
 } // namespace
 
 int main() {
+    require(mir2::boundedInteger(1.e100) == std::numeric_limits<int>::max(), "integer overflow guard");
+    require(mir2::boundedInteger(-1.e100) == std::numeric_limits<int>::min(), "integer underflow guard");
+    require(mir2::boundedInteger(std::numeric_limits<double>::quiet_NaN()) == 0, "integer NaN guard");
+    require(mir2::boundedInteger(7.9) == 7, "integer truncation preserved");
     testFFT();
     testSpectralDescriptors();
     testFilterBankAndDCT();

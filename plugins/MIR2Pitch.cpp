@@ -32,7 +32,7 @@ void PitchYIN_next(PitchYIN* unit, int inNumSamples) {
 
 void PitchYIN_Ctor(PitchYIN* unit) {
     clearPitchState(unit->state);
-    if (!validPitchConfiguration(unit, unit->state, static_cast<int>(IN0(3)),
+    if (!validPitchConfiguration(unit, unit->state, mir2::boundedInteger(IN0(3)),
                                  IN0(4), IN0(1), IN0(2))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
@@ -61,7 +61,7 @@ void PitchMPM_next(PitchMPM* unit, int inNumSamples) {
 
 void PitchMPM_Ctor(PitchMPM* unit) {
     clearPitchState(unit->state);
-    if (!validPitchConfiguration(unit, unit->state, static_cast<int>(IN0(3)),
+    if (!validPitchConfiguration(unit, unit->state, mir2::boundedInteger(IN0(3)),
                                  IN0(4), IN0(1), IN0(2))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
@@ -81,7 +81,7 @@ struct Periodicity : Unit {
 };
 
 void Periodicity_next(Periodicity* unit, int inNumSamples) {
-    const int method = mir2::clamp(static_cast<int>(IN0(5)), 0, 1);
+    const int method = mir2::clamp(mir2::boundedInteger(IN0(5)), 0, 1);
     const PitchAlgorithm algorithm = method == 0 ? PitchAlgorithm::mpm : PitchAlgorithm::yin;
     const double parameter = algorithm == PitchAlgorithm::mpm ? 0.93 : 0.1;
     processPitchInput(unit, unit->state, inNumSamples, IN0(1), IN0(2),
@@ -92,7 +92,7 @@ void Periodicity_next(Periodicity* unit, int inNumSamples) {
 
 void Periodicity_Ctor(Periodicity* unit) {
     clearPitchState(unit->state);
-    if (!validPitchConfiguration(unit, unit->state, static_cast<int>(IN0(3)),
+    if (!validPitchConfiguration(unit, unit->state, mir2::boundedInteger(IN0(3)),
                                  IN0(4), IN0(1), IN0(2))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
@@ -114,7 +114,7 @@ struct Voicing : Unit {
 void Voicing_next(Voicing* unit, int inNumSamples) {
     processPitchInput(unit, unit->state, inNumSamples, IN0(3), IN0(4),
                       0.93, PitchAlgorithm::mpm);
-    const int method = mir2::clamp(static_cast<int>(IN0(5)), 0, 1);
+    const int method = mir2::clamp(mir2::boundedInteger(IN0(5)), 0, 1);
     const double probability = method == 0
         ? unit->state.result.periodicity : unit->state.voicingProbability;
     const double cleanProbability = mir2::clamp(probability, 0.0, 1.0);
@@ -126,7 +126,7 @@ void Voicing_next(Voicing* unit, int inNumSamples) {
 
 void Voicing_Ctor(Voicing* unit) {
     clearPitchState(unit->state);
-    if (!validPitchConfiguration(unit, unit->state, static_cast<int>(IN0(1)),
+    if (!validPitchConfiguration(unit, unit->state, mir2::boundedInteger(IN0(1)),
                                  IN0(2), IN0(3), IN0(4))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;
@@ -148,7 +148,7 @@ struct Pitch2 : Unit {
 };
 
 void Pitch2_next(Pitch2* unit, int inNumSamples) {
-    const int algorithmIndex = mir2::clamp(static_cast<int>(IN0(5)), 0, 1);
+    const int algorithmIndex = mir2::clamp(mir2::boundedInteger(IN0(5)), 0, 1);
     const PitchAlgorithm algorithm = algorithmIndex == 0
         ? PitchAlgorithm::yin : PitchAlgorithm::mpm;
     double parameter = IN0(6);
@@ -183,7 +183,7 @@ void Pitch2_Ctor(Pitch2* unit) {
     clearPitchState(unit->state);
     unit->smoothedFrequency = 0.0;
     unit->heldFrequency = 0.0;
-    if (!validPitchConfiguration(unit, unit->state, static_cast<int>(IN0(3)),
+    if (!validPitchConfiguration(unit, unit->state, mir2::boundedInteger(IN0(3)),
                                  IN0(4), IN0(1), IN0(2))) {
         SETCALC(ClearUnitOutputs);
         unit->mDone = true;

@@ -1,0 +1,81 @@
+class:: BeatHistogram
+summary:: Smoothed tempo distribution
+categories:: UGens>Analysis>Rhythm
+related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+
+description::
+The product of normalized autocorrelation and Fourier evidence is exponentially averaged per BPM bin. This stores tempo evidence, not a histogram of individual beat timestamps.
+
+The periodicity-analysis source is Grosche, Müller and Kurth (2010), link::https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf::. MIR2 uses trailing absolute-BPM windows and an original causal tracker; it does not implement cyclic tempo folding or claim equivalence with the paper. Output begins after the requested warmup and sufficient periods, and is held between analyses. Silence clears evidence as it leaves the trailing window. Tempo ambiguities, syncopation, sparse events and changing meter remain limitations. Vanilla BeatTrack also estimates pulse timing; MIR2 exposes the evidence distribution, alternative tempi and explicit continuity controls.
+
+classmethods::
+method:: kr
+argument:: in
+Nonnegative control-rate onset strength, such as Onsets2 novelty. Audio-rate input is rejected.
+
+argument:: minBPM
+Lowest tempo in BPM, at least 20; literal at construction.
+
+argument:: maxBPM
+Highest tempo in BPM, greater than minBPM and at most 600; literal at construction.
+
+argument:: numBins
+Literal number of linearly spaced BPM bins, 8–512. Defaults to 128 for vectors and 271 for scalar estimates.
+
+argument:: windowTime
+Trailing history in seconds. Rhythm analysis accepts 0.5–16, default 6; onset/tempo statistics accept 0.05–60, default 4.
+
+argument:: hopTime
+Analysis interval in seconds, 0.02–2, default 0.1; rounded to a whole number of pooled feature frames.
+
+argument:: featureRate
+Requested onset-envelope rate, 20–200 Hz, default 100. Maximum pooling spans a rounded number of server control blocks; the actual rate is used in all timing calculations.
+
+argument:: normalize
+Positive selects normalized evidence; zero returns raw correlation per overlap sample or raw Fourier magnitude. Histogram normalization makes its sum one.
+
+argument:: decay
+Exponential histogram memory in seconds, default 2; zero uses the latest evidence.
+
+method:: bpms
+Returns the linear BPM grid for matching minBPM, maxBPM and numBins arguments.
+
+returns::
+An Array of numBins accumulated strengths.
+
+examples::
+The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2RhythmExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
+            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
+        var values = BeatHistogram.kr(onset[1], decay: 0.5);
+        var feature = (values * BeatHistogram.bpms).sum / values.sum.max(1e-9);
+        var sound = [source * 0.25, SinOsc.ar(feature.clip(30, 300) * 3, 0, 0.06)];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2RhythmBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2RhythmExample.free;
+~mir2RhythmBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/Tempo::
+link::Classes/BeatTrack3::

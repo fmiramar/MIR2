@@ -1,0 +1,59 @@
+class:: OnsetRate
+summary:: Rolling onset density
+categories:: UGens>Analysis>Rhythm
+related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+
+description::
+Counts rising-edge onset events in a bounded trailing timestamp window, divided by the full window duration. Startup therefore ramps naturally as events accumulate.
+
+This is an independent implementation of the statistical definition above. Output updates at the server control rate; beat boundaries are quantized to a control block. Silence produces zero level/density or missing tempo evidence. No corpus-level accuracy is implied.
+
+classmethods::
+method:: kr
+argument:: trig
+Control-rate trigger. Only nonpositive-to-positive transitions count as events.
+
+argument:: windowTime
+Trailing history in seconds. Rhythm analysis accepts 0.5–16, default 6; onset/tempo statistics accept 0.05–60, default 4.
+
+argument:: minGap
+Minimum seconds between accepted events, default zero.
+
+returns::
+Events per second.
+
+examples::
+The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2RhythmExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
+            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
+        var density = OnsetRate.kr(onset[0], windowTime: 2);
+        var sound = RLPF.ar(source, density.clip(0, 8).linexp(0, 8, 300, 7000), 0.3) ! 2;
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2RhythmBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2RhythmExample.free;
+~mir2RhythmBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/Tempo::
+link::Classes/BeatTrack3::

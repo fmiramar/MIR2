@@ -1,0 +1,56 @@
+class:: Tonnetz
+summary:: Six-dimensional tonal centroid
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Implements the tonal-centroid projection of Harte, Sandler and Gasser (2006), DOI 10.1145/1178723.1178727. The L1-normalized chroma weights three sine/cosine circles: angular steps 7*pi/6, 3*pi/2 and 2*pi/3, with radii 1, 1 and 0.5. MIR2 returns the sine component before cosine in each pair. C-first chroma is required; using an A-first vector rotates the geometry. Silence maps to the origin.
+
+
+
+classmethods::
+method:: kr
+argument:: chroma
+A C-first Array of 12, 24, 36, or 120 nonnegative pitch-class values. Higher resolutions fold to nearest semitones where a twelve-class representation is required.
+
+argument:: trig
+A positive value processes this control block. For FFT-derived features pass chain >= 0 so each analysis frame is used once; default 1 processes each control block.
+
+returns::
+An Array: fifth sine/cosine, minor-third sine/cosine, major-third sine/cosine coordinates.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var chroma = HPCP.kr(chain, harmonics: 1);
+        var position = Tonnetz.kr(chroma, chain >= 0);
+        var tone = SinOsc.ar(220 * (position[2] * 7).midiratio, 0, 0.06);
+        var sound = Pan2.ar(tone, position[0]) + (source * 0.1);
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

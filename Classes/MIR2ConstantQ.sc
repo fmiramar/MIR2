@@ -13,6 +13,7 @@ MIR2ConstantQ : MultiOutUGen {
     init { |numOutputs ... theInputs| inputs = theInputs; ^this.initOutputs(numOutputs, \control) }
     argNamesInputsOffset { ^2 }
     checkInputs { ^this.checkValidInputs }
+    *ar { Error("MIR2 constant-Q analyzers produce control-rate outputs only.").throw }
     *frameSize { |sampleRate = 48000, fmin = 55, binsPerOctave = 12, gamma = 0|
         ^(sampleRate / (((2 ** (1 / binsPerOctave)) - 1) * fmin + gamma)).ceil.max(32).asInteger.nextPowerOfTwo
     }
@@ -35,6 +36,7 @@ CQCC : MIR2ConstantQ {
         this.validate(in, fmin, numBins, binsPerOctave, 0, hop, sparsity);
         if(numCoeffs.isInteger.not or: { numCoeffs < 1 } or: { numCoeffs > 64 }
             or: { uniformBins.isInteger.not } or: { uniformBins < 16 } or: { uniformBins > 1024 }
+            or: { include0.isInteger.not } or: { [0, 1].includes(include0).not }
             or: { numCoeffs + (include0 <= 0).asInteger > uniformBins }) {
             Error("CQCC: invalid coefficient or uniform-bin count.").throw
         };

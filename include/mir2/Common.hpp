@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 
 namespace mir2 {
 
@@ -21,6 +22,14 @@ inline bool finite(double value) noexcept {
 
 inline double sanitize(double value) noexcept {
     return finite(value) ? value : 0.0;
+}
+
+// Sanitize and bound before conversion: converting a finite float outside the
+// int range is undefined, even if the integer is clamped immediately afterwards.
+inline int boundedInteger(double value) noexcept {
+    return static_cast<int>(clamp(sanitize(value),
+        static_cast<double>(std::numeric_limits<int>::min()),
+        static_cast<double>(std::numeric_limits<int>::max())));
 }
 
 inline bool isPowerOfTwo(int value) noexcept {

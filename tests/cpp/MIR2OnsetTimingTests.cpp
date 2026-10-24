@@ -85,6 +85,28 @@ void checkHistoryDuration() {
                     if (expected > 3)
                         assert(actualDuration - duration <= samplesPerFrame / sampleRate + 1.0e-12);
                 }
+    mir2::OnsetConfig excessive;
+    excessive.fftSize = 256;
+    excessive.hop = 0.0625;
+    excessive.sampleRate = 192000.0;
+    excessive.medianTime = 10.0;
+    assert(mir2::OnsetState::historyCount(excessive) == 0);
+    assert(mir2::OnsetState::storageCount(excessive) == 0);
+}
+
+void checkEffectiveHop() {
+    assert(mir2::onsetHopSamples(256, 0.0625, 64) == 64);
+    assert(mir2::onsetHopSamples(1024, 0.3, 64) == 256);
+    assert(mir2::onsetHopSamples(2048, 0.5, 64) == 1024);
+    for (int fftSize : {256, 512, 1024, 2048, 4096, 8192})
+        for (int blockSize : {16, 64, 128})
+            for (double hop : {0.0625, 0.25, 0.3, 0.5}) {
+                const int actual = mir2::onsetHopSamples(fftSize, hop, blockSize);
+                assert(actual >= blockSize && actual % blockSize == 0);
+                const int requested = static_cast<int>(fftSize * hop);
+                if (requested < blockSize) assert(actual == blockSize);
+                else assert(actual <= requested && requested - actual < blockSize);
+            }
 }
 
 void checkDefaultSizes() {
@@ -134,7 +156,9 @@ void medianCost(int capacity) {
         const auto batchStart = std::chrono::steady_clock::now();
         for (int i = 0; i < batch; ++i) {
             generator = 1664525U * generator + 1013904223U;
-            median.update(static_cast<double>(generator & 0xffffU));
+            // Keep all 32 bits: a 16-bit generator would repeat exactly at a
+            // 65536-entry ring and make replacement artificially cheap.
+            median.update(static_cast<double>(generator));
             checksum += median.value();
         }
         longestBatch = std::max(longestBatch, std::chrono::duration<double>(
@@ -188,6 +212,7 @@ void callbackCost() {
 int main() {
     checkGapBoundary();
     checkHistoryDuration();
+    checkEffectiveHop();
     checkDefaultSizes();
     medianCost(3);
     medianCost(65536);

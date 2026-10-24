@@ -17,8 +17,8 @@ inline void frequencyBins(int numBins, double binHz, double minFreq,
                           double maxFreq, int& first, int& last) noexcept {
     const double nyquist = binHz * static_cast<double>(numBins - 1);
     const double upper = maxFreq <= 0.0 ? nyquist : std::min(maxFreq, nyquist);
-    first = clamp(static_cast<int>(std::ceil(std::max(0.0, minFreq) / binHz)), 0, numBins - 1);
-    last = clamp(static_cast<int>(std::floor(upper / binHz)), first, numBins - 1);
+    first = clamp(boundedInteger(std::ceil(std::max(0.0, minFreq) / binHz)), 0, numBins - 1);
+    last = clamp(boundedInteger(std::floor(upper / binHz)), first, numBins - 1);
 }
 
 inline double spectralCentroid(const double* magnitude, int numBins,

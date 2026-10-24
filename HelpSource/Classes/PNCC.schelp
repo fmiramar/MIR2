@@ -1,0 +1,73 @@
+class:: PNCC
+summary:: Power-normalized cepstra with medium-time noise suppression
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/GFCC, Classes/MFCC2
+
+description::
+Computes a native online adaptation of Kim and Stern's PNCC (IEEE/ACM TASLP 2016, DOI 10.1109/TASLP.2016.2545928). The pipeline applies pre-emphasis, Hamming-windowed spectra, normalized gammatone-shaped power bands, a five-frame medium-time average, asymmetric background estimation, temporal masking, frequency smoothing, online mean-power normalization, a 1/15 power compression, and an orthonormal DCT-II. No external feature library or trained model is loaded.
+
+The five-frame average is aligned with its middle short-time power frame, adding two analysis hops of delay. Negative-time history is zero. Startup outputs zero until three frames exist. The earliest result therefore occurs after frameTime plus two hopTime intervals. Band/noise estimates continue adapting during silence; a zero-power central frame yields zero cepstra. Results hold between hops.
+
+The medium-time observation spans frameTime plus four hopTime intervals. Changing hopTime changes that observation span; exponential background and peak time constants are adjusted separately. The analytic filter bandwidth convention follows Hohmann (2002), described in link::https://amtoolbox.org/amt-1.6.0/doc/modelstages/hohmann2002_filter_code.php::.
+
+This implementation uses the sampled squared response of the Hohmann analytic four-stage gammatone model, rather than the Slaney real-filter frontend in the paper. The power reference initializes from the first positive processed frame instead of a training-corpus mean. Forgetting factors are rescaled from their published 10 ms update interval. These conventions and a separately implemented numerical oracle are documented in the PNCC implementation report. It is not a numerical clone of the authors' speech-recognition frontend; no speech-recognition accuracy claim is made. Utterance-level cepstral mean subtraction and derivative features are not implicit; FeatureDelta and FeatureDeltaDelta can process the output when needed.
+
+Like vanilla MFCC, PNCC summarizes spectral shape as cepstral coefficients. Its auditory bands, noise suppression, temporal masking and power compression give it different adaptation behavior and additional latency.
+
+classmethods::
+method:: kr
+argument:: in
+Mono audio-rate input.
+argument:: numCoeffs
+Literal output count, 1 through 64, not exceeding the available band/DCT orders.
+argument:: numBands
+Literal gammatone band count, 4 through 128, default 40.
+argument:: minFreq
+Literal lower center frequency in Hz, nonnegative, default 200.
+argument:: maxFreq
+Literal upper center frequency in Hz, greater than minFreq, default 8000. Limited to 0.45 of the sample rate.
+argument:: frameTime
+Literal Hamming-window duration in seconds, 0.005 through 0.1, default 0.0256. Rounded up to samples; configurations exceeding 8192 samples are rejected. The FFT is the next power of two at least twice the window size.
+argument:: hopTime
+Literal analysis interval in seconds, 0.001 through 0.1, default 0.01. Rounded to samples independently of the server block size.
+argument:: preEmphasis
+Coefficient in x[n] - coefficient*x[n-1], 0 through 1, default 0.97. Zero bypasses pre-emphasis.
+argument:: include0
+Literal positive value includes coefficient zero; zero begins with coefficient one.
+argument:: smoothBands
+Literal radius of the neighborhood averaging the noise-suppression transfer function, 0 through numBands - 1. Default 4.
+returns::
+Array of numCoeffs cepstral values. These are dimensionless features; higher coefficients can be negative.
+
+examples::
+PNCC spectral shape controls a resonant filter and stereo position. Its medium-time processing creates an audible lag relative to rapid source changes.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var coefficients = PNCC.kr(source, numCoeffs: 3, include0: 0);
+        var cutoff = coefficients[0].tanh.linexp(-1, 1, 250, 5000).lag(0.04);
+        var position = coefficients[1].tanh.lag(0.08);
+        var shaped = RLPF.ar(source, cutoff, 0.4);
+        Pan2.ar(((source * 0.08) + (shaped * 0.18)) * Line.kr(0, 1, 0.3), position)
+    }.play;
+}).play(AppClock);
+)
+::
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/GFCC::
+link::Classes/MFCC2::
+link::Classes/FeatureDelta::
+link::Classes/FeatureDeltaDelta::

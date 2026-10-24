@@ -76,7 +76,7 @@ struct StereoFrequencyState : Unit {
 bool stereoFrequencyInit(StereoFrequencyState* unit) {
     unit->left = nullptr; unit->right = nullptr; unit->window = nullptr;
     unit->fftLeft = nullptr; unit->fftRight = nullptr; unit->bins = nullptr;
-    unit->size = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(2))), 256, 8192);
+    unit->size = mir2::clamp(mir2::boundedInteger(IN0(2)), 256, 8192);
     unit->hop = mir2::clamp(static_cast<int>(std::lround(unit->size * mir2::clamp(mir2::sanitize(IN0(3)), 0.0625, 1.0))), 1, unit->size);
     unit->position = 0; unit->filled = 0; unit->countdown = unit->size; unit->frames = 0; unit->result = {};
     ClearUnitOutputs(unit, 1);

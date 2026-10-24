@@ -25,6 +25,11 @@ Literal number of decomposition levels, 1 through log2(frameSize). Default 6; ou
 argument:: hop
 Literal fraction of frameSize between analyses, 0.0625 through 1, default 0.5.
 
+argument:: family
+Literal \db or \haar. Haar selects order one; db uses the requested order. Default db.
+argument:: boundary
+Literal \periodic; this is the only supported boundary mode. Other modes are rejected.
+
 examples::
 The measured scale structure controls the audible synthesis or filtering.
 code::

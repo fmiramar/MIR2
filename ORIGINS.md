@@ -59,3 +59,13 @@ a runtime dependency.
 - The advanced pitch class help describes Mauch/Dixon pYIN threshold mass,
   Camacho/Harris SWIPE prime kernels, Klapuri-style cancellation, and bounded
   causal contour adaptations, with their numerical differences and limits.
+
+- `docs/wavelet-constantq-implementation.md`: Daubechies orthonormal bases,
+  Brown/Puckette sparse CQT correlation, variable bandwidth and Todisco CQCC.
+- `docs/pncc-implementation.md`: Kim/Stern noise suppression and online
+  normalization, with a separately implemented Python stage oracle.
+- `docs/tonal-harmonic-implementation.md`: Gómez HPCP, CENS quantization,
+  Harte/Sandler/Gasser tonal centroids, named numeric key profiles, triad
+  templates, harmonic descriptors and Sethares-style roughness.
+- `docs/rhythm-implementation.md`: Grosche/Müller/Kurth periodicity analysis
+  and explicitly documented MIR2 causal tracking/statistical conventions.

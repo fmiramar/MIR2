@@ -1,0 +1,79 @@
+class:: Chromagram2
+summary:: FFT-bin or peak-based chromagram
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Folds the spectrum into a tuned octave. The fft method maps every squared FFT-bin magnitude onto the two nearest pitch-class bins with linear weights. The hpcp method uses the peak/subharmonic pipeline described in link::Classes/HPCP::, after Gomez (2006). Direct FFT folding is inexpensive but low-frequency bins can span several semitones; use a longer FFT or the interpolated peak method when resolution matters. Bin zero is C.
+
+Vanilla link::Classes/SpecCentroid:: collapses the spectrum into one brightness value. This class instead retains octave-folded pitch-class structure.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. This analyzer updates when a new frame arrives and holds its output between frames.
+
+argument:: size
+Literal pitch-class count: 12, 24, 36, or 120. Bin zero is C; every octave has size equally spaced bins.
+
+argument:: tuning
+Reference A in Hz, positive; default 440. This retunes the pitch-class grid.
+
+argument:: minFreq
+Lowest included spectral frequency in Hz.
+
+argument:: maxFreq
+Highest included spectral frequency in Hz; zero means Nyquist.
+
+argument:: method
+Either \fft for all-bin power folding or \hpcp for peak/subharmonic mapping.
+
+argument:: harmonics
+Number of peak subharmonics to include, clamped from 1 through 16. Contribution for divisor h is weighted by 0.6 ** (h-1).
+
+argument:: normalize
+One of \none, \max, \sum, or \l2. Silence remains zero.
+
+argument:: peakThreshold
+Minimum local-peak magnitude relative to the largest included spectral peak, from 0 through 1. Up to 128 strongest peaks are retained.
+
+argument:: fftSize
+Literal power of two from 256 through 8192, matching the FFT buffer. Frequency resolution and first-result latency depend on this size.
+
+returns::
+An Array of size pitch-class intensities.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var chroma = Chromagram2.kr(chain, method: \hpcp, harmonics: 1);
+        var voices = SinOsc.ar((60 + (0..11)).midicps, 0, Lag.kr(chroma, 0.04) * 0.02);
+        var sound = Splay.ar(voices) + (source * 0.08);
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

@@ -60,7 +60,7 @@ void analyzeAdvanced(AdvancedPitchUnit* unit) {
     if (unit->mode <= 2 || unit->kind == AdvancedKind::consensus) {
         mir2::preparePitchEvidence(state.frame, time, rms);
         candidates = mir2::timePitchCandidates(time, sr, low, high, unit->mode,
-                                              unit->kind == AdvancedKind::probability ? int(IN0(6)) : 32);
+                                              unit->kind == AdvancedKind::probability ? mir2::boundedInteger(IN0(6)) : 32);
     }
     if (unit->mode == 4 || unit->kind == AdvancedKind::consensus) {
         mir2::analyzeSwipe(state.frame, unit->swipe);
@@ -122,7 +122,7 @@ void analyzeAdvanced(AdvancedPitchUnit* unit) {
     case AdvancedKind::consensus: {
         const auto yin = mir2::analyzeYIN(time, sr, low, high, 0.1, rms);
         const auto mpm = mir2::analyzeMPM(time, sr, low, high, 0.93, rms);
-        const int mask = int(IN0(6));
+        const int mask = mir2::boundedInteger(IN0(6));
         double frequencies[] {yin.frequency, mpm.frequency, score >= 0.2 ? hz : 0.0};
         double confidence[] {yin.confidence * ((mask & 1) != 0), mpm.confidence * ((mask & 2) != 0),
                              score * ((mask & 4) != 0)};
@@ -160,13 +160,13 @@ void initializeAdvanced(AdvancedPitchUnit* unit, AdvancedKind kind) {
     unit->magnitude = unit->white = unit->residual = nullptr;
     std::fill(unit->outputs, unit->outputs + 2 * mir2::kPitchCandidates + 1, 0.0f);
     unit->kind = kind;
-    unit->mode = mir2::clamp(int(IN0(5)), 0, 4);
-    unit->capacity = mir2::clamp(int(IN0(7)), 1, mir2::kPitchCandidates);
-    unit->bpo = mir2::clamp(int(IN0(9)), 12, 96);
+    unit->mode = mir2::clamp(mir2::boundedInteger(IN0(5)), 0, 4);
+    unit->capacity = mir2::clamp(mir2::boundedInteger(IN0(7)), 1, mir2::kPitchCandidates);
+    unit->bpo = mir2::clamp(mir2::boundedInteger(IN0(9)), 12, 96);
     const double low = IN0(1), high = IN0(2), sr = unit->mWorld->mSampleRate;
     bool valid = INRATE(0) == calc_FullRate && std::isfinite(low) && std::isfinite(high)
         && low > 0.0 && high > low && high < sr * 0.5 && high / low < 1024.0
-        && initializePitchState(unit, unit->state, int(IN0(3)), IN0(4));
+        && initializePitchState(unit, unit->state, mir2::boundedInteger(IN0(3)), IN0(4));
     unit->grid = mir2::pitchGridSize(low, high, unit->bpo);
     if (valid && (unit->mode >= 3 || kind == AdvancedKind::consensus)) {
         auto& swipe = unit->swipe;
@@ -215,7 +215,7 @@ struct PitchContour : Unit { mir2::PitchTracker tracker; mir2::ContourResult res
 void PitchContour_next(PitchContour* unit, int) {
     if (IN0(5) > 0.0f) {
         mir2::CandidateList candidates;
-        const int count = mir2::clamp(int(IN0(0)), 1, mir2::kPitchCandidates);
+        const int count = mir2::clamp(mir2::boundedInteger(IN0(0)), 1, mir2::kPitchCandidates);
         for (int i = 0; i < count; ++i) {
             const double p = mir2::clamp(mir2::sanitize(IN0(7 + count + i)), 0.0, 1.0);
             candidates.add({mir2::sanitize(IN0(7 + i)), p, p, 0.0, 0.0, 0.0});
@@ -225,7 +225,7 @@ void PitchContour_next(PitchContour* unit, int) {
         for (int i = 0; i < candidates.count; ++i) total += candidates.values[static_cast<std::size_t>(i)].probability;
         if (total > 1.0) candidates.normalize(mass);
         unit->result = unit->tracker.process(candidates, std::max(1.0f, IN0(1)),
-            std::max(0.0f, IN0(2)), std::max(0.0f, IN0(3)), std::max(0.0f, IN0(4)), int(IN0(6)));
+            std::max(0.0f, IN0(2)), std::max(0.0f, IN0(3)), std::max(0.0f, IN0(4)), mir2::boundedInteger(IN0(6)));
     }
     ZOUT0(0) = float(unit->result.frequency); ZOUT0(1) = float(unit->result.confidence);
     ZOUT0(2) = float(unit->result.jump);
@@ -238,7 +238,7 @@ void PitchContour_Ctor(PitchContour* unit) {
 struct PitchDeviation : Unit { double previous; };
 void PitchDeviation_next(PitchDeviation* unit, int) {
     const double hz = mir2::sanitize(IN0(0));
-    ZOUT0(0) = float(mir2::pitchDeviation(hz, IN0(1), int(IN0(2)), unit->previous));
+    ZOUT0(0) = float(mir2::pitchDeviation(hz, IN0(1), mir2::boundedInteger(IN0(2)), unit->previous));
     unit->previous = hz > 0.0 ? hz : 0.0;
 }
 void PitchDeviation_Ctor(PitchDeviation* unit) { unit->previous = 0.0; SETCALC(PitchDeviation_next); ZOUT0(0) = 0.0f; }

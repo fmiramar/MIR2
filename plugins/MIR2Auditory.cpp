@@ -16,11 +16,11 @@ struct AuditoryFFTUnit : Unit {
 
 bool initializeAuditoryFFT(AuditoryFFTUnit* unit, mir2::AuditoryScale scale) {
     unit->magnitudes = unit->weights = nullptr;
-    unit->fftSize = static_cast<int>(IN0(11));
-    unit->numCoeffs = static_cast<int>(IN0(1));
-    unit->numBands = static_cast<int>(IN0(2));
+    unit->fftSize = mir2::boundedInteger(IN0(11));
+    unit->numCoeffs = mir2::boundedInteger(IN0(1));
+    unit->numBands = mir2::boundedInteger(IN0(2));
     unit->include0 = IN0(7) > 0.0f ? 1 : 0;
-    unit->spectrumMode = static_cast<int>(IN0(6));
+    unit->spectrumMode = mir2::boundedInteger(IN0(6));
     unit->floor = std::max(1.0e-30, static_cast<double>(IN0(8)));
     unit->orthonormal = IN0(9) > 0.0f;
     unit->lifter = std::max(0.0, static_cast<double>(IN0(10)));
@@ -93,8 +93,8 @@ struct GammatoneUnit : Unit {
     int numBands, numCoeffs, hopSamples, untilOutput, include0, compression;
 };
 bool initializeGammatone(GammatoneUnit* unit) {
-    unit->numCoeffs = static_cast<int>(IN0(1));
-    unit->numBands = static_cast<int>(IN0(2));
+    unit->numCoeffs = mir2::boundedInteger(IN0(1));
+    unit->numBands = mir2::boundedInteger(IN0(2));
     const double sampleRate = unit->mWorld->mSampleRate;
     const double low = mir2::clamp(static_cast<double>(IN0(3)), 20.0, sampleRate * 0.45 - 1.0);
     const double high = IN0(4) <= 0.0f ? sampleRate * 0.45
@@ -104,7 +104,7 @@ bool initializeGammatone(GammatoneUnit* unit) {
     unit->hopSamples = std::max(1, static_cast<int>(sampleRate * mir2::clamp(static_cast<double>(IN0(6)), 0.001, 1.0)));
     unit->untilOutput = unit->hopSamples;
     unit->include0 = IN0(7) > 0.0f ? 1 : 0;
-    unit->compression = static_cast<int>(IN0(8));
+    unit->compression = mir2::boundedInteger(IN0(8));
     unit->floor = std::max(1.0e-30, static_cast<double>(IN0(9)));
     if (INRATE(0) != calc_FullRate || unit->numBands < 4 || unit->numBands > kMaxAuditoryBands
         || unit->numCoeffs < 1 || unit->numCoeffs > unit->numBands || static_cast<int>(unit->mNumOutputs) != unit->numCoeffs) return false;
@@ -176,7 +176,7 @@ void Loudness2_next(Loudness2* unit, int) {
 }
 void Loudness2_Ctor(Loudness2* unit) {
     unit->magnitudes = nullptr; unit->excitation = 0.0; unit->elapsedSamples = 0;
-    unit->fftSize = static_cast<int>(IN0(5));
+    unit->fftSize = mir2::boundedInteger(IN0(5));
     if (!mir2::isPowerOfTwo(unit->fftSize) || unit->fftSize < 256 || unit->fftSize > 8192 || unit->mNumOutputs != 2) { failAuditory(unit); return; }
     unit->magnitudes = allocate<double>(unit->mWorld, static_cast<std::size_t>(unit->fftSize / 2 + 1));
     if (!unit->magnitudes) { failAuditory(unit); return; }

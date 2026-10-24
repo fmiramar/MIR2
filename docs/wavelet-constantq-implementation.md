@@ -1,0 +1,60 @@
+# Wavelet and constant-Q implementation
+
+The wavelet subsystem provides `WaveletDaub2`, `Wavelets2`, `WaveletBands`, `WaveletEntropy`, `WaveletFlux`, `WaveletCentroid`, and `WaveletSpread`. The constant-Q subsystem provides `CQT`, `VQT`, and `CQCC`. They use independent implementations and the existing MIR2 radix-2 FFT, without an external wavelet or spectral-analysis library.
+
+## Wavelet definitions and provenance
+
+The critically sampled transform implements periodic, orthonormal Daubechies filter banks with one through four vanishing moments. Order one is Haar; order four has eight taps. Scaling coefficients are mathematical constants from the extremal-phase construction in Ingrid Daubechies, [“Orthonormal Bases of Compactly Supported Wavelets” (1988), Table 1](https://doi.org/10.1002/cpa.3160410705). No third-party implementation or coefficient-table source code was incorporated. The corresponding high-pass filter is the reversed low-pass filter with alternating signs. Reconstruction applies the transpose of each analysis stage in reverse order.
+
+`family: \haar` selects order one; `family: \db` uses the selected order. The explicit `boundary: \periodic` argument is the only supported boundary convention. Unsupported families and boundaries are rejected. Higher-order, Symlet, and Coiflet families remain possible extensions rather than silently mapped alternatives.
+
+Coefficients are ordered `[A_L, D_L, D_(L-1), ..., D_1]`. Scale energy is the sum of squared coefficients divided by the original frame length, so the sum of scale energies equals input mean square. RMS mode takes each scale energy's square root. Per-scale entropy output is `-p*log2(p)` using normalized scale energy. `WaveletEntropy` sums and divides by `log2(levels+1)`. `WaveletFlux` is the L2 norm of positive changes in normalized scale energies; the first analyzed frame is suppressed, but a later transition from silence produces positive flux.
+
+Frequency descriptors use nominal dyadic scale centres: the approximation band centre is `sampleRate / 2^(levels+2)`, and a detail at level j has geometric centre `sampleRate / 2^(j+0.5)`. `WaveletCentroid` and `WaveletSpread` are the energy-weighted mean and standard deviation of these centres in Hz. They describe broad scale allocation rather than sharply delimited spectral peaks. Periodic frame edges can create detail energy because no additional analysis taper is applied.
+
+`WaveletDaub2` removes a prefix of the coefficient vector before reconstruction. Its default `remove: 0` preserves all coefficients, giving exact reconstruction up to floating-point roundoff with precisely `frameSize` samples of latency. The streaming adapter tracks individual samples, so frame lengths smaller than a server block and blocks that do not divide the frame work correctly. Modified independent frames can have audible discontinuities; no overlap smoothing is applied. The historical `WaveletDaub` demonstration motivates the audio interface, but its server-block divisibility assumption and fixed four-tap basis are not retained.
+
+## Constant-Q kernel and normalization
+
+For bin k, the centre frequency is `f[k] = fmin * 2^(k/B)`. This implementation uses `alpha = 2^(1/B)-1` and window length `ceil(sampleRate / (alpha*f[k] + gamma))`, with at least four samples. CQT fixes gamma to zero. VQT adds the specified bandwidth offset in Hz; this changes the actual kernel length and frequency response. The relative-bandwidth convention differs slightly from the symmetric-neighbor alpha in current librosa, so exact librosa equivalence is not claimed.
+
+A unit-sum periodic Hann window multiplies a complex sinusoid at each centre frequency. Each kernel is placed at the centre of a common power-of-two frame. Its FFT is sparsified by retaining coefficients whose magnitude is at least `sparsity` times that row's maximum. Stored conjugated coefficients include the `1/N` Parseval scaling. At every hop, the input frame is transformed once and multiplied by these spectral rows. This is equivalent to direct variable-length time-domain correlation apart from the explicitly controlled sparsification error; it does not approximate constant-Q output by interpolating FFT magnitudes.
+
+The construction follows Judith Brown, [“Calculation of a Constant Q Spectral Transform” (1991)](https://www.media.mit.edu/publications/calculation-of-a-constant-q-spectral-transform/), and Brown and Puckette, [“An Efficient Algorithm for the Calculation of a Constant Q Transform” (1992)](https://www.media.mit.edu/publications/an-efficient-algorithm-for-the-calculation-of-a-constant-q-transform/). The [librosa variable-bandwidth reference](https://librosa.org/doc/main/api/generated/librosa.filters.wavelet_lengths.html) supplies a comparison for the gamma concept, rather than imported implementation code.
+
+Magnitude output is twice the modulus of the complex correlation. A unit-amplitude real sinusoid at an analysis centre is therefore approximately one; finite-window leakage from its negative-frequency image remains possible. The first output arrives after N input samples and describes approximately the frame centre, N/2 samples in the past. All shorter kernels share this centre. After startup, output is held between hops.
+
+The common FFT length is limited to 32768, the number of bands to 192, grid density to 6–48 bins per octave, and the stored kernel budget to 262144 complex entries. Kernels whose first Hann main-lobe null reaches Nyquist are rejected. A tighter sparsity setting can exceed the storage budget; the implementation reports an error instead of dropping additional coefficients or shortening the requested low-frequency window. Signal callbacks allocate no memory. Kernel preparation occurs at construction and includes two passes of per-band FFTs; creation can therefore be significantly more expensive than steady-state processing, and should happen before a timing-critical passage.
+
+## CQCC resampling and cepstral convention
+
+CQCC squares CQT magnitudes, floors the power, and takes the natural logarithm. It interpolates this log-power function onto a uniformly spaced Hz grid from the lowest to highest CQT centre. The interpolation weights use actual Hz distances between adjacent logarithmic-grid frequencies. It then applies an orthonormal DCT-II, optionally omitting coefficient zero.
+
+The processing sequence follows Todisco, Delgado and Evans, [“A New Feature for Automatic Speaker Verification Anti-Spoofing: Constant Q Cepstral Coefficients” (Odyssey 2016)](https://www.isca-archive.org/odyssey_2016/todisco16_odyssey.pdf). MIR2 uses piecewise linear interpolation; the paper uses spline resampling. No exact equality with the published feature extractor is claimed. Mean normalization, liftering, and delta concatenation are separate operations. Uniform resampling is mandatory here: applying a DCT directly to the logarithmic CQT bins would be a different feature.
+
+Silence yields a constant log-floor function. Consequently, coefficient zero is `sqrt(uniformBins)*log(logFloor)` and all higher orders are zero up to roundoff. All output coefficients remain zero before the first complete frame. The resampling limit is 1024 points and the output limit is 64 coefficients; the direct DCT adds O(uniformBins*numCoeffs) work at each hop.
+
+## Verification and measured cost
+
+`MIR2WaveletTests.cpp` checks all supported orders, every allowed level for representative frame sizes from 32 through 8192, Parseval energy preservation, round-trip reconstruction, a hand-computed Haar transform, filter normalization and even-shift orthogonality. It exercises the production streaming adapter through host blocks of 17, 64, 127, and 256 samples, including transform frames shorter than a host block. Reconstruction error remains below `1e-10` in the double-precision tests. A silence-to-active flux check prevents loss of a later onset through startup suppression.
+
+`MIR2ConstantQTests.cpp` compares sparse spectral output with direct time-domain complex correlation for silence, seeded broadband noise, and a known sinusoid at 44.1, 48, and 96 kHz, with gamma zero and 20. The comparison tolerance is absolute `5e-4` for these bounded-input fixtures. It also verifies bin-centred amplitude, shorter VQT kernels, invalid ranges/storage-budget rejection, CQCC coefficient-zero selection, and a log-power function affine in Hz that must remain exactly affine under resampling. This last case catches an accidental use of log-frequency interpolation fractions. Tests pass with strict compiler warnings and under AddressSanitizer/UndefinedBehaviorSanitizer.
+
+Representative optimized local measurements, using 84 bands, fmin=55 Hz, 12 bins/octave, sparsity=1e-4, and hop=0.25:
+
+| Sample rate | Transform | FFT samples | Sparse entries | ms/analysis | Approximate one-core share |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 44.1 kHz | CQT | 16384 | 63092 | 0.426 | 0.46% |
+| 44.1 kHz | VQT, gamma=20 | 2048 | 9776 | 0.041 | 0.35% |
+| 48 kHz | CQT | 16384 | 57948 | 0.423 | 0.50% |
+| 48 kHz | VQT, gamma=20 | 4096 | 17961 | 0.094 | 0.44% |
+| 96 kHz | CQT | 32768 | 58022 | 0.839 | 0.98% |
+| 96 kHz | VQT, gamma=20 | 8192 | 17982 | 0.186 | 0.87% |
+
+The 48 kHz default CQT stores about 1.4 MB of sparse rows, plus about 0.4 MB for frame/FFT storage and fixed unit state. Sparse storage at the maximum budget alone is approximately 6.3 MB on an ABI with 24-byte entries. Multiple instances may require a larger server real-time memory pool. These are measured kernel costs, excluding server overhead; no cross-platform performance guarantee is implied. The benchmark includes FFT and sparse projection, and CQCC adds its resampling/DCT cost. A 1024-sample, six-level db4 forward-plus-inverse transform measured about 20 microseconds per frame in the same optimized run.
+
+## Optional ChromaCQT gate
+
+A dedicated `ChromaCQT` is not added solely to repeat octave folding over existing CQT outputs. The logarithmic bins already allow callers to fold magnitudes into pitch classes. A separate implementation would need to show an improvement over the MIR2 HPCP/chromagram route on tuning changes, low-register close intervals, or annotated chord/key material, including the additional latency and memory cost. This remains an explicit evaluation gate; no comparative dataset result is claimed. The core CQT engine and numerical tests are now available for that comparison.
+
+All ten public classes provide an audible example using the looping bundled SuperCollider sample, analysis-dependent synthesis/filtering, and a startup fade. An isolated SuperCollider 3.14.1 run constructed all ten example SynthDefs, checked the CQT frame-sizing helper and Haar family selection, indexed documentation with `SCDoc.indexAllDocuments(true)`, and rendered all ten pages without warnings or errors. Help pages refer to the single MIR2 project guide. Integration uses `registerWaveletUnits()` and `registerConstantQUnits()`; the root library workflow handles installed documentation, server checks, and releases.

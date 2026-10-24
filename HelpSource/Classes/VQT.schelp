@@ -1,0 +1,90 @@
+class:: VQT
+summary:: Variable-Q spectral analysis with a bandwidth offset
+categories:: UGens>Analysis>MIR
+related:: Guides/MIR2, Classes/CQT
+
+description::
+Each analysis band uses a separate variable-length Hann-windowed complex sinusoid. With B bins per octave, band k is centred at fmin * 2.pow(k/B), and its kernel length is ceil(sampleRate / ((2.pow(1/B)-1)*frequency + gamma)). CQT uses gamma=0. The kernels are centred inside a common power-of-two frame and transformed to sparse spectral rows at construction. Processing performs one FFT and complex dot products with those rows. These are variable-length analysis filters, rather than interpolated FFT magnitudes.
+
+The independent implementation follows Judith Brown, Calculation of a Constant Q Spectral Transform (1991), and Brown and Puckette, An Efficient Algorithm for the Calculation of a Constant Q Transform (1992). Sources: link::https://www.media.mit.edu/publications/calculation-of-a-constant-q-spectral-transform/:: and link::https://www.media.mit.edu/publications/an-efficient-algorithm-for-the-calculation-of-a-constant-q-transform/::.
+
+The longest kernel sets a common FFT frame N, limited to 32768 samples. The first result follows N input samples and refers to approximately the frame centre, N/2 samples in the past; outputs hold between hops. The highest kernel must keep its Hann main lobe below Nyquist. Invalid frequency ranges, an oversized frame, insufficient real-time memory, or more than 262144 stored spectral coefficients disable the unit with an error message. Memory and all kernel transforms are prepared at construction; callbacks do not allocate. Extremely low frequencies or many bins per octave require a longer frame, and increasing gamma in VQT trades frequency resolution for shorter latency.
+
+The sparsity threshold discards small kernel spectrum coefficients relative to each row's maximum. This bounds storage by a fixed budget but is an approximation; it is not a guaranteed relative error on every signal. No external transform library is linked. Normal input is unscaled; nonfinite samples become zero and extreme values are limited to +/-1e6 for numerical safety.
+
+VQT adds gamma Hz to the constant-Q bandwidth before computing each window length. The relative bandwidth convention here is 2.pow(1/B)-1, matching the Brown-style CQT; it differs slightly from the symmetric-neighbor convention used by current librosa. The bandwidth-offset idea is described in link::https://librosa.org/doc/main/api/generated/librosa.filters.wavelet_lengths.html::. This implementation does not claim bitwise librosa equivalence. Magnitudes use the same unit-sum correlation scaling as CQT, and silence returns zero.
+
+At 48 kHz the default fmin=55, gamma=20 setup needs 4096 samples (85 ms warmup), approximately 18 thousand sparse coefficients, and measured about 0.094 ms per frame in a local optimized kernel run. Compared with gamma=0, the shorter window changes low-frequency resolution as well as latency.
+
+Vanilla FFT has equal bandwidth across its bins. VQT combines a logarithmic centre-frequency grid with frequency-dependent bandwidth and an adjustable offset.
+
+classmethods::
+method:: kr
+
+argument:: in
+Audio-rate source, with multichannel expansion supported.
+
+argument:: fmin
+Positive initialization-time centre frequency of the first bin, in Hz; default 55.
+
+argument:: numBins
+Literal number of output analysis bands from 2 through 192; default 84.
+
+argument:: binsPerOctave
+Literal frequency grid density from 6 through 48; default 12.
+
+argument:: gamma
+Nonnegative initialization-time bandwidth offset in Hz; default 20. Zero uses the CQT kernel lengths. Larger values shorten low-frequency windows and reduce low-frequency selectivity.
+
+argument:: hop
+Literal fraction of the automatically chosen common frame, 0.0625..1; default 0.25.
+
+argument:: sparsity
+Literal kernel spectrum cutoff relative to each kernel maximum, 1e-8..0.01; default 1e-4. Lower values retain more coefficients and can exceed the storage budget.
+
+returns::
+Array of numBins nonnegative magnitudes, ordered from low to high frequency.
+
+method:: frameSize
+Returns the required common power-of-two frame length for a proposed sample rate and frequency setup. This sizing helper does not check the upper frequency range or sparse storage budget. A result above 32768 means the configuration is unsupported.
+argument:: sampleRate
+Sample rate in Hz, default 48000.
+argument:: fmin
+First centre frequency, as in kr.
+argument:: binsPerOctave
+Frequency grid density, as in kr.
+argument:: gamma
+Bandwidth offset in Hz. The helper defaults to zero; pass the VQT gamma explicitly when sizing a VQT.
+
+examples::
+The balance between lower and upper VQT bands follows the sample and opens the filter. The positive gamma makes low-band decisions respond with a shorter observation window.
+code::
+(
+Routine({
+    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var magnitudes = VQT.kr(source, fmin: 110, numBins: 36, gamma: 30);
+        var low = magnitudes.copyRange(0, 11).sum;
+        var high = magnitudes.copyRange(12, 35).sum;
+        var brightness = (high / (low + high + 1e-9)).clip(0, 1).lag(0.03);
+        var sound = RLPF.ar(source, brightness.linexp(0, 1, 300, 5000), 0.35) * 0.3;
+        sound * Line.kr(0, 1, 0.25) ! 2
+    }.play;
+}).play(AppClock);
+)
+::
+Stop and release the buffer:
+code::
+(
+~mir2Example.free;
+~mir2Buffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/CQT::
+link::Classes/FFT::

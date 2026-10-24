@@ -1,0 +1,129 @@
+class:: BeatTrack3
+summary:: Causal beat and subdivision tracking
+categories:: UGens>Analysis>Rhythm
+related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+
+description::
+Uses shared autocorrelation/Fourier tempo evidence, a continuity prior, and a forward phase clock with bounded phase correction. Beat and half-beat outputs are one-control-block triggers. The FFT constructor obtains novelty from Onsets2; krOnsets accepts an external novelty envelope. AutoTrack2 and BeatTrack3 share the same implementation.
+
+The periodicity-analysis source is Grosche, Müller and Kurth (2010), link::https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf::. MIR2 uses trailing absolute-BPM windows and an original causal tracker; it does not implement cyclic tempo folding or claim equivalence with the paper. Output begins after the requested warmup and sufficient periods, and is held between analyses. Silence clears evidence as it leaves the trailing window. Tempo ambiguities, syncopation, sparse events and changing meter remain limitations. Vanilla BeatTrack also estimates pulse timing; MIR2 exposes the evidence distribution, alternative tempi and explicit continuity controls.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. Match fftSize and hop to FFT.
+
+argument:: minBPM
+Lowest tempo in BPM, at least 20; literal at construction.
+
+argument:: maxBPM
+Highest tempo in BPM, greater than minBPM and at most 600; literal at construction.
+
+argument:: tempoSmooth
+Tempo smoothing time in seconds, default 0.4; zero follows each new estimate.
+
+argument:: phaseSmooth
+Phase correction time in seconds, default 0.35. Correction is bounded so the internal phase does not reverse.
+
+argument:: lock
+Positive freezes an already acquired tempo/phase prediction and allows it to continue through silence. It does not establish a tempo before acquisition.
+
+argument:: windowTime
+Trailing history in seconds. Rhythm analysis accepts 0.5–16, default 6; onset/tempo statistics accept 0.05–60, default 4.
+
+argument:: hopTime
+Analysis interval in seconds, 0.02–2, default 0.1; rounded to a whole number of pooled feature frames.
+
+argument:: warmup
+Minimum accumulated history in seconds, default 2 for tempo tracking. Each candidate additionally needs two complete periods.
+
+argument:: priorBPM
+Initial preferred tempo, default 120 BPM. This is a weak initial prior, not a forced tempo.
+
+argument:: continuity
+Log-tempo continuity weight, 0–20, default 3. Larger values resist changes, including half/double-tempo switches.
+
+argument:: fftSize
+FFT size, a power of two from 256–8192. Default 2048 for beat trackers and 1024 for BeatBandRatio.
+
+argument:: hop
+FFT hop fraction, default 0.25. Must match the FFT producing chain.
+
+argument:: method
+Onsets2 novelty method, default \superflux. See Onsets2 for classical alternatives.
+
+argument:: featureRate
+Requested onset-envelope rate, 20–200 Hz, default 100. Maximum pooling spans a rounded number of server control blocks; the actual rate is used in all timing calculations.
+
+argument:: numBins
+Literal number of linearly spaced BPM bins, 8–512. Defaults to 128 for vectors and 271 for scalar estimates.
+
+method:: krOnsets
+Accepts a nonnegative control-rate strength signal as in instead of an FFT chain. Uses the same tempo, history and clock parameters; FFT frontend arguments are omitted.
+argument:: in
+Nonnegative control-rate onset strength.
+
+argument:: minBPM
+See the kr argument of the same name.
+argument:: maxBPM
+See the kr argument of the same name.
+argument:: tempoSmooth
+See the kr argument of the same name.
+argument:: phaseSmooth
+See the kr argument of the same name.
+argument:: lock
+See the kr argument of the same name.
+argument:: windowTime
+See the kr argument of the same name.
+argument:: hopTime
+See the kr argument of the same name.
+argument:: warmup
+See the kr argument of the same name.
+argument:: priorBPM
+See the kr argument of the same name.
+argument:: continuity
+See the kr argument of the same name.
+argument:: featureRate
+See the kr argument of the same name.
+argument:: numBins
+See the kr argument of the same name.
+
+returns::
+[beatTrigger, subdivisionTrigger, BPM, phase0to1, confidence].
+
+examples::
+The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2RhythmExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
+            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
+        var beat = BeatTrack3.kr(chain, fftSize: 2048, hop: 0.25);
+        var tick = Decay2.kr(beat[0], 0.001, 0.08);
+        var sound = [source * 0.25, SinOsc.ar(1000, 0, tick * 0.12)];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2RhythmBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2RhythmExample.free;
+~mir2RhythmBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/Tempo::
+link::Classes/BeatTrack3::

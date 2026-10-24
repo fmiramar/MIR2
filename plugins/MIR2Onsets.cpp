@@ -24,7 +24,7 @@ void Onsets2_next(Onsets2* unit, int) {
     controls.threshold = mir2::sanitize(IN0(1));
     controls.relaxTime = mir2::sanitize(IN0(3));
     controls.minGap = mir2::sanitize(IN0(4));
-    controls.maxFilterWidth = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(6))), 0, 25);
+    controls.maxFilterWidth = mir2::clamp(mir2::boundedInteger(IN0(6)), 0, 25);
     controls.floor = mir2::sanitize(IN0(7));
     controls.whitening = IN0(10) > 0.f;
     controls.logGain = mir2::sanitize(IN0(11));
@@ -40,14 +40,14 @@ void Onsets2_Ctor(Onsets2* unit) {
     unit->memory = unit->spectrum = unit->phases = nullptr;
     unit->strength = 0.f;
     mir2::OnsetConfig config;
-    config.fftSize = static_cast<int>(mir2::sanitize(IN0(8)));
+    config.fftSize = mir2::boundedInteger(IN0(8));
     config.sampleRate = unit->mWorld->mSampleRate;
     config.hop = config.fftSize > 0
         ? static_cast<double>(mir2::onsetHopSamples(config.fftSize, IN0(9), unit->mWorld->mFullRate.mBufLength)) / config.fftSize
         : 0.5;
     config.medianTime = mir2::clamp(static_cast<double>(mir2::sanitize(IN0(5))), 0.0, 10.0);
-    config.lag = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(13))), 0, 16);
-    config.method = static_cast<mir2::OnsetMethod>(mir2::clamp(static_cast<int>(mir2::sanitize(IN0(2))), 0, 10));
+    config.lag = mir2::clamp(mir2::boundedInteger(IN0(13)), 0, 16);
+    config.method = static_cast<mir2::OnsetMethod>(mir2::clamp(mir2::boundedInteger(IN0(2)), 0, 10));
     const bool valid = mir2::isPowerOfTwo(config.fftSize) && config.fftSize >= 256 && config.fftSize <= 8192
         && config.fftSize >= unit->mWorld->mFullRate.mBufLength
         && mir2::OnsetState::storageCount(config) > 0;
@@ -101,7 +101,7 @@ void PhaseFeature_next(PhaseFeature* unit, int) {
 }
 void initializePhaseFeature(PhaseFeature* unit, int kind) {
     unit->memory = nullptr; unit->frames = 0; unit->kind = kind; unit->value = 0.f;
-    unit->fftSize = static_cast<int>(mir2::sanitize(IN0(4)));
+    unit->fftSize = mir2::boundedInteger(IN0(4));
     if (mir2::isPowerOfTwo(unit->fftSize) && unit->fftSize >= 256 && unit->fftSize <= 8192)
         unit->memory = allocate<double>(unit->mWorld, static_cast<std::size_t>(5 * (unit->fftSize / 2 + 1)));
     if (!unit->memory) {

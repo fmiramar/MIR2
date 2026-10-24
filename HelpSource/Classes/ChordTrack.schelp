@@ -1,0 +1,66 @@
+class:: ChordTrack
+summary:: Major/minor chord tracking
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+An original deterministic major/minor template matcher over supplied chroma, following the standard pitch-class/template approach surveyed by Gomez (2006). Each of 24 triads receives cosine similarity multiplied by a coverage factor: min(1, weakestChordTone/(0.05*totalChroma)). An explicit no-chord state has score threshold. Causal min-sum dynamic programming adds transitionPenalty when the state changes; exponential chroma smoothing is optional. Root is 0=C through 11=B; quality 0=major, 1=minor. Silence forces both indices to -1. Extended, suspended, inverted or incomplete chords can be ambiguous; this initial vocabulary deliberately contains only major/minor/no-chord.
+
+
+
+classmethods::
+method:: kr
+argument:: chroma
+A C-first Array of 12, 24, 36, or 120 nonnegative pitch-class values. Higher resolutions fold to nearest semitones where a twelve-class representation is required.
+
+argument:: smooth
+Causal exponential smoothing time in seconds, zero disables. Time follows the actual interval between trigger updates.
+
+argument:: transitionPenalty
+Nonnegative min-sum path cost for changing chord state. Higher values favour persistence; zero makes framewise choices.
+
+argument:: threshold
+Minimum similarity required to beat the no-chord state; default 0.65.
+
+argument:: trig
+A positive value processes this control block. For FFT-derived features pass chain >= 0 so each analysis frame is used once; default 1 processes each control block.
+
+returns::
+An Array: root, quality, strength, one-control-block change trigger.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var chroma = HPCP.kr(chain, harmonics: 1);
+        var chord = ChordTrack.kr(chroma, smooth: 0.05, trig: chain >= 0);
+        var root = (48 + chord[0].max(0)).midicps;
+        var voice = SinOsc.ar(root, 0, chord[2] * (chord[0] >= 0) * 0.06);
+        var sound = [source * 0.12, voice];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

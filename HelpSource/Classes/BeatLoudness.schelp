@@ -1,0 +1,59 @@
+class:: BeatLoudness
+summary:: Beat-synchronous RMS and peak amplitude
+categories:: UGens>Analysis>Rhythm
+related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+
+description::
+Accumulates squared samples and absolute peaks from one beat edge to the next. Reports the completed interval at the next edge; this is linear signal level, not psychoacoustic loudness or LUFS.
+
+This is an independent implementation of the statistical definition above. Output updates at the server control rate; beat boundaries are quantized to a control block. Silence produces zero level/density or missing tempo evidence. No corpus-level accuracy is implied.
+
+classmethods::
+method:: kr
+argument:: in
+Audio-rate mono signal to measure. Multichannel expansion creates independent analyzers.
+
+argument:: beat
+Control-rate beat trigger. Each rising edge completes the preceding interval and begins a new one.
+
+argument:: maxInterval
+Maximum beat interval in seconds, clipped to 0.1–60, default 10. Expired results reset to zero.
+
+returns::
+[linearRMS, linearPeak], initially zero until a complete beat interval.
+
+examples::
+The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2RhythmExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
+            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
+        var level = BeatLoudness.kr(source, onset[0]);
+        var sound = [source * 0.25, SinOsc.ar(440, 0, level[0].lag(0.03) * 0.3)];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2RhythmBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2RhythmExample.free;
+~mir2RhythmBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/Tempo::
+link::Classes/BeatTrack3::

@@ -1,0 +1,67 @@
+class:: SensoryDissonance2
+summary:: Pairwise sensory roughness of spectral peaks
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Implements the pairwise Plomp-Levelt curve parametrization described by Sethares (1993 and subsequent author documentation). For two peaks, x = 0.24 * abs(f2-f1) / (0.0207*min(f1,f2)+18.96); roughness is 5 * amplitudeWeight * (exp(-3.51*x)-exp(-5.75*x)). Every unordered pair contributes once. The minimum model weights by the smaller magnitude, while product uses their product. This is an independent equation implementation with bounded peak extraction. Sensory roughness is not an aesthetic or cultural judgement of musical dissonance. Unresolved close peaks, FFT window and peak threshold strongly affect the estimate.
+
+
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. This analyzer updates when a new frame arrives and holds its output between frames.
+
+argument:: model
+Either \minimum or \product amplitude weighting; both use the same Sethares frequency curve.
+
+argument:: maxPeaks
+Literal strongest-peak capacity from 2 through 128. Pairwise work grows quadratically.
+
+argument:: normalize
+Positive values divide peak magnitudes by the frame maximum before measuring roughness; zero preserves raw FFT magnitude scaling.
+
+argument:: peakThreshold
+Minimum local-peak magnitude relative to the largest included spectral peak, from 0 through 1. Up to 128 strongest peaks are retained.
+
+argument:: fftSize
+Literal power of two from 256 through 8192, matching the FFT buffer. Frequency resolution and first-result latency depend on this size.
+
+returns::
+Nonnegative roughness sum; zero for silence or fewer than two peaks. The value is not constrained to 0 through 1.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var roughness = SensoryDissonance2.kr(chain);
+        var driven = (source * (1 + (roughness.clip(0, 8) * 3))).tanh * 0.12;
+        var sound = [source * 0.1, driven];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

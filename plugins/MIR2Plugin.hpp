@@ -226,6 +226,10 @@ void registerAuditoryUnits();
 void registerPitchAdvancedUnits();
 void registerWaveletUnits();
 void registerConstantQUnits();
+void registerPNCCUnits();
+void registerTonalUnits();
+void registerHarmonicUnits();
+void registerRhythmUnits();
 
 
 

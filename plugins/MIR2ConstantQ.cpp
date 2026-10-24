@@ -16,7 +16,7 @@ struct CQUnit : Unit {
 void CQ_next(CQUnit* unit,int){
     const float* input=IN(0);
     for(int i=0;i<unit->mWorld->mFullRate.mBufLength;++i){
-        unit->ring[unit->position]=mir2::sanitize(input[i]);
+        unit->ring[unit->position]=mir2::clamp(mir2::sanitize(input[i]), -1.0e6, 1.0e6);
         unit->position=(unit->position+1)%unit->size;
         unit->filled=std::min(unit->size,unit->filled+1);
         if(--unit->countdown<=0 && unit->filled==unit->size){
@@ -35,18 +35,20 @@ void CQ_next(CQUnit* unit,int){
 void CQ_init(CQUnit* unit,bool cepstral){
     unit->ring=nullptr;unit->work=nullptr;unit->entries=nullptr;
     unit->minimum=mir2::sanitize(IN0(1));
-    unit->bands=mir2::clamp(static_cast<int>(mir2::sanitize(IN0(2))),2,mir2::kCQMaxBins);
-    unit->bpo=mir2::clamp(static_cast<int>(mir2::sanitize(IN0(3))),6,48);
+    unit->bands=static_cast<int>(mir2::clamp(mir2::sanitize(IN0(2)),2.0,static_cast<double>(mir2::kCQMaxBins)));
+    unit->bpo=static_cast<int>(mir2::clamp(mir2::sanitize(IN0(3)),6.0,48.0));
     const double gamma=std::max(0.0,static_cast<double>(mir2::sanitize(IN0(4))));
     const double sparsity=mir2::clamp(static_cast<double>(mir2::sanitize(IN0(6))),1.e-8,.01);
     unit->size=mir2::cqFrameSize(unit->mWorld->mSampleRate,unit->minimum,unit->bpo,gamma);
     unit->position=unit->filled=0;unit->cepstral=cepstral;
-    unit->uniformCount=cepstral?mir2::clamp(static_cast<int>(mir2::sanitize(IN0(9))),16,1024):16;
+    unit->uniformCount=cepstral?static_cast<int>(mir2::clamp(mir2::sanitize(IN0(9)),16.0,1024.0)):16;
     unit->coefficients=cepstral?static_cast<int>(unit->mNumOutputs):0;
     std::fill(unit->outputs,unit->outputs+mir2::kCQMaxBins,0.0);
     bool valid=unit->size>0 && INRATE(0)==calc_FullRate
         && unit->minimum*std::exp2(static_cast<double>(unit->bands-1)/unit->bpo)<unit->mWorld->mSampleRate*.5
-        && static_cast<int>(unit->mNumOutputs)<=mir2::kCQMaxBins;
+        && static_cast<int>(unit->mNumOutputs)<=mir2::kCQMaxBins
+        && (!cepstral || (unit->coefficients <= 64
+            && unit->coefficients + (IN0(10) > 0 ? 0 : 1) <= unit->uniformCount));
     if(valid){
         unit->ring=allocate<double>(unit->mWorld,static_cast<std::size_t>(unit->size));
         unit->work=allocate<mir2::Complex>(unit->mWorld,static_cast<std::size_t>(unit->size));
@@ -64,7 +66,7 @@ void CQ_init(CQUnit* unit,bool cepstral){
         }
     }
     if(!valid){
-        Print("MIR2 CQT: invalid range, required frame exceeds 32768, kernel budget exceeded, or insufficient RT memory\n");
+        Print("MIR2 CQT: invalid range/Nyquist margin, required frame exceeds 32768, kernel budget exceeded, or insufficient RT memory\n");
         SETCALC(ClearUnitOutputs);unit->mDone=true;ClearUnitOutputs(unit,1);return;
     }
     unit->hop=mir2::clamp(static_cast<int>(std::lround(unit->size*mir2::clamp(static_cast<double>(mir2::sanitize(IN0(5))),.0625,1.0))),1,unit->size);

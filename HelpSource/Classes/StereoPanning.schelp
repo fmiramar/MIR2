@@ -47,7 +47,7 @@ Routine({
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var left = LPF.ar(source, 900) + HPF.ar(source, 1800) * 0.15;
+        var left = LPF.ar(source, 900) + (HPF.ar(source, 1800) * 0.15);
         var right = LPF.ar(source, 900) * 0.15 + HPF.ar(source, 1800);
         var value = StereoPanning.kr(left, DelayC.ar(right, 0.01, 0.001), minFreq: 100, maxFreq: 2500);
         var control = value.linlin(-1, 1, 0, 1);

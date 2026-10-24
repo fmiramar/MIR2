@@ -1,0 +1,71 @@
+class:: HarmonicDeviation
+summary:: Harmonic amplitude deviation from a local envelope
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIR2 conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. For each nonzero harmonic amplitude a, the envelope is the arithmetic mean of its preceding, current and following harmonic amplitudes. At boundaries the current amplitude substitutes for the absent neighbour. Output is the amplitude-weighted mean absolute value of 20*log10(a/envelope). Missing internal slots count as zero in the envelope.
+
+
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. This analyzer updates when a new frame arrives and holds its output between frames.
+
+argument:: f0
+Supplied fundamental in Hz, for example the first output of Pitch2. Nonpositive or invalid values disable harmonic association.
+
+argument:: maxHarmonics
+Literal number of harmonic slots from 1 through 64. Harmonic index is stable when partials are missing.
+
+argument:: tolerance
+Maximum distance in cents between a peak and its nearest integer multiple of f0, clamped from 0 through 600. Default 50.
+
+argument:: peakThreshold
+Minimum local-peak magnitude relative to the largest included spectral peak, from 0 through 1. Up to 128 strongest peaks are retained.
+
+argument:: fftSize
+Literal power of two from 256 through 8192, matching the FFT buffer. Frequency resolution and first-result latency depend on this size.
+
+returns::
+Nonnegative weighted deviation in dB; zero without associated peaks.
+
+method:: fromAudio
+Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var pitch = PitchMPM.kr(source, 80, 1600, 4096, 0.25);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var deviation = HarmonicDeviation.kr(chain, pitch[0]);
+        var driven = (source * (1 + deviation.clip(0, 30))).tanh * 0.12;
+        var sound = [source * 0.1, driven];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

@@ -56,8 +56,8 @@ void scalarNext(DescriptorUnit* unit, int) {
     const double hz = unit->mWorld->mSampleRate / unit->fftSize;
     ZOUT0(0) = static_cast<float>(mir2::sanitize(mir2::spectralDescriptor(
         unit->magnitudes, unit->ready ? unit->previous : nullptr,
-        count, hz, IN0(1), IN0(2), static_cast<int>(IN0(3)), descriptor,
-        IN0(4), static_cast<int>(IN0(5)))));
+        count, hz, IN0(1), IN0(2), mir2::boundedInteger(IN0(3)), descriptor,
+        IN0(4), mir2::boundedInteger(IN0(5)))));
     if (descriptor == SpectralDescriptor::variation) {
         std::copy(unit->magnitudes, unit->magnitudes + count, unit->previous);
         unit->ready = true;
@@ -67,7 +67,7 @@ void scalarNext(DescriptorUnit* unit, int) {
 #define MIR2_SCALAR(Name, Kind) \
     struct Name : DescriptorUnit {}; \
     void Name##_Ctor(Name* unit) { \
-        if (!initialize(unit, static_cast<int>(IN0(6)))) { disable(unit); return; } \
+        if (!initialize(unit, mir2::boundedInteger(IN0(6)))) { disable(unit); return; } \
         SETCALC(scalarNext<SpectralDescriptor::Kind>); ClearUnitOutputs(unit, 1); \
     } \
     void Name##_Dtor(Name* unit) { destroy(unit); }
@@ -101,7 +101,7 @@ void FFTPeak2_next(FFTPeak2* unit, int) {
     ZOUT0(1) = found ? static_cast<float>(peak.magnitude) : 0.0f;
 }
 void FFTPeak2_Ctor(FFTPeak2* unit) {
-    if (!initialize(unit, static_cast<int>(IN0(4))) || unit->mNumOutputs != 2) { disable(unit); return; }
+    if (!initialize(unit, mir2::boundedInteger(IN0(4))) || unit->mNumOutputs != 2) { disable(unit); return; }
     SETCALC(FFTPeak2_next); ClearUnitOutputs(unit, 1);
 }
 void FFTPeak2_Dtor(FFTPeak2* unit) { destroy(unit); }
@@ -112,9 +112,9 @@ void bandNext(DescriptorUnit* unit, int) {
     if (!load(unit)) return;
     const int bins = unit->fftSize / 2 + 1;
     const double hz = unit->mWorld->mSampleRate / unit->fftSize;
-    const int spectrumMode = static_cast<int>(IN0(2));
+    const int spectrumMode = mir2::boundedInteger(IN0(2));
     const double parameter = IN0(3);
-    const int mode = static_cast<int>(IN0(4));
+    const int mode = mir2::boundedInteger(IN0(4));
     for (int band = 0; band < unit->numBands; ++band) {
         int first, last;
         const double low = IN0(6 + band), high = IN0(7 + band);
@@ -164,9 +164,9 @@ void bandNext(DescriptorUnit* unit, int) {
 #define MIR2_BANDS(Name, Kind) \
     struct Name : DescriptorUnit {}; \
     void Name##_Ctor(Name* unit) { \
-        unit->numBands = static_cast<int>(IN0(1)); \
+        unit->numBands = mir2::boundedInteger(IN0(1)); \
         const int outputs = unit->numBands * ((BandKind::Kind == BandKind::contrast && IN0(4) != 0.0f) ? 2 : 1); \
-        if (!initialize(unit, static_cast<int>(IN0(5))) || unit->numBands < 1 || unit->numBands > 64 \
+        if (!initialize(unit, mir2::boundedInteger(IN0(5))) || unit->numBands < 1 || unit->numBands > 64 \
             || static_cast<int>(unit->mNumInputs) != 7 + unit->numBands || static_cast<int>(unit->mNumOutputs) != outputs) { disable(unit); return; } \
         SETCALC(bandNext<BandKind::Kind>); ClearUnitOutputs(unit, 1); \
     } \

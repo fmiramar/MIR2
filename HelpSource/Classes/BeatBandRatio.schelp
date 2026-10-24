@@ -1,0 +1,65 @@
+class:: BeatBandRatio
+summary:: Beat-synchronous spectral band fractions
+categories:: UGens>Analysis>Rhythm
+related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+
+description::
+Accumulates squared FFT magnitudes during each beat interval, dividing each band sum by whole-spectrum energy. Shared boundary bins are counted once; uncovered frequencies make the sum less than one. Frames are assigned by their arrival time, with FFT latency retained.
+
+This is an independent implementation of the statistical definition above. Output updates at the server control rate; beat boundaries are quantized to a control block. Silence produces zero level/density or missing tempo evidence. No corpus-level accuracy is implied.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. Match fftSize and hop to FFT.
+
+argument:: beat
+Control-rate beat trigger. Each rising edge completes the preceding interval and begins a new one.
+
+argument:: boundaries
+Strictly increasing frequency boundaries in Hz, defining 1–64 bands. Default [0, 200, 800, 3200, 20000].
+
+argument:: fftSize
+FFT size, a power of two from 256–8192. Default 2048 for beat trackers and 1024 for BeatBandRatio.
+
+argument:: maxInterval
+Maximum beat interval in seconds, clipped to 0.1–60, default 10. Expired results reset to zero.
+
+returns::
+An Array of band energy fractions, initially zero until a complete interval.
+
+examples::
+The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2RhythmExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
+            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
+        var bands = BeatBandRatio.kr(chain, onset[0], fftSize: 2048);
+        var sound = Pan2.ar(source * 0.4, (bands.last - bands.first).clip(-0.9, 0.9));
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2RhythmBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2RhythmExample.free;
+~mir2RhythmBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/Tempo::
+link::Classes/BeatTrack3::

@@ -1,12 +1,12 @@
 title:: MIR2
-summary:: Native spectral, onset, pitch, auditory, temporal and stereo analysis
+summary:: Native spectral, pitch, onset, tonal, rhythm, auditory and wavelet analysis
 categories:: Libraries>MIR
 
-MIR2 implements published DSP techniques for real-time musical control. This development expansion adds independent analysis families to the original eleven classes. Each class page explains its equations, output units, latency, silence behavior, limitations, and a playable example in which the analysis changes the sound.
+MIR2 provides 132 public classes for real-time musical analysis and analysis-driven sound. Each class page explains the technique, units, timing, limits and an audible example. Most return control-rate features; audio-input analyzers consume the full audio block internally. FFT readers preserve the shared buffer representation.
 
-Pitch confidence, periodicity, and voicing have different meanings. Evidence weights are not calibrated probabilities of correctness. Spectral energy conventions and perceptual loudness calibration are likewise explicit in the individual pages.
+Pitch confidence, periodicity and voicing describe different evidence. Neither confidence nor tonal/rhythm labels imply calibrated recognition accuracy. Use matching FFT sizes and hops, allow analysis warmup, and increase server real-time memory for large filter banks or CQT kernels.
 
-section::  analyzers
+section:: Core
 
 definitionlist::
 ## link::Classes/SpecCentroid2:: || Explicit spectral centroid in Hz.
@@ -22,7 +22,7 @@ definitionlist::
 ## link::Classes/Pitch2:: || General modern F0 facade with explicit octave ambiguity.
 ::
 
-section:: Auditory analyzers
+section:: Auditory filters and cepstra
 
 definitionlist::
 ## link::Classes/BarkBands:: || Bark spaced triangular spectral bands.
@@ -34,7 +34,15 @@ definitionlist::
 ## link::Classes/Loudness2:: || Calibrated revision of the informal SuperCollider loudness model.
 ::
 
-section:: FeatureDynamics analyzers
+section:: Constant-Q analysis
+
+definitionlist::
+## link::Classes/CQT:: || Sparse constant-Q magnitude analysis on a logarithmic frequency grid.
+## link::Classes/VQT:: || Variable-Q spectral analysis with a bandwidth offset.
+## link::Classes/CQCC:: || Constant-Q cepstra after uniform-frequency resampling.
+::
+
+section:: Feature dynamics
 
 definitionlist::
 ## link::Classes/FeatureDelta:: || Regression derivative of a control feature.
@@ -43,7 +51,23 @@ definitionlist::
 ## link::Classes/FeatureSmooth:: || One-pole smoothing at feature update instants.
 ::
 
-section:: OnsetFeatures analyzers
+section:: Harmonic analysis
+
+definitionlist::
+## link::Classes/HarmonicPeaks:: || Frequencies and magnitudes of associated harmonic partials.
+## link::Classes/Inharmonicity:: || Power-weighted deviation from an integer harmonic series.
+## link::Classes/Tristimulus:: || Relative amplitude in three harmonic groups.
+## link::Classes/OddEvenRatio:: || Odd-to-even harmonic power ratio.
+## link::Classes/HarmonicEnergyRatio:: || Spectral power near associated harmonics.
+## link::Classes/HarmonicCentroid:: || Amplitude-weighted harmonic spectral centre.
+## link::Classes/HarmonicDeviation:: || Harmonic amplitude deviation from a local envelope.
+## link::Classes/HarmonicSpread:: || Amplitude-weighted harmonic spectral spread.
+## link::Classes/HarmonicVariation:: || Change in the harmonic amplitude distribution.
+## link::Classes/Noisiness:: || Spectral power outside associated harmonic neighbourhoods.
+## link::Classes/SensoryDissonance2:: || Pairwise sensory roughness of spectral peaks.
+::
+
+section:: Onset evidence
 
 definitionlist::
 ## link::Classes/FFTComplexDev2:: || Complex spectral prediction error.
@@ -52,7 +76,13 @@ definitionlist::
 ## link::Classes/FFTFluxPos2:: || Positive spectral flux convenience wrapper.
 ::
 
-section:: PitchAdvanced analyzers
+section:: Power-normalized cepstra
+
+definitionlist::
+## link::Classes/PNCC:: || Power-normalized cepstra with medium-time noise suppression.
+::
+
+section:: Advanced pitch
 
 definitionlist::
 ## link::Classes/FundamentalCandidates:: || Expose competing fundamental frequencies and their weights.
@@ -70,7 +100,26 @@ definitionlist::
 ## link::Classes/Vibrato2:: || Measure vibrato rate and extent from a supplied pitch contour.
 ::
 
-section:: SpectralAdvanced analyzers
+section:: Rhythm analysis
+
+definitionlist::
+## link::Classes/Tempogram:: || Autocorrelation tempo evidence.
+## link::Classes/FourierTempogram:: || Fourier tempo evidence.
+## link::Classes/BeatHistogram:: || Smoothed tempo distribution.
+## link::Classes/Tempo:: || Causal tempo and confidence.
+## link::Classes/BeatStatistics2:: || Tempo alternatives and distribution statistics.
+## link::Classes/PulseClarity:: || Concentration of pulse evidence.
+## link::Classes/BeatTrack3:: || Causal beat and subdivision tracking.
+## link::Classes/AutoTrack2:: || Causal beat and subdivision tracking.
+## link::Classes/OnsetStatistics2:: || Rolling onset interval statistics.
+## link::Classes/OnsetRate:: || Rolling onset density.
+## link::Classes/TempoStability:: || Confidence-weighted tempo stability.
+## link::Classes/TempoRubato:: || Signed relative tempo change.
+## link::Classes/BeatLoudness:: || Beat-synchronous RMS and peak amplitude.
+## link::Classes/BeatBandRatio:: || Beat-synchronous spectral band fractions.
+::
+
+section:: Spectral descriptors
 
 definitionlist::
 ## link::Classes/FFTCrest2:: || Spectral peak to average ratio.
@@ -97,7 +146,7 @@ definitionlist::
 ## link::Classes/SpecContrast:: || Spectral peak to valley contrast by band.
 ::
 
-section:: Stereo analyzers
+section:: Stereo analysis
 
 definitionlist::
 ## link::Classes/StereoBalance:: || Relative left and right channel energy.
@@ -109,7 +158,7 @@ definitionlist::
 ## link::Classes/InterchannelPhase:: || Circular mean of interchannel spectral phase.
 ::
 
-section:: Temporal analyzers
+section:: Temporal descriptors
 
 definitionlist::
 ## link::Classes/TemporalCentroid:: || Energy-weighted position within the recent envelope.
@@ -128,37 +177,41 @@ definitionlist::
 ## link::Classes/LogAttackTime:: || Attack duration in seconds and base-ten logarithm.
 ::
 
-section:: Timing and examples
+section:: Tonal analysis
 
-FFT analyzers read a matching FFT chain without changing its representation. Declare the same FFT size and hop in stateful analyzers. Audio-input analyzers accumulate their own frames or envelope windows. Results normally hold between analysis frames; onset triggers last one control block. Memory is allocated in constructors. Consult each class for startup and smoothing delay.
-
-Boot the server, run an example's parenthesized setup block, and run its cleanup block before starting another example. Defaults read ExampleFiles.child and include a commented SoundIn alternative. Audible examples are demonstrations of behavior, not proofs of accuracy on every recording.
-
-code::
-(
-Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
-    s.sync;
-    ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
-        // For live input instead: source = SoundIn.ar(0);
-        var pitch = Pitch2.kr(source, 60, 1500);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, fftSize: 2048, hop: 0.25);
-        var tone = SinOsc.ar(pitch[0].clip(40, 1500).lag(0.03), 0, pitch[2].lag(0.02) * 0.05);
-        var click = Decay2.ar(K2A.ar(onset[0]), 0.001, 0.035) * PinkNoise.ar(0.08);
-        (source * 0.15 + tone + click) * Line.kr(0, 1, 0.3) ! 2
-    }.play;
-}).play(AppClock);
-)
-::
-code::
-(
-~mir2Example.free;
-~mir2Buffer.free;
-)
+definitionlist::
+## link::Classes/HPCP:: || Tuning-aware harmonic pitch-class profile.
+## link::Classes/Chromagram2:: || FFT-bin or peak-based chromagram.
+## link::Classes/TuningFrequency:: || Circular estimate of tuning relative to A440.
+## link::Classes/KeyTrack2:: || Tonal key estimate.
+## link::Classes/KeyClarity2:: || Tonal key clarity.
+## link::Classes/KeyMode2:: || Tonal key mode.
+## link::Classes/Tonnetz:: || Six-dimensional tonal centroid.
+## link::Classes/HPCPEntropy:: || Normalized pitch-class distribution entropy.
+## link::Classes/HPCPCrest:: || Peak-to-average pitch-class strength.
+## link::Classes/ChromaCENS:: || Quantized and smoothed chroma-energy statistics.
+## link::Classes/ChordTrack:: || Major/minor chord tracking.
+## link::Classes/ChordStrength:: || Major/minor chord template strength.
+## link::Classes/HarmonicChange:: || Causal tonal-centroid change magnitude.
+## link::Classes/ChordStats:: || Duration-weighted statistics of chord states.
 ::
 
-section:: Implementation status and references
+section:: Wavelets
 
-This remains an unpublished development expansion. The full library roadmap is tracked in docs/roadmap-status.md; tonal/harmonic, rhythm, wavelet and constant-Q work must not be inferred from this guide until their public classes are listed. Neural methods and PNCC have separate reference and licensing gates. See ORIGINS.md and the family implementation reports for primary sources and evaluation limits. MIR2 complements FluCoMa's corpus, decomposition, and data workflows.
+definitionlist::
+## link::Classes/Wavelets2:: || Daubechies scale energies, RMS or entropy contributions.
+## link::Classes/WaveletBands:: || Multiscale wavelet energy bank.
+## link::Classes/WaveletEntropy:: || Normalized entropy of wavelet scale energies.
+## link::Classes/WaveletFlux:: || Positive change in normalized wavelet scale energies.
+## link::Classes/WaveletCentroid:: || Energy-weighted center of wavelet scale frequencies.
+## link::Classes/WaveletSpread:: || Spread around the wavelet scale-frequency center.
+## link::Classes/WaveletDaub2:: || Daubechies analysis, coefficient removal and audio reconstruction.
+::
+
+section:: Examples and verification
+
+Class examples use a looping bundled sound, synchronized buffer setup and feature-controlled synthesis, filtering or panning. They can be changed to SoundIn using the commented source line. Each example includes cleanup. Onsets2 now includes the seven classical methods and corrected SuperFlux processing. Representative-recording onset evaluation is deferred to a later stage; numerical checks do not replace listening.
+
+section:: Further work
+
+The initial chord vocabulary is major/minor/no-chord. Neural models, ChromaCQT, extra wavelet families and multiband rhythm transforms remain explicit research gates. See the installed docs/roadmap-status.md for implementation and verification status.

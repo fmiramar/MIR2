@@ -9,7 +9,13 @@
 - Fixed control-output initialization and stopped analysis readers from
   mutating shared FFT coordinate representations.
 - Expanded independent numerical checks and installed example verification.
-- Full-library work is ongoing; see docs/roadmap-status.md.
+- Added sparse-kernel CQT/VQT/CQCC, paper-based PNCC, 25 tonal/harmonic
+  classes and 14 rhythm classes; the public catalog now contains 132 classes.
+- Bounded integer control conversions before casting, corrected CQCC Hz-grid
+  interpolation and post-silence wavelet flux, and audited audible-example
+  arithmetic for SuperCollider's left-to-right binary operators.
+- Research-only extensions and recording-based quality evaluation remain
+  explicit gates; see docs/roadmap-status.md. Nothing has been published.
 
 # Changelog
 

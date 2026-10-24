@@ -5,7 +5,7 @@ related:: Guides/MIR2
 
 MIR2 successors preserve the musical purpose of historical analyzers, not their exact numbers or defaults. Keep the old and new analyzer side by side while migrating a piece, and recalibrate thresholds from documented units.
 
-section:: Available in version 0.1
+section:: Core migration examples
 
 table::
 ## Legacy || MIR2 || Main intentional difference
@@ -14,8 +14,8 @@ table::
 ## link::Classes/SpecPcile:: || link::Classes/SpecPcile2:: || General fraction and optional within-bin interpolation.
 ## link::Classes/MFCC:: || link::Classes/MFCC2:: || Configurable bands, coefficient zero, Mel mapping, DCT, and no historical output normalization.
 ## link::Classes/FFTFlux:: / link::Classes/FFTFluxPos:: || link::Classes/FFTFlux2:: || One explicit distance interface with normalized/full/positive modes.
-## link::Classes/Onsets:: || link::Classes/Onsets2:: || Trigger plus continuous strength and a causal SuperFlux-style method.
-## link::Classes/Pitch:: || link::Classes/Pitch2:: || YIN/MPM, explicit confidence and octave ambiguity, no default stale-frequency hold.
+## link::Classes/Onsets:: || link::Classes/Onsets2:: || All seven classical methods plus revised SuperFlux, continuous novelty and causal peak selection.
+## link::Classes/Pitch:: || link::Classes/Pitch2:: || YIN/MPM/SWIPE selection, explicit confidence and octave ambiguity, no default stale-frequency hold.
 ## link::Classes/Tartini:: || link::Classes/PitchMPM:: || Independent paper-based MPM with explicit frames, hops, clarity, and silence.
 ::
 
@@ -25,9 +25,11 @@ MIR2 FFT analyzers require code::fftSize:: to match their chain. This lets state
 
 MIR2 pitch code::frameSize:: and code::hop:: replace the execution-frequency and downsampling assumptions used by some historical trackers. Frequency becomes zero on failed voicing unless code::Pitch2.kr(..., hold: 1):: is requested.
 
-section:: Planned names
+section:: Expanded development catalog
 
-The longer MIR2 plan proposes further code::*2:: successors, but unimplemented names are deliberately absent from version 0.1. This prevents a placeholder from being mistaken for a verified analyzer.
+The current unpublished expansion includes spectral, auditory, tonal/harmonic, rhythm, temporal/stereo, wavelet, constant-Q and advanced pitch families. See link::Guides/MIR2:: for the full catalog. code::FundamentalCandidates:: and code::Vibrato2:: are the resolved names of the earlier PitchCandidates and Vibrato plan entries.
+
+Onsets2 method identifiers and threshold scales differ from native Onsets. Its first three numeric identifiers preserve the earlier MIR2 ordering, but corrected frontend and peak selection change the detections. Re-tune on your material; the synthetic evaluation is not a recording-quality guarantee.
 
 subsection:: See also
 link::Guides/MIR2::

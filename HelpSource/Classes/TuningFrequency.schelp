@@ -1,0 +1,64 @@
+class:: TuningFrequency
+summary:: Circular estimate of tuning relative to A440
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Computes the circular mean of spectral-peak semitone residuals, weighted by squared peak magnitude. This follows the tuning-aware tonal analysis principle of Gomez and Bonada (ICMC 2005); the circular estimator is an explicit MIR2 convention. If r = 12 * log2(f/440), the angle is 2*pi*(r-round(r)). The angle of the weighted resultant gives detuning; its length divided by total weight gives concentration. Detuning is only identifiable modulo a semitone and is reported within approximately -50 through +50 cents. This measures agreement with an equal-tempered grid, not the correctness of a performance. Vibrato, inharmonic partials and non-equal-tempered music reduce its reliability.
+
+Vanilla link::Classes/Pitch:: follows a monophonic frequency. This class estimates the common fractional-semitone offset of several spectral peaks.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. This analyzer updates when a new frame arrives and holds its output between frames.
+
+argument:: minFreq
+Lowest included spectral frequency in Hz.
+
+argument:: maxFreq
+Highest included spectral frequency in Hz; zero means Nyquist.
+
+argument:: peakThreshold
+Minimum local-peak magnitude relative to the largest included spectral peak, from 0 through 1. Up to 128 strongest peaks are retained.
+
+argument:: fftSize
+Literal power of two from 256 through 8192, matching the FFT buffer. Frequency resolution and first-result latency depend on this size.
+
+returns::
+An Array: estimated A reference in Hz, cents relative to A440, and circular concentration from 0 through 1. Silence returns zeros.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var tuning = TuningFrequency.kr(chain);
+        var beats = SinOsc.ar([440, tuning[0].clip(400, 480)], 0, tuning[2] * 0.04).sum;
+        var sound = [source * 0.12, beats];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

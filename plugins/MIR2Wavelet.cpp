@@ -7,6 +7,7 @@ using namespace mir2plugin;
 struct WaveletState : Unit {
     double* ring; double* work; double* scratch;
     int size, levels, position, filled, hop, countdown;
+    bool analyzed;
     double bands[14], previous[14];
     mir2::WaveletFilter filter;
     mir2::WaveletMeasurements result;
@@ -14,11 +15,12 @@ struct WaveletState : Unit {
 
 bool waveletInit(WaveletState* unit) {
     unit->ring = nullptr; unit->work = nullptr; unit->scratch = nullptr;
-    unit->size = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(1))), 32, 8192);
-    unit->levels = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(3))), 1, mir2::waveletMaxLevels(unit->size));
-    unit->filter = mir2::daubechiesFilter(mir2::clamp(static_cast<int>(mir2::sanitize(IN0(2))), 1, 4));
+    unit->size = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(1)), 32.0, 8192.0));
+    unit->levels = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(3)), 1.0, static_cast<double>(mir2::waveletMaxLevels(unit->size))));
+    unit->filter = mir2::daubechiesFilter(static_cast<int>(mir2::clamp(mir2::sanitize(IN0(2)), 1.0, 4.0)));
     unit->hop = mir2::clamp(static_cast<int>(std::lround(unit->size * mir2::clamp(mir2::sanitize(IN0(4)), 0.0625, 1.0))), 1, unit->size);
     unit->position = 0; unit->filled = 0; unit->countdown = unit->size; unit->result = {};
+    unit->analyzed = false;
     std::fill(unit->bands, unit->bands + 14, 0.0); std::fill(unit->previous, unit->previous + 14, 0.0);
     ClearUnitOutputs(unit, 1);
     if (!mir2::isPowerOfTwo(unit->size) || INRATE(0) != calc_FullRate) {
@@ -46,6 +48,8 @@ void waveletProcess(WaveletState* unit) {
             mir2::waveletForward(unit->work, unit->scratch, unit->size, unit->levels, unit->filter);
             mir2::waveletEnergies(unit->work, unit->size, unit->levels, unit->bands);
             unit->result = mir2::waveletMeasurements(unit->bands, unit->previous, unit->levels, unit->mWorld->mSampleRate);
+            if (!unit->analyzed) unit->result.flux = 0.0;
+            unit->analyzed = true;
             std::copy(unit->bands, unit->bands + unit->levels + 1, unit->previous);
             unit->countdown = unit->hop;
         }
@@ -54,7 +58,7 @@ void waveletProcess(WaveletState* unit) {
 struct Wavelets2 : WaveletState {};
 void Wavelets2_next(Wavelets2* unit, int) {
     waveletProcess(unit);
-    const int mode = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(5))), 0, 2);
+    const int mode = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(5)), 0.0, 2.0));
     double total = 0.0;
     for (int i = 0; i <= unit->levels; ++i) total += unit->bands[i];
     for (int i = 0; i < static_cast<int>(unit->mNumOutputs); ++i) {
@@ -88,23 +92,16 @@ struct WaveletDaub2 : Unit {
 };
 void WaveletDaub2_next(WaveletDaub2* unit, int samples) {
     const float* input = IN(0); float* output = OUT(0);
+    const int remove = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(4)), 0.0, static_cast<double>(unit->size)));
     for (int i = 0; i < samples; ++i) {
-        output[i] = static_cast<float>(unit->output[unit->position]);
-        unit->frame[unit->position] = mir2::clamp(mir2::sanitize(input[i]), -1e6, 1e6);
-        if (++unit->position == unit->size) {
-            mir2::waveletForward(unit->frame, unit->scratch, unit->size, unit->levels, unit->filter);
-            const int remove = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(4))), 0, unit->size);
-            std::fill(unit->frame, unit->frame + remove, 0.0);
-            mir2::waveletInverse(unit->frame, unit->scratch, unit->size, unit->levels, unit->filter);
-            std::copy(unit->frame, unit->frame + unit->size, unit->output);
-            unit->position = 0;
-        }
+        output[i] = static_cast<float>(mir2::waveletReconstructSample(input[i], unit->frame,
+            unit->output, unit->scratch, unit->position, unit->size, unit->levels, unit->filter, remove));
     }
 }
 void WaveletDaub2_Ctor(WaveletDaub2* unit) {
-    unit->size = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(1))), 32, 8192);
-    unit->levels = mir2::clamp(static_cast<int>(mir2::sanitize(IN0(3))), 1, mir2::waveletMaxLevels(unit->size));
-    unit->filter = mir2::daubechiesFilter(mir2::clamp(static_cast<int>(mir2::sanitize(IN0(2))), 1, 4));
+    unit->size = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(1)), 32.0, 8192.0));
+    unit->levels = static_cast<int>(mir2::clamp(mir2::sanitize(IN0(3)), 1.0, static_cast<double>(mir2::waveletMaxLevels(unit->size))));
+    unit->filter = mir2::daubechiesFilter(static_cast<int>(mir2::clamp(mir2::sanitize(IN0(2)), 1.0, 4.0)));
     unit->position = 0; unit->frame = nullptr; unit->output = nullptr; unit->scratch = nullptr;
     ZOUT0(0) = 0.0f;
     if (!mir2::isPowerOfTwo(unit->size) || INRATE(0) != calc_FullRate) {

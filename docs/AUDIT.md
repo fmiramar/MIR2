@@ -2,6 +2,11 @@
 
 Date: 2026-08-20
 
+This is the historical eleven-class baseline audit. For the expanded library,
+see `roadmap-status.md`, `implementation-log.md` and `THIRD_PARTY_NOTICES.md`.
+The later auditory expansion includes an explicitly attributed SuperCollider
+loudness contour table; the baseline no-table statement below is historical.
+
 ## Unified project decision
 
 The MIR2 and Modern Pitch Analysis plans overlap directly at `Pitch2`, common

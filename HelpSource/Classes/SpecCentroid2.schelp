@@ -45,7 +45,7 @@ Routine({
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
         var value = SpecCentroid2.kr(chain, fftSize: 1024);
         var wet = RLPF.ar(source, value.clip(150, 7000).lag(0.06), 0.25);
-        (source * 0.08 + wet * 0.3) * Line.kr(0, 1, 0.3) ! 2
+        ((source * 0.08) + (wet * 0.3)) * Line.kr(0, 1, 0.3) ! 2
     }.play;
 }).play(AppClock);
 )

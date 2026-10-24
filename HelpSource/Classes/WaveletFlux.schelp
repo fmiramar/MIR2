@@ -25,6 +25,11 @@ Literal number of decomposition levels, 1 through log2(frameSize). Default 6; ou
 argument:: hop
 Literal fraction of frameSize between analyses, 0.0625 through 1, default 0.5.
 
+argument:: family
+Literal \db or \haar. Haar selects order one; db uses the requested order. Default db.
+argument:: boundary
+Literal \periodic; this is the only supported boundary mode. Other modes are rejected.
+
 examples::
 The measured scale structure controls the audible synthesis or filtering.
 code::
@@ -36,7 +41,7 @@ Routine({
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
         var value = WaveletFlux.kr(source);
-        var sound = source * 0.15 + HPF.ar(PinkNoise.ar(0.15), 1800) * (value * 5).clip(0,1).lag(0.02);
+        var sound = (source * 0.15) + (HPF.ar(PinkNoise.ar(0.15), 1800) * (value * 5).clip(0,1).lag(0.02));
         sound * Line.kr(0,1,0.25) ! 2
     }.play;
 }).play(AppClock);

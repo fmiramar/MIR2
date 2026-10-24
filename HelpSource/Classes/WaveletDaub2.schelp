@@ -23,7 +23,12 @@ Literal Daubechies order from 1 through 4; one is Haar, four has eight filter ta
 argument:: levels
 Literal number of decomposition levels, 1 through log2(frameSize). Default 6; outputs run from the coarsest approximation to finest detail.
 argument:: remove
-Number of leading wavelet coefficients to set to zero, 0 through frameSize, sampled each frame. Zero gives exact delayed reconstruction; frameSize gives silence.
+Number of leading wavelet coefficients to set to zero, 0 through frameSize, sampled each frame. Default zero gives exact delayed reconstruction; frameSize gives silence.
+
+argument:: family
+Literal \db or \haar. Haar selects order one; db uses the requested order. Default db.
+argument:: boundary
+Literal \periodic; this is the only supported boundary mode. Other modes are rejected.
 
 examples::
 Compare the delayed source at left with coefficient-filtered reconstruction at right.
@@ -53,4 +58,4 @@ code::
 subsection:: See also
 link::Guides/MIR2::
 link::Classes/WaveletBands::
-link::Classes/WaveletDaub2::
+link::Classes/Wavelets2::

@@ -3,7 +3,7 @@ var sourceRoot = Pitch2.filenameSymbol.asString.dirname.dirname +/+ "HelpSource"
 var pages = ["Classes", "Guides"].collect { |folder|
     PathName(sourceRoot +/+ folder).files.select { |p| p.extension == "schelp" }
         .collect { |p| folder +/+ p.fileNameWithoutExtension }
-}.flat;
+}.flatten(1);
 var ok = true;
 
 SCDoc.verbosity = 2;

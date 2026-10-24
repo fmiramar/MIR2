@@ -1,0 +1,82 @@
+class:: HPCP
+summary:: Tuning-aware harmonic pitch-class profile
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Implements peak-based harmonic pitch-class accumulation after Gomez (2006), DOI 10.1287/ijoc.1040.0126, and Serra et al. (2008). Spectral peaks use log-parabolic interpolation. Squared magnitudes contribute to their pitch class and the classes of their subharmonics, with exponentially falling harmonic weights. Circular cosine weighting spreads each contribution around the tuned pitch grid. MIR2 deliberately uses C-first ordering, fixed peak capacity and no spectral whitening or split-band normalization; these differ from some published HPCP pipelines. Input gain is removed when normalization is enabled. It is a pitch-class descriptor, not a note transcription.
+
+Vanilla link::Classes/SpecCentroid:: collapses the spectrum into one brightness value. This class instead retains octave-folded pitch-class structure.
+
+classmethods::
+method:: kr
+argument:: chain
+FFT chain. This analyzer updates when a new frame arrives and holds its output between frames.
+
+argument:: size
+Literal pitch-class count: 12, 24, 36, or 120. Bin zero is C; every octave has size equally spaced bins.
+
+argument:: tuning
+Reference A in Hz, positive; default 440. This retunes the pitch-class grid.
+
+argument:: minFreq
+Lowest included spectral frequency in Hz.
+
+argument:: maxFreq
+Highest included spectral frequency in Hz; zero means Nyquist.
+
+argument:: harmonics
+Number of peak subharmonics to include, clamped from 1 through 16. Contribution for divisor h is weighted by 0.6 ** (h-1).
+
+argument:: normalize
+One of \none, \max, \sum, or \l2. Silence remains zero.
+
+argument:: weighting
+One of \none (nearest bin), \cosine, or \squaredCosine.
+
+argument:: window
+Full pitch-class weighting-window width in semitones, default 4/3. Clamped between one output-bin width and one octave.
+
+argument:: peakThreshold
+Minimum local-peak magnitude relative to the largest included spectral peak, from 0 through 1. Up to 128 strongest peaks are retained.
+
+argument:: fftSize
+Literal power of two from 256 through 8192, matching the FFT buffer. Frequency resolution and first-result latency depend on this size.
+
+returns::
+An Array of size values, ordered C upward through one octave.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var chroma = HPCP.kr(chain, harmonics: 4);
+        var voices = SinOsc.ar((60 + (0..11)).midicps, 0, Lag.kr(chroma, 0.04) * 0.018);
+        var sound = Splay.ar(voices) + (source * 0.08);
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

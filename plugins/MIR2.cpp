@@ -16,6 +16,10 @@ PluginLoad(MIR2) {
     mir2plugin::registerPitchAdvancedUnits();
     mir2plugin::registerWaveletUnits();
     mir2plugin::registerConstantQUnits();
+    mir2plugin::registerPNCCUnits();
+    mir2plugin::registerTonalUnits();
+    mir2plugin::registerHarmonicUnits();
+    mir2plugin::registerRhythmUnits();
 
 
 }

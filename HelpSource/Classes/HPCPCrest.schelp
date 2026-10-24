@@ -1,0 +1,56 @@
+class:: HPCPCrest
+summary:: Peak-to-average pitch-class strength
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Computes N*max(chroma)/sum(chroma). This general crest statistic distinguishes concentrated from diffuse pitch-class evidence. Silence returns zero, a uniform nonzero vector gives one, and one occupied class gives N. It is gain invariant and does not infer a key.
+
+
+
+classmethods::
+method:: kr
+argument:: chroma
+A C-first Array of 12, 24, 36, or 120 nonnegative pitch-class values. Higher resolutions fold to nearest semitones where a twelve-class representation is required.
+
+argument:: trig
+A positive value processes this control block. For FFT-derived features pass chain >= 0 so each analysis frame is used once; default 1 processes each control block.
+
+returns::
+Crest factor from 1 through N on nonzero input; zero for silence.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var chroma = HPCP.kr(chain, harmonics: 1);
+        var crest = HPCPCrest.kr(chroma, chain >= 0);
+        var filtered = RLPF.ar(source, 200 + (crest.clip(0, 12) * 450), 0.25);
+        var sound = [source * 0.1, filtered * 0.2];
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

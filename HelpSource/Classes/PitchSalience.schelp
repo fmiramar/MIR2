@@ -64,7 +64,7 @@ Routine({
         var strengths = BufRd.kr(1, salience, [0, 12, 24, 36, 48, 60, 72]);
         var freqs = 110 * (2 ** ([0, 12, 24, 36, 48, 60, 72] / 24));
         var voices = SinOsc.ar(freqs, 0, Lag.kr(strengths, 0.04) * 0.06);
-        var sound = Splay.ar(voices) + source * 0.08;
+        var sound = Splay.ar(voices) + (source * 0.08);
         sound * Line.kr(0, 1, 0.25)
     }.play;
     ~mir2PitchBuffer = buffer;

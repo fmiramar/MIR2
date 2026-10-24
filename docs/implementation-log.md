@@ -130,3 +130,68 @@ Local installation was performed. No Git push, hosted CI, release upload, or
 publication occurred. Remaining mandatory families are tracked explicitly in
 roadmap-status.md. Parallel agents hit a usage limit; their work was preserved
 and integration continued in the parent agent.
+
+## 2026-10-24 — broader classical integration verified
+
+The development catalog now has 132 public classes. This completes the primary
+classical families in the MIR2 and Modern Pitch plans, including seven wavelets,
+sparse CQT/VQT/CQCC, PNCC, 25 tonal/harmonic analyzers and fourteen rhythm
+analyzers. Both plans mark implemented class entries and preserve explicit
+optional research gates. `roadmap-status.md` distinguishes implementation from
+recording accuracy and release qualification.
+
+Final integration corrected unsafe float-to-int conversions, CQCC interpolation
+in Hz, wavelet flux after silence, and example arithmetic that accidentally
+requested ultrasonic filter frequencies under SuperCollider's left-to-right
+binary-operator rules. Every class now has an audible, synchronized example.
+The onset report and CSV were regenerated from the reviewed implementation.
+At threshold 0.3, revised SuperFlux has 120 true positives, 24 false positives
+and no misses on the deterministic fixture matrix; the prior implementation
+has 1371 false positives on that same matrix. These are fixture diagnostics,
+not held-out recording accuracy.
+
+Verification completed locally against SuperCollider 3.14.1:
+
+| Check | Result |
+| --- | --- |
+| Strict macOS x86_64 scsynth and supernova builds | Passed |
+| Strict Windows x86_64 MinGW cross-build | Passed; native Windows execution not performed |
+| Numerical CTest suite | 13/13 passed, 27.60 seconds in the recorded full run |
+| Address/undefined-behavior sanitizers | 13/13 passed, 260.23 seconds |
+| PNCC stage fixture regeneration | Byte-for-byte match; standard-library Python oracle |
+| Updated PNCC frontend/hop/startup/gain checks | Passed |
+| Installed class-origin/collision check | All 132 public names resolve to MIR2 |
+| Forced SCDoc indexing and rendering | All 132 class pages and three existing guides, without SCDoc warnings/errors |
+| scsynth audible examples, 44.1 kHz / block 32 | 132/132 passed |
+| scsynth audible examples, 48 kHz / block 64 | 132/132 passed |
+| scsynth audible examples, 96 kHz / block 128 | 132/132 passed |
+| supernova audible examples, 48 kHz / block 64 | 132/132 passed |
+| Silent playback inputs, 48 kHz / block 64 | 132/132 finite/stable |
+| Existing focused SC verification script compilation | Passed |
+
+Audio checks render four seconds per class and require finite, bounded,
+non-silent audio. A dedicated third channel checks native analyzer outputs
+before the audible mappings for NaN/Inf. Silent-playback tests substitute
+DC.ar(0), preserving rate. They do not require synthesized demonstration voices
+to be silent. The final 48-kHz and silent-input runs cover the complete final
+catalog; after localized documentation corrections, the affected thirteen
+examples were rerun at 44.1/96 kHz and supernova and replaced their earlier
+results. All final per-class results pass. These are construction/stability
+checks, not human listening approval or long-term realtime stress tests.
+
+The reusable generator now batches language graphs to respect the selector
+limit and assigns a unique NRT score path to each run. SuperCollider's default
+temporary score names can collide across separate sclang processes. That
+harness issue was corrected before the final full audible/silent runs.
+
+Both server variants are installed in the SuperCollider user Extensions tree.
+Generated binaries, scores, WAV files and detailed logs remain ignored local
+build output. Existing unrelated VSTPlugin Objective-C duplicate-class messages
+can appear when the global extension tree is scanned; no MIR2 class collision,
+SCDoc warning or analyzer invalid-value failure remains. No unrelated extension
+was modified. No files were pushed or published.
+
+The user-deferred Onsets2 representative-recording evaluation remains deferred.
+Optional ChromaCQT, later rhythm representations, expanded wavelet/chord choices,
+neural inference, hosted/native-platform CI and broader corpus/performance
+qualification remain visible in `roadmap-status.md`.

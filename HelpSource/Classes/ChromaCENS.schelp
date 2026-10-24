@@ -1,0 +1,62 @@
+class:: ChromaCENS
+summary:: Quantized and smoothed chroma-energy statistics
+categories:: UGens>Analysis>Tonal
+related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+
+description::
+Follows Muller and Ewert's Chroma Toolbox (ISMIR 2011): L1 normalize, add 0.25 at each crossed threshold 0.05/0.1/0.2/0.4, smooth with a Hann window, decimate updates and L2 normalize. MIR2 uses a trailing causal window with nonzero-endpoint Hann weights and normalizes the available prefix during startup; this shifts timing relative to centred offline CENS. Silence decays as it leaves the smoothing window. The chroma frontend is supplied explicitly, so these are CENS statistics over that representation rather than a hidden CQT implementation.
+
+
+
+classmethods::
+method:: kr
+argument:: chroma
+A C-first Array of 12, 24, 36, or 120 nonnegative pitch-class values. Higher resolutions fold to nearest semitones where a twelve-class representation is required.
+
+argument:: windowSize
+Literal number of input observations from 1 through 301. Group delay is approximately (windowSize-1)/2 observation intervals.
+
+argument:: downsample
+Literal positive update decimation factor from 1 through 64. Every input observation still enters the smoothing window.
+
+argument:: trig
+A positive value processes this control block. For FFT-derived features pass chain >= 0 so each analysis frame is used once; default 1 processes each control block.
+
+returns::
+Twelve L2-normalized chroma values. Output updates once per downsample accepted triggers.
+
+examples::
+The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2TonalExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(4096), source, 0.25);
+        var chroma = HPCP.kr(chain, harmonics: 1);
+        var cens = ChromaCENS.kr(chroma, 11, 1, chain >= 0);
+        var voices = SinOsc.ar((60 + (0..11)).midicps, 0, cens * 0.035);
+        var sound = Splay.ar(voices) + (source * 0.08);
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2TonalBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2TonalExample.free;
+~mir2TonalBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/HPCP::
+link::Classes/HarmonicPeaks::
+link::Classes/Pitch2::

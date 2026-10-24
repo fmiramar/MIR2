@@ -1,0 +1,63 @@
+class:: TempoRubato
+summary:: Signed relative tempo change
+categories:: UGens>Analysis>Rhythm
+related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+
+description::
+Differentiates natural log BPM in time and multiplies by 100, then applies exponential smoothing. Invalid or low-confidence input breaks the derivative chain and lets the result decay toward zero.
+
+This is an independent implementation of the statistical definition above. Output updates at the server control rate; beat boundaries are quantized to a control block. Silence produces zero level/density or missing tempo evidence. No corpus-level accuracy is implied.
+
+classmethods::
+method:: kr
+argument:: bpm
+Control-rate tempo in BPM; nonpositive and nonfinite values are rejected as missing evidence.
+
+argument:: confidence
+Control-rate evidence weight, normally 0–1, default 1.
+
+argument:: smoothing
+Exponential derivative smoothing time in seconds, default 0.3; zero disables.
+
+argument:: minConfidence
+Minimum accepted confidence, default 0.1.
+
+returns::
+Approximate percent tempo change per second; positive means acceleration.
+
+examples::
+The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+code::
+(
+Routine({
+    var buffer = Buffer.read(s, ExampleFiles.child);
+    s.sync;
+    ~mir2RhythmExample = {
+        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
+            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+        // For live input instead: source = SoundIn.ar(0);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
+        var tempo = Tempo.kr(onset[1]);
+        var rubato = TempoRubato.kr(tempo[0], tempo[1]);
+        var sound = Pan2.ar(source * 0.4, (rubato / 20).tanh);
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+    ~mir2RhythmBuffer = buffer;
+}).play(AppClock);
+)
+::
+
+Stop and release:
+code::
+(
+~mir2RhythmExample.free;
+~mir2RhythmBuffer.free;
+)
+::
+
+subsection:: See also
+link::Guides/MIR2::
+link::Classes/Onsets2::
+link::Classes/Tempo::
+link::Classes/BeatTrack3::

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 #include "FFT.hpp"
-#include "Spectral.hpp"
+#include <limits>
 
 namespace mir2 {
 constexpr int kCQMaxBins = 192;
@@ -9,12 +9,18 @@ constexpr int kCQMaxEntries = 262144;
 struct CQEntry { int bin; double real, imag; };
 inline int cqKernelLength(double sampleRate, double frequency, int binsPerOctave,
                           double gamma) noexcept {
+    if (!finite(sampleRate) || !finite(frequency) || !finite(gamma)
+        || sampleRate <= 0.0 || frequency <= 0.0 || binsPerOctave < 1 || gamma < 0.0)
+        return 0;
     const double bandwidth = (std::exp2(1.0 / binsPerOctave) - 1.0) * frequency + gamma;
-    return std::max(4, static_cast<int>(std::ceil(sampleRate / bandwidth)));
+    const double length = std::ceil(sampleRate / bandwidth);
+    if (!finite(length) || length > std::numeric_limits<int>::max()) return 0;
+    return std::max(4, static_cast<int>(length));
 }
 inline int cqFrameSize(double sampleRate, double minimum, int binsPerOctave,
                        double gamma, int limit = 32768) noexcept {
-    if (!finite(minimum) || !finite(gamma) || minimum <= 0 || gamma < 0 || binsPerOctave < 1)
+    if (!finite(sampleRate) || sampleRate <= 0 || limit < 32 || limit > 32768
+        || !finite(minimum) || !finite(gamma) || minimum <= 0 || gamma < 0 || binsPerOctave < 1)
         return 0;
     const double bandwidth = (std::exp2(1.0 / binsPerOctave) - 1.0) * minimum + gamma;
     if (sampleRate / bandwidth > limit) return 0;
@@ -40,11 +46,16 @@ inline int buildCQKernels(Complex* work, int frameSize, double sampleRate,
                          double minimum, int binsPerOctave, int bands, double gamma,
                          double sparsity, int* offsets, CQEntry* entries,
                          int capacity = kCQMaxEntries) noexcept {
+    if (!work || !offsets || !isPowerOfTwo(frameSize) || frameSize < 32 || frameSize > 32768
+        || bands < 2 || bands > kCQMaxBins || !finite(sparsity) || sparsity <= 0.0 || sparsity > 0.01)
+        return -1;
     int count = 0; offsets[0] = 0;
     for (int band = 0; band < bands; ++band) {
         const double frequency = minimum * std::exp2(static_cast<double>(band) / binsPerOctave);
         const int length = cqKernelLength(sampleRate,frequency,binsPerOctave,gamma);
-        if (length > frameSize || frequency >= sampleRate * 0.5) return -1;
+        // Keep the first Hann main-lobe null below Nyquist. Sidelobes remain finite.
+        if (length < 4 || length > frameSize || frequency + 2.0 * sampleRate / length >= sampleRate * 0.5)
+            return -1;
         cqKernel(work,frameSize,length,frequency,sampleRate);
         double peak = 0;
         for (int i=0;i<frameSize;++i) peak=std::max(peak,std::hypot(work[i].real,work[i].imag));
@@ -78,7 +89,9 @@ inline void cqCepstra(const double* magnitude,int bands,double minimum,int binsP
         const double hz=minimum+(maximum-minimum)*i/(uniformCount-1);
         const double coordinate=clamp(binsPerOctave*std::log2(hz/minimum),0.0,static_cast<double>(bands-1));
         const int left=static_cast<int>(coordinate),right=std::min(bands-1,left+1);
-        const double mix=coordinate-left;
+        const double leftHz = minimum * std::exp2(static_cast<double>(left) / binsPerOctave);
+        const double rightHz = minimum * std::exp2(static_cast<double>(right) / binsPerOctave);
+        const double mix = right == left ? 0.0 : clamp((hz - leftHz) / (rightHz - leftHz), 0.0, 1.0);
         uniform[i]=(1-mix)*std::log(std::max(floor,magnitude[left]*magnitude[left]))
             +mix*std::log(std::max(floor,magnitude[right]*magnitude[right]));
     }

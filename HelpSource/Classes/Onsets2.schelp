@@ -46,6 +46,8 @@ argument:: diffFrames
 Literal SuperFlux comparison lag, 1 through 16. Zero selects code::max(1, round(0.25 / hop)):: for a Hann-window reference separation.
 argument:: noveltyFloor
 Minimum raw-ODF scale in the normalization denominator, default 0.01. Prevents arbitrarily small fluctuations from eventually becoming full-scale novelty. Lower it for quiet/soft evidence; it interacts with the chosen method and logGain.
+argument:: releaseTime
+SuperFlux RMS release-guard time constant in seconds, default 0.15. Zero disables the guard. A current RMS below the previous RMS multiplied by exp(-actualHopSeconds / releaseTime) is suppressed.
 returns::
 Array: trigger and novelty in 0 through 1. Novelty describes the current frame; a trigger confirms the preceding frame's peak.
 

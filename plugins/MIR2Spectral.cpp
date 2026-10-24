@@ -50,13 +50,13 @@ void SpecCentroid2_next(SpecCentroid2* unit, int) {
     const double binHz = unit->mWorld->mSampleRate / static_cast<double>(unit->fftSize);
     unit->value = static_cast<float>(mir2::spectralCentroid(
         unit->magnitudes, unit->fftSize / 2 + 1, binHz,
-        IN0(1), IN0(2), static_cast<int>(IN0(3))));
+        IN0(1), IN0(2), mir2::boundedInteger(IN0(3))));
     ZOUT0(0) = unit->value;
 }
 
 void SpecCentroid2_Ctor(SpecCentroid2* unit) {
     unit->magnitudes = nullptr;
-    unit->fftSize = static_cast<int>(IN0(4));
+    unit->fftSize = mir2::boundedInteger(IN0(4));
     unit->value = 0.0f;
     if (!allocateMagnitudes(unit, unit->magnitudes, unit->fftSize)) {
         SETCALC(ClearUnitOutputs);
@@ -85,13 +85,13 @@ void SpecFlatness2_next(SpecFlatness2* unit, int) {
     const double binHz = unit->mWorld->mSampleRate / static_cast<double>(unit->fftSize);
     unit->value = static_cast<float>(mir2::spectralFlatness(
         unit->magnitudes, unit->fftSize / 2 + 1, binHz,
-        IN0(1), IN0(2), static_cast<int>(IN0(3)), IN0(4)));
+        IN0(1), IN0(2), mir2::boundedInteger(IN0(3)), IN0(4)));
     ZOUT0(0) = unit->value;
 }
 
 void SpecFlatness2_Ctor(SpecFlatness2* unit) {
     unit->magnitudes = nullptr;
-    unit->fftSize = static_cast<int>(IN0(5));
+    unit->fftSize = mir2::boundedInteger(IN0(5));
     unit->value = 0.0f;
     if (!allocateMagnitudes(unit, unit->magnitudes, unit->fftSize)) {
         SETCALC(ClearUnitOutputs);
@@ -120,13 +120,13 @@ void SpecPcile2_next(SpecPcile2* unit, int) {
     const double binHz = unit->mWorld->mSampleRate / static_cast<double>(unit->fftSize);
     unit->value = static_cast<float>(mir2::spectralPercentile(
         unit->magnitudes, unit->fftSize / 2 + 1, binHz, IN0(1),
-        IN0(2), IN0(3), static_cast<int>(IN0(5)), IN0(4) > 0.0f));
+        IN0(2), IN0(3), mir2::boundedInteger(IN0(5)), IN0(4) > 0.0f));
     ZOUT0(0) = unit->value;
 }
 
 void SpecPcile2_Ctor(SpecPcile2* unit) {
     unit->magnitudes = nullptr;
-    unit->fftSize = static_cast<int>(IN0(6));
+    unit->fftSize = mir2::boundedInteger(IN0(6));
     unit->value = 0.0f;
     if (!allocateMagnitudes(unit, unit->magnitudes, unit->fftSize)) {
         SETCALC(ClearUnitOutputs);
@@ -180,15 +180,15 @@ void MFCC2_next(MFCC2* unit, int) {
 
 void MFCC2_Ctor(MFCC2* unit) {
     unit->magnitudes = nullptr;
-    unit->numCoeffs = mir2::clamp(static_cast<int>(IN0(1)), 1, 64);
-    unit->numBands = mir2::clamp(static_cast<int>(IN0(2)), 4, kMaxBands);
+    unit->numCoeffs = mir2::clamp(mir2::boundedInteger(IN0(1)), 1, 64);
+    unit->numBands = mir2::clamp(mir2::boundedInteger(IN0(2)), 4, kMaxBands);
     unit->include0 = IN0(5) > 0.0f ? 1 : 0;
-    unit->melMode = mir2::clamp(static_cast<int>(IN0(6)), 0, 1);
-    unit->spectrumMode = mir2::clamp(static_cast<int>(IN0(7)), 0, 1);
+    unit->melMode = mir2::clamp(mir2::boundedInteger(IN0(6)), 0, 1);
+    unit->spectrumMode = mir2::clamp(mir2::boundedInteger(IN0(7)), 0, 1);
     unit->logFloor = std::max(1.0e-30, static_cast<double>(IN0(8)));
     unit->orthonormal = IN0(9) > 0.0f ? 1 : 0;
     unit->lifter = std::max(0.0, static_cast<double>(IN0(10)));
-    unit->fftSize = static_cast<int>(IN0(11));
+    unit->fftSize = mir2::boundedInteger(IN0(11));
     const double nyquist = unit->mWorld->mSampleRate * 0.5;
     const double minFreq = mir2::clamp(static_cast<double>(IN0(3)), 0.0, nyquist);
     const double requestedMax = IN0(4);
@@ -233,7 +233,7 @@ void FFTFlux2_next(FFTFlux2* unit, int) {
     int first = 0;
     int last = 0;
     mir2::frequencyBins(numBins, binHz, IN0(4), IN0(5), first, last);
-    const int spectrumMode = mir2::clamp(static_cast<int>(IN0(3)), 0, 1);
+    const int spectrumMode = mir2::clamp(mir2::boundedInteger(IN0(3)), 0, 1);
     for (int bin = first; bin <= last; ++bin)
         unit->magnitudes[bin] = mir2::spectralWeight(unit->magnitudes[bin], spectrumMode);
     if (unit->initialized != 0) {
@@ -251,7 +251,7 @@ void FFTFlux2_next(FFTFlux2* unit, int) {
 void FFTFlux2_Ctor(FFTFlux2* unit) {
     unit->magnitudes = nullptr;
     unit->previous = nullptr;
-    unit->fftSize = static_cast<int>(IN0(6));
+    unit->fftSize = mir2::boundedInteger(IN0(6));
     unit->initialized = 0;
     unit->value = 0.0f;
     if (allocateMagnitudes(unit, unit->magnitudes, unit->fftSize)) {
