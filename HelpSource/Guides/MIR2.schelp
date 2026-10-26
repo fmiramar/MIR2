@@ -6,6 +6,10 @@ MIR2 provides 135 public classes for real-time musical analysis and analysis-dri
 
 Pitch confidence, periodicity and voicing describe different evidence. Neither confidence nor tonal/rhythm labels imply calibrated recognition accuracy. Use matching FFT sizes and hops, allow analysis warmup, and increase server real-time memory for large filter banks or CQT kernels.
 
+section:: Optional neural extension
+
+The separately built MIR2Neural extension provides code::PitchPESTO::, a monophonic pitch estimator using PESTO v2's variable-Q frontend and learned convolutional network. It uses a native CPU implementation with an explicitly loaded, sample-rate-specific model buffer; no Python runtime or automatic download is involved. Its 10 ms update hop is distinct from its approximately 95–103 ms frame-center delay at 44.1/48/96 kHz. See its installed class help after adding MIR2Neural. Model export, supported configurations and current verification are documented in the extension README.
+
 section:: Core
 
 definitionlist::

@@ -6,6 +6,8 @@ class. Work is tracked in local Git only. Nothing has been pushed or published.
 The original classical integration was verified on 2026-10-24. The native
 research extension and its verification are recorded in `implementation-log.md`.
 Implementation coverage is distinct from general recognition accuracy on music.
+The separate optional `MIR2Neural` extension adds `PitchPESTO`, verified locally
+on 2026-10-26; it is not a dependency of the 135-class base plugin.
 
 | Family | Implemented scope | Evidence and remaining limits |
 | --- | --- | --- |
@@ -44,13 +46,14 @@ for every class. See `implementation-log.md` for exact checks and limits.
   retain explicit symmetric-label ambiguities. Existing defaults remain; Symlet,
   Coiflet, critically sampled symmetric transforms and inversion-aware chord
   inference are outside this evaluated extension.
-- **Neural pitch — audit complete, integration gate closed:** CREPE, PESTO,
-  RMVPE, FCPE and SPICE were reviewed at pinned sources. PESTO v2 is selected
-  for a possible separate prototype. Weight-license scope, frontend/decoder
-  parity and bounded native runtime must be established before integration.
-  Author timing is identified separately from unmeasured local performance.
-  See [the full audit](neural-pitch-research.md). No neural runtime or weights
-  are included.
+- **Neural pitch — separate optional PESTO implementation:** `neural/` provides
+  `PitchPESTO`, a native CPU frontend, encoder, confidence head and decoder,
+  with explicit model export and inference distributed over audio blocks.
+  Original-framework parity and local timing are measured separately from
+  recording accuracy. See [the implementation report](neural-pitch-implementation.md)
+  and [candidate audit](neural-pitch-research.md). No weights are committed,
+  bundled or downloaded by the server. Other neural models remain unimplemented;
+  weight redistribution and native platform qualification remain release gates.
 
 ## Remaining evaluation and release work
 

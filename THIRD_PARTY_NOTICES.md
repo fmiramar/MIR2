@@ -1,10 +1,14 @@
 # Third-party notices
 
-MIR2 uses independently implemented DSP equations except for the loudness
+The base MIR2 plugin uses independently implemented DSP equations except for the loudness
 coefficient data identified below. It does not link Essentia, librosa,
 FluCoMa, sc3-plugins, or a neural runtime, and contains no model weights or
 datasets. SuperCollider and sc3-plugins were consulted for interfaces,
 behavior, and class-name audits.
+
+The optional `neural/` extension is a native PESTO adaptation with its own
+[third-party notices](neural/THIRD_PARTY_NOTICES.md), including the upstream
+LGPL-3.0 notice. It is built and installed separately and embeds no weights.
 
 ## SuperCollider loudness contour data
 

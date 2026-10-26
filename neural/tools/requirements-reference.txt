@@ -1,0 +1,9 @@
+# Offline export/reference environment used for the native PESTO parity checks.
+# PyTorch 2.2.2 has a macOS x86_64 wheel for Python 3.9; use an isolated venv.
+# These packages are not needed by the C++ analyzer or SuperCollider.
+numpy==1.26.4
+scipy==1.13.1
+torch==2.2.2
+torchaudio==2.2.2
+omegaconf==2.3.0
+tqdm==4.67.1

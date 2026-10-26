@@ -1,0 +1,110 @@
+name: neural
+
+# Prepared for the standalone MIR2 repository. This workflow builds native code
+# and model-free tests only; it never fetches checkpoints or exports model data.
+on:
+  push:
+    paths:
+      - neural/**
+      - LICENSE
+      - .github/workflows/neural.yml
+  pull_request:
+    paths:
+      - neural/**
+      - LICENSE
+      - .github/workflows/neural.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: neural-${{ matrix.platform }}-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+          - os: macos-15-intel
+            platform: macos
+            arch: x86_64
+          - os: macos-15
+            platform: macos
+            arch: arm64
+          - os: windows-2022
+            platform: windows
+            arch: x86_64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out MIR2
+        uses: actions/checkout@v4
+        with:
+          path: MIR2
+
+      - name: Check out matching SuperCollider headers
+        uses: actions/checkout@v4
+        with:
+          repository: supercollider/supercollider
+          ref: Version-3.14.1
+          path: supercollider
+          submodules: false
+
+      - name: Configure optional neural extension
+        shell: bash
+        run: |
+          extra=()
+          case "${{ matrix.platform }}" in
+            macos) extra+=("-DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}") ;;
+            windows) extra+=("-A" "x64") ;;
+          esac
+          cmake -S MIR2/neural -B build-neural \
+            -DSC_PATH="$GITHUB_WORKSPACE/supercollider" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMIR2_NEURAL_PLUGIN=ON \
+            -DSCSYNTH=ON -DSUPERNOVA=OFF -DSTRICT=ON \
+            -DBUILD_TESTING=ON \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/stage-neural" "${extra[@]}"
+
+      - name: Build
+        run: cmake --build build-neural --config Release --parallel
+
+      - name: Run model-free native tests
+        run: ctest --test-dir build-neural -C Release --output-on-failure --no-tests=error
+
+      - name: Stage optional extension
+        run: cmake --install build-neural --config Release
+
+      - name: Upload optional extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.repository_owner }}-MIR2Neural-0.1.0-${{ matrix.platform }}-${{ matrix.arch }}
+          path: stage-neural/MIR2Neural
+          if-no-files-found: error
+
+  sanitizers:
+    name: neural-linux-x86_64-sanitizers
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out MIR2
+        uses: actions/checkout@v4
+        with:
+          path: MIR2
+      - name: Configure standalone sanitizers
+        run: >-
+          cmake -S MIR2/neural -B build-neural-sanitize
+          -DCMAKE_BUILD_TYPE=Debug -DSTRICT=ON
+          -DMIR2_NEURAL_PLUGIN=OFF -DBUILD_TESTING=ON
+          -DMIR2_NEURAL_SANITIZE=ON
+      - name: Build and run model-free tests
+        run: |
+          cmake --build build-neural-sanitize --parallel
+          ctest --test-dir build-neural-sanitize --output-on-failure --no-tests=error

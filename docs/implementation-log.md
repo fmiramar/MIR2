@@ -252,3 +252,33 @@ checks establish mathematical and server behavior, not human listening approval
 or general recognition accuracy. The user-deferred Onsets2 recording test and
 release-platform/endurance qualification remain later work. Git tracking is
 local; nothing has been pushed or published.
+
+## 2026-10-26 — optional native PESTO extension
+
+Completed `neural/` as a separate MIR2Neural build with the `PitchPESTO` UGen,
+explicit pinned model export, native CPU frontend/network/confidence/decoder,
+and a deterministic one-hop computation pipeline. The base 135 classes and
+default build remain independent. No weights, Python framework or inference
+runtime are bundled; exported model Buffers are explicit local assets.
+
+The reference comparison covers 1,800 frames at 16/44.1/48/96 kHz. Maximum pitch
+difference is 0.05150 cents. Scheduled processing is bit-identical to the full
+native pass at 32/64/128-sample blocks. Initial timing failures led to weighted
+frontend scheduling and vectorized, incremental Toeplitz output processing.
+The final single-instance sweep records one observed deadline overrun in 41,300
+blocks, at 96 kHz/block 64; block 128 is recommended at that rate. Neither that
+sweep nor the source audit is presented as a production real-time guarantee.
+
+Strict macOS x64 scsynth/supernova and Windows x64 cross-builds pass. Three
+native and three ASan/UBSan CTests pass, as does the real-model 96 kHz sanitized
+streaming fixture. Installed contract tests verify frequency, confidence,
+warmup, silence, malformed buffers and fail-silent model removal. The actual
+audible help graph renders successfully at four sample rates and on supernova;
+both channels are audible and all primitive outputs remain finite. Forced
+SCDoc indexing and the changed class/guide render without warnings or errors.
+
+Both server plugins and local model assets are installed. Source, tests and
+CI definitions are tracked locally; no workflow, release or publication was
+triggered. [The report](neural-pitch-implementation.md) and
+[machine-readable measurements](neural-pitch-measurements.json) preserve hashes,
+timing distributions, memory, latency, tolerances and remaining qualification.

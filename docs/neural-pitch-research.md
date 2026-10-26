@@ -1,10 +1,12 @@
 # Neural pitch research gate
 
-Audit date: 2026-10-24. This is a source and deployment feasibility audit, not a
-new neural UGen or an accuracy benchmark. No model weights, Python inference
-framework, or neural runtime are added to MIR2.
+Audit date: 2026-10-24. This records the source and deployment feasibility audit
+before implementation. On 2026-10-25, the selected PESTO prototype progressed to
+the separate optional MIR2Neural extension; see the [implementation and measured
+verification](neural-pitch-implementation.md). The base MIR2 plugin remains
+independent, and no model weights are committed or bundled.
 
-## Decision
+## Initial audit decision (2026-10-24)
 
 **Keep the base library native and dependency-free. Select PESTO v2 as the first
 candidate for a separate optional prototype; do not merge a neural UGen yet.**

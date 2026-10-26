@@ -7,12 +7,18 @@ library. It complements FluCoMa's corpus and data workflows.
 
 This is an unpublished development expansion of version 0.1 covering all primary
 classical roadmap families and the evaluated native research extensions.
-Neural integration, recording-based quality evaluation and release qualification
+The separate, optional [MIR2Neural extension](neural/README.md) adds native PESTO
+pitch inference. Recording-based quality evaluation and release qualification
 remain explicit in the [current status](docs/roadmap-status.md).
 
 ## Included analyzers
 
 The development tree provides 135 public classes.
+
+MIR2Neural separately provides `PitchPESTO`, a single-pitch estimator using the
+PESTO v2 variable-Q frontend and convolutional network. Its CPU implementation
+requires an explicitly exported model buffer and adds no dependency to MIR2's
+default build.
 
 - **Core**: `SpecCentroid2`, `SpecFlatness2`, `SpecPcile2`, `MFCC2`, `FFTFlux2`, `Onsets2`, `PitchYIN`, `PitchMPM`, `Periodicity`, `Voicing`, `Pitch2`.
 - **Auditory filters and cepstra**: `BarkBands`, `ERBBands`, `BFCC`, `LFCC`, `GammatoneBands`, `GFCC`, `Loudness2`.
@@ -76,6 +82,7 @@ ambiguity are distinct evidence measures.
 - [Rhythm conventions and verification](docs/rhythm-implementation.md).
 - [Multiband rhythm modulation](docs/rhythm-modulation-implementation.md).
 - [Neural pitch source and deployment audit](docs/neural-pitch-research.md).
+- [Native PESTO implementation and verification](docs/neural-pitch-implementation.md).
 - [Origins](ORIGINS.md) and [verification history](docs/implementation-log.md).
 
 No numeric equivalence with other MIR libraries or general accuracy on real
@@ -88,4 +95,5 @@ for the standalone build workflow; hosted CI has not been run for this expansion
 
 GPL-3.0-or-later. [Third-party notices](THIRD_PARTY_NOTICES.md) identify the
 SuperCollider loudness contour table retained under compatible GPL terms.
-MIR2 embeds no Essentia/librosa runtime, model weights, or datasets.
+MIR2 embeds no Essentia/librosa runtime, model weights, or datasets. The optional
+neural source adaptation has [separate notices](neural/THIRD_PARTY_NOTICES.md).

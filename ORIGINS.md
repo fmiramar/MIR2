@@ -1,9 +1,18 @@
 # Algorithm origins
 
-MIR2 implements published equations independently, with the inherited loudness
+The base MIR2 plugin implements published equations independently, with the inherited loudness
 coefficient table identified in `THIRD_PARTY_NOTICES.md`. Papers and upstream projects
 are algorithmic, interface, or behavioral references; their implementations
 are not runtime dependencies.
+
+The optional `neural/` extension contains a native adaptation of Sony CSL Paris
+PESTO v2 at `62bc0c9702558f19af4593752947fb9db1eadac9`, including its
+convolutional encoder, learned confidence head and local weighted pitch decoder.
+Its offline exporter uses the original nnAudio-derived VQT kernel generator.
+See [source and license notices](neural/THIRD_PARTY_NOTICES.md) and
+[implementation details](docs/neural-pitch-implementation.md). Weights remain
+separate, explicitly exported assets; no model is embedded or downloaded by the
+server.
 
 ## Pitch
 

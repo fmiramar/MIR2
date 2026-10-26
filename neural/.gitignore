@@ -1,0 +1,5 @@
+# Exported model assets and local reference fixtures are never source inputs.
+models/
+*.ckpt
+*.f32
+model.wav
