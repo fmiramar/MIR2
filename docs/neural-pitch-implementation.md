@@ -178,6 +178,42 @@ Remaining qualification includes native non-x64-macOS execution, longer live-ser
 endurance and polyphony tests, recording-based accuracy, and model redistribution
 terms before any weight bundle. Other audited neural candidates remain unimplemented.
 
+## Short live-server checks
+
+Additional muted CoreAudio runs use 48 kHz, 64-sample server blocks and a
+256-sample hardware buffer on the same host. Each backend records 60 seconds of
+sampled phases, plus separate warmup and 64 Synth construction/destruction cycles.
+Single and two-analyzer phases each last 20 seconds. A further 10-second phase
+silences only the second input to check independent state while sharing one
+read-only model Buffer. Supernova uses a `ParGroup`; scsynth uses a normal Group.
+
+| Backend / phase | Mean reported CPU | Maximum reported peak CPU |
+|---|---:|---:|
+| scsynth, one analyzer | 27.54% | 44.76% |
+| scsynth, two sharing a model | 53.52% | 79.84% |
+| supernova, one analyzer | 27.48% | 29.58% |
+| supernova, two sharing a model in parallel | 32.69% | 35.01% |
+
+Both servers returned 800 monitored analysis replies at 10 Hz with no invalid
+value, pitch or voicing result. The 440 Hz input's maximum reported frequency
+error was zero; the second analyzer correctly became unvoiced while the first
+continued tracking. All 64 lifecycle iterations completed, no Synth remained,
+and reported idle CPU returned near its initial baseline. These are lifecycle
+checks, not a general heap-leak proof. No audio-underrun or late-processing
+message was observed in these short runs.
+
+The host logs also contain VSTPlugin duplicate Objective-C class messages;
+supernova printed duplicate default-group IDs during startup. The measured
+private analysis nodes initialized and completed successfully. These environment
+messages are retained in the local logs rather than treated as plugin failures
+or silently removed.
+
+CPU figures are server status samples every 0.5 seconds; they are not individual
+callback timings, and initialization/churn is excluded from steady statistics.
+They establish these two small local graphs, not arbitrary polyphony or long
+session stability. [The live measurements](neural-pitch-live-measurements.json)
+include phase lengths, ranges and hashes of the full local CSVs/logs.
+
 ## Reproduction
 
 See the [extension README](../neural/README.md) for build and explicit model
@@ -197,3 +233,13 @@ python neural/tests/run_server_checks.py \
 The second command requires the optional extension already installed. All tools
 refuse to overwrite existing result directories/files. Generated weights, audio
 and full traces belong in ignored build directories, never source commits.
+
+Run the muted live check separately for each backend, with a free local port:
+
+```sh
+sclang -D neural/tests/sc/live_runtime.scd \
+  /path/to/export-48000/model.wav /path/to/new-live.csv scsynth 57181
+```
+
+Use `supernova` and a different CSV/port for the parallel-group case. This script
+boots and quits its own server; it requires a working 48 kHz audio device.

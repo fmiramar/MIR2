@@ -282,3 +282,14 @@ CI definitions are tracked locally; no workflow, release or publication was
 triggered. [The report](neural-pitch-implementation.md) and
 [machine-readable measurements](neural-pitch-measurements.json) preserve hashes,
 timing distributions, memory, latency, tolerances and remaining qualification.
+
+### Follow-up live checks
+
+Both server backends passed the muted 48 kHz/block-64 live harness: 60 seconds
+of sampled phases per backend, two analyzers sharing a model, independent
+silence handling, 800 valid analysis replies and 64 create/free cycles. Mean
+reported single/two-instance CPU was 27.54/53.52% on scsynth and 27.48/32.69%
+on supernova with a parallel group. Idle CPU returned near baseline after the
+cycles. [The live measurements](neural-pitch-live-measurements.json) preserve
+phase statistics and trace hashes; the report distinguishes these short local
+checks from longer endurance and general polyphony qualification.

@@ -109,8 +109,13 @@ A small checkpoint does not mean negligible CPU cost. The encoder performs about
 Distributed processing reduces bursts, but available polyphony still depends on
 the CPU, server block size and other Synths. Prefer 128-sample blocks at 96 kHz:
 the local 64-sample timing run contained one deadline overrun. Native portability,
-live-server endurance and recording-based accuracy remain separate qualification
+longer live-server endurance and recording-based accuracy remain separate qualification
 work; consult the [implementation report and measured limits](../docs/neural-pitch-implementation.md).
+
+Short live checks at 48 kHz/block 64 also cover two analyzers sharing one model,
+independent silence handling and 64 create/free cycles on both scsynth and
+supernova. Parallel groups reduce the measured two-instance supernova load on
+the test host; available performance still depends on the complete graph.
 
 ## Verification tools
 

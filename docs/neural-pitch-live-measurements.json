@@ -1,0 +1,126 @@
+{
+  "analysis_reply_count_per_server": 800,
+  "architecture": "x86_64",
+  "bad_analysis_replies": 0,
+  "cpu": "Intel Core i5-10600K @ 4.10 GHz",
+  "date": "2026-10-26",
+  "lifecycle_count_per_server": 64,
+  "maximum_pitch_error_hz": 0,
+  "measured_phase_seconds": 60,
+  "notes": [
+    "CPU values are server status reports, not per-block duration measurements.",
+    "Supernova shared cases use ParGroup; scsynth cases use Group.",
+    "Warmup and repeated Synth construction/destruction are excluded from steady CPU samples.",
+    "No audio underrun or late-processing message was observed in these two short runs; this is not a long-duration or general polyphony guarantee."
+  ],
+  "os": "macOS 15.7.2",
+  "output": "muted",
+  "requested_hardware_buffer_samples": 256,
+  "sample_interval_seconds": 0.5,
+  "sample_rate": 48000,
+  "server_block_samples": 64,
+  "servers": {
+    "scsynth": {
+      "csv_sha256": "3160616fabe983380ccdcbc613ab564c1457f340f9acbe09eefbba85d5d13656",
+      "log_sha256": "aadaac69f0b423a8c454f49aa2512e545ca4d3338d50e593d082e71ad992a922",
+      "phases": {
+        "after_64_lifecycles": {
+          "average_cpu_percent_max": 0.048668395727873,
+          "average_cpu_percent_mean": 0.0397556543350221,
+          "average_cpu_percent_min": 0.03245060518384,
+          "instances": 0,
+          "reported_peak_cpu_percent_max": 0.36828750371933,
+          "sampled_seconds": 5.0,
+          "samples": 10
+        },
+        "baseline": {
+          "average_cpu_percent_max": 0.050212118774652,
+          "average_cpu_percent_mean": 0.0390806607902049,
+          "average_cpu_percent_min": 0.032545417547226,
+          "instances": 0,
+          "reported_peak_cpu_percent_max": 0.47475001215935,
+          "sampled_seconds": 5.0,
+          "samples": 10
+        },
+        "shared_independent_silence": {
+          "average_cpu_percent_max": 55.055149078369,
+          "average_cpu_percent_mean": 53.7069522857666,
+          "average_cpu_percent_min": 52.591213226318,
+          "instances": 2,
+          "reported_peak_cpu_percent_max": 71.110275268555,
+          "sampled_seconds": 10.0,
+          "samples": 20
+        },
+        "shared_two": {
+          "average_cpu_percent_max": 55.465358734131,
+          "average_cpu_percent_mean": 53.52032651901248,
+          "average_cpu_percent_min": 52.284061431885,
+          "instances": 2,
+          "reported_peak_cpu_percent_max": 79.842147827148,
+          "sampled_seconds": 20.0,
+          "samples": 40
+        },
+        "single": {
+          "average_cpu_percent_max": 28.568605422974,
+          "average_cpu_percent_mean": 27.541895198822,
+          "average_cpu_percent_min": 26.599594116211,
+          "instances": 1,
+          "reported_peak_cpu_percent_max": 44.764068603516,
+          "sampled_seconds": 20.0,
+          "samples": 40
+        }
+      }
+    },
+    "supernova": {
+      "csv_sha256": "38f2a85fc5901381d0756beee01ce1247b9d1e9694a37a53b8372f929efbc077",
+      "log_sha256": "07ff3e8ec34b7d3870d92383e92ef9335dfd0797496f2bf6601bd7d2945c30db",
+      "phases": {
+        "after_64_lifecycles": {
+          "average_cpu_percent_max": 0.19429296255112,
+          "average_cpu_percent_mean": 0.187956772744656,
+          "average_cpu_percent_min": 0.17949093878269,
+          "instances": 0,
+          "reported_peak_cpu_percent_max": 0.30047532916069,
+          "sampled_seconds": 5.0,
+          "samples": 10
+        },
+        "baseline": {
+          "average_cpu_percent_max": 0.18864390254021,
+          "average_cpu_percent_mean": 0.17942064553499398,
+          "average_cpu_percent_min": 0.17093370854855,
+          "instances": 0,
+          "reported_peak_cpu_percent_max": 0.26472362875938,
+          "sampled_seconds": 5.0,
+          "samples": 10
+        },
+        "shared_independent_silence": {
+          "average_cpu_percent_max": 32.853851318359,
+          "average_cpu_percent_mean": 32.7238954544067,
+          "average_cpu_percent_min": 32.544857025146,
+          "instances": 2,
+          "reported_peak_cpu_percent_max": 35.039108276367,
+          "sampled_seconds": 10.0,
+          "samples": 20
+        },
+        "shared_two": {
+          "average_cpu_percent_max": 32.86865234375,
+          "average_cpu_percent_mean": 32.69343509674078,
+          "average_cpu_percent_min": 32.460384368896,
+          "instances": 2,
+          "reported_peak_cpu_percent_max": 35.007553100586,
+          "sampled_seconds": 20.0,
+          "samples": 40
+        },
+        "single": {
+          "average_cpu_percent_max": 27.594940185547,
+          "average_cpu_percent_mean": 27.4838961601257,
+          "average_cpu_percent_min": 27.370040893555,
+          "instances": 1,
+          "reported_peak_cpu_percent_max": 29.57518196106,
+          "sampled_seconds": 20.0,
+          "samples": 40
+        }
+      }
+    }
+  }
+}
