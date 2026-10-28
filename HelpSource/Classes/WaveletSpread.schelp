@@ -31,30 +31,50 @@ argument:: boundary
 Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
-The measured scale structure controls the audible synthesis or filtering. This example uses db8 with symmetric frame boundaries; change boundary to \periodic to hear the original mode.
+WaveletSpread measures the energy-weighted standard deviation in Hz of nominal dyadic scale center frequencies around the wavelet centroid. In this example, the wavelet spread of an acoustic texture controls dynamic stereo width expansion and decorrelation delay: narrow scale spread remains centered, while broad multiscale distribution expands into a spacious stereo image. An interactive code::MIR2GUI.scope:: plots real-time wavelet spread in Hz.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("texture.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic texture fallback
+            var lfo = LFNoise1.kr(0.3);
+            Mix.ar(SinOsc.ar([180, 270, 540, 1080] * (1 + (lfo * 0.05)))) * 0.12
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var value = WaveletSpread.kr(source, order: 8, boundary: \symmetric);
-        var sound = Pan2.ar(source * 0.22, (value / 6000).clip(0,1).linlin(0,1,-1,1).lag(0.05));
-        sound * Line.kr(0,1,0.25)
+
+        var spread = WaveletSpread.kr(source, order: 8, boundary: \symmetric);
+        var normSpread = (spread / 4000).clip(0, 1).lag(0.06);
+        var delayed = DelayC.ar(source, 0.03, normSpread * 0.02);
+        var left = source + (delayed * normSpread);
+        var right = source - (delayed * normSpread);
+        var sound = [left, right] * 0.22;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, spread.clip(0, 5000)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Wavelet Spread", ~mir2Bus, 0.0, 5000.0, "Hz");
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/WaveletBands::
-link::Classes/WaveletDaub2::
+link::Classes/WaveletCentroid::
+link::Classes/WaveletEntropy::
+link::Classes/Wavelets2::

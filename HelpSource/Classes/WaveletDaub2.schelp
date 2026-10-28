@@ -31,27 +31,42 @@ argument:: boundary
 Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
-Compare the delayed source at left with coefficient-filtered reconstruction at right.
+WaveletDaub2 performs discrete Daubechies wavelet analysis, clears a leading prefix of code::remove:: approximation coefficients, and reconstructs the audio signal via the inverse transform. In this example, an acoustic piano phrase is processed while a low-frequency oscillator modulates the code::remove:: parameter from 0 (exact delayed pass-through) to 256 (higher detail scales only). The dry delayed reference is panned left and the wavelet-filtered reconstruction is panned right. An interactive code::MIR2GUI.scope:: tracks the active removal count.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("piano-chords.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic chords fallback
+            Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25])) * 0.15
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var wet = WaveletDaub2.ar(source, order: 8, remove: 128, boundary: \symmetric);
+
+        var removeCount = SinOsc.kr(0.2).range(0, 256).round;
+        var wet = WaveletDaub2.ar(source, frameSize: 512, order: 8, levels: 6, remove: removeCount, boundary: \symmetric);
         var dry = DelayN.ar(source, 0.1, 512 / SampleRate.ir);
-        var sound = [dry, wet] * 0.22;
-        sound * Line.kr(0,1,0.25)
+        var sound = [dry, wet] * 0.25;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, removeCount) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Wavelet Removed Coeffs", ~mir2Bus, 0, 256, "coeffs");
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
