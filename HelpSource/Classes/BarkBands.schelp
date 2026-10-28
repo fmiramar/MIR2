@@ -32,32 +32,42 @@ returns::
 One control per band in ascending center-frequency order.
 
 examples::
-The band-energy distribution controls an eight-sine resynthesis. Listen to the quiet original beside a moving harmonic color driven by the analysis.
+BarkBands separates spectrum into psychoacoustic critical bands based on the Traunmuller Bark scale. In this example, it drives an adaptive multiband transient exciter: low critical bands receive warm saturation while high bands trigger crisp harmonic distortion, enhancing punch across dynamic drum grooves. An interactive code::MIR2GUI.bars:: displays the real-time energy distribution across all 16 critical bands.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var bands = BarkBands.kr(chain, numBands: 8, minFreq: 100, maxFreq: 6000, fftSize: 1024);
-            var balance = bands / (bands.sum + 1e-9);
-            var level = Amplitude.kr(source, 0.01, 0.1);
-            var voice = Mix(SinOsc.ar([180, 240, 320, 430, 580, 780, 1050, 1400], 0, Lag.kr(balance, 0.04))) * level;
-            var fade = Line.kr(0, 1, 0.2);
-            ((source * 0.06) + (voice * 0.2)) * fade ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 16);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop and free the sample buffer.
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var bands = BarkBands.kr(chain, numBands: 16, minFreq: 50, maxFreq: 12000, fftSize: 1024);
+        var normBands = (bands / (bands.sum + 1e-6)).lag(0.03);
+
+        // Low critical bands drive warm saturation
+        var lowDrive = (source * (1.0 + (normBands[0..3].sum * 8))).tanh * 0.25;
+        // High critical bands drive high-frequency bite
+        var highDrive = HPF.ar(source, 3000) * (normBands[10..15].sum * 12).clip(0, 4);
+        var sound = (source * 0.25) + lowDrive + (highDrive * 0.15);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, normBands) };
+        sound * Line.kr(0, 1, 0.2) ! 2
+    }.play;
+
+    ~mir2GUI = MIR2GUI.bars("Bark Critical Bands", ~mir2Bus, 16, 0.0, 0.5);
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

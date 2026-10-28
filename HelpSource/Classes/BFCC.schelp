@@ -42,32 +42,45 @@ returns::
 numCoeffs control outputs in increasing coefficient order.
 
 examples::
-The first nonzero cepstral coefficient changes filter brightness; the next moves the filtered recording across the stereo field. This makes changing spectral shape audible.
+BFCC computes cepstral coefficients derived from Traunmuller Bark auditory bands. In this example, it drives a timbral resynthesis tracking the spectral envelope of a saxophone solo: low coefficients modulate formant filters over a synthetic harmonic sawtooth oscillator, translating the vocal character of the melody into a robotic double. An interactive code::MIR2GUI.bars:: displays the 13 cepstral coefficients in real time.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var coefficients = BFCC.kr(chain, numCoeffs: 3, include0: 0, fftSize: 1024);
-            var brightness = Lag.kr((coefficients[0] * 0.08).tanh * 0.5 + 0.5, 0.06);
-            var position = Lag.kr((coefficients[1] * 0.1).tanh, 0.1);
-            var shaped = RLPF.ar(source, brightness.linexp(0, 1, 250, 6000), 0.6);
-            var fade = Line.kr(0, 1, 0.2);
-            Pan2.ar(shaped * 0.18 * fade, position)
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 13);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop and free the sample buffer.
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var bfcc = BFCC.kr(chain, numCoeffs: 13, numBands: 32, minFreq: 80, maxFreq: 8000, include0: 1, fftSize: 1024);
+        var c0 = bfcc[0].lag(0.04);
+        var c1 = bfcc[1].lag(0.04);
+        var c2 = bfcc[2].lag(0.04);
+
+        // Synthetic sawtooth source modulated by cepstral formant shapes
+        var carrier = Saw.ar([110, 165, 220]).sum * (c0.linexp(-10, 20, 0.01, 0.4).clip(0, 0.5));
+        var cutoff = c1.linlin(-15, 15, 300, 3500).clip(150, 6000);
+        var q = c2.linlin(-10, 10, 0.2, 0.8).clip(0.1, 0.9);
+        var synthVoice = BPF.ar(carrier, cutoff, q) * 2;
+        var sound = (source * 0.25) + (synthVoice * 0.2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, bfcc) };
+        sound * Line.kr(0, 1, 0.2) ! 2
+    }.play;
+
+    ~mir2GUI = MIR2GUI.bars("BFCC Coefficients", ~mir2Bus, 13, -30.0, 30.0);
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

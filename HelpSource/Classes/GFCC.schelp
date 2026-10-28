@@ -40,31 +40,42 @@ returns::
 One control per coefficient in ascending coefficient order.
 
 examples::
-The first nonzero GFCC coefficient controls brightness and the next controls stereo position. Changes in auditory spectral shape become audible movement.
+GFCC computes gammatone cepstral coefficients using a cochlear auditory filterbank followed by DCT-II decorrelation. In this example, it drives an adaptive waveshaping saturator: cepstral coefficients dynamically modulate drive and bias in a Chebyshev polynomial wavefolder, transforming saxophone timbre into an evolving synth lead. An interactive code::MIR2GUI.bars:: displays the 13 gammatone cepstral coefficients in real time.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var coefficients = GFCC.kr(source, numCoeffs: 3, include0: 0);
-            var brightness = Lag.kr((coefficients[0] * 2).tanh * 0.5 + 0.5, 0.05);
-            var position = Lag.kr((coefficients[1] * 3).tanh, 0.1);
-            var shaped = RLPF.ar(source, brightness.linexp(0, 1, 250, 6000), 0.6);
-            var fade = Line.kr(0, 1, 0.2);
-            Pan2.ar(shaped * 0.18 * fade, position)
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 13);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop and free the sample buffer.
+        var gfcc = GFCC.kr(source, numCoeffs: 13, numBands: 32, minFreq: 80, maxFreq: 8000, include0: 1);
+        var c1 = gfcc[1].lag(0.04);
+        var c2 = gfcc[2].lag(0.04);
+
+        // Adaptive drive and polynomial fold
+        var drive = c1.linlin(-15, 15, 1.0, 8.0).clip(0.5, 12.0);
+        var bias = c2.linlin(-10, 10, -0.3, 0.3).clip(-0.5, 0.5);
+        var folded = ((source * drive) + bias).fold2(0.8) * 0.3;
+        var sound = (source * 0.25) + folded;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, gfcc) };
+        sound * Line.kr(0, 1, 0.2) ! 2
+    }.play;
+
+    ~mir2GUI = MIR2GUI.bars("GFCC Coefficients", ~mir2Bus, 13, -25.0, 25.0);
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
@@ -72,3 +83,4 @@ subsection:: See also
 link::Guides/MIR2::
 link::Classes/ERBBands::
 link::Classes/MFCC2::
+link::Classes/BFCC::

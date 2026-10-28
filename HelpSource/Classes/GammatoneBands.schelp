@@ -30,31 +30,43 @@ returns::
 One power output per ascending filter center.
 
 examples::
-Auditory-band amplitudes drive an eight-sine resynthesis, allowing the filterbank distribution to be heard beside the quiet original.
+GammatoneBands implements an auditory gammatone filterbank tracking instantaneous envelope power in psychoacoustic cochlear bands. In this example, it drives an additive resynthesizer tracking delicate acoustic plucks: 16 sinusoidal partials follow the instantaneous decay envelope of each critical band, synthesizing a glassy spectral shadow. An interactive code::MIR2GUI.bars:: displays real-time power across all 16 gammatone bands.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var bands = GammatoneBands.kr(source, numBands: 8, minFreq: 100, maxFreq: 6000);
-            var balance = bands.sqrt / (bands.sqrt.sum + 1e-9);
-            var level = Amplitude.kr(source, 0.01, 0.1);
-            var voice = Mix(SinOsc.ar([180, 240, 320, 430, 580, 780, 1050, 1400], 0, Lag.kr(balance, 0.03))) * level;
-            var fade = Line.kr(0, 1, 0.2);
-            ((source * 0.06) + (voice * 0.2)) * fade ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 16);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop and free the sample buffer.
+        var bands = GammatoneBands.kr(source, numBands: 16, minFreq: 120, maxFreq: 7000, smoothing: 0.02, hop: 0.01);
+        var ampBands = bands.sqrt.lag(0.02);
+        var normBands = ampBands / (ampBands.sum + 1e-6);
+
+        // 16 sine partials tuned to gammatone center frequencies
+        var freqs = [150, 220, 310, 420, 560, 740, 970, 1260, 1630, 2100, 2700, 3450, 4400, 5600, 7000, 8800];
+        var resynth = Mix.fill(16, { |i|
+            SinOsc.ar(freqs[i], 0, normBands[i] * 0.4)
+        });
+        var sound = (source * 0.25) + (resynth * 0.25);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, normBands) };
+        sound * Line.kr(0, 1, 0.2) ! 2
+    }.play;
+
+    ~mir2GUI = MIR2GUI.bars("Gammatone Bands", ~mir2Bus, 16, 0.0, 0.5);
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

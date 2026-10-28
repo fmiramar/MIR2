@@ -32,35 +32,48 @@ returns::
 Two control outputs: sones, then phons. Their accuracy is limited by the inherited informal model.
 
 examples::
-Estimated loudness opens a filter: louder passages become brighter. The recording remains the source of the audible result.
+Loudness2 models human perceptual loudness in sones using equal-loudness contours. In this example, it drives an opto-style feedback compressor: perceptual sones regulate smooth, non-linear gain attenuation, naturally avoiding the pumping artifacts typical of simple peak or RMS compressors on bass-heavy drums. An interactive code::MIR2GUI.scope:: displays real-time perceived loudness in sones.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var loudness = Loudness2.kr(chain, fftSize: 1024);
-            var amount = Lag.kr((loudness[1] / 80).clip(0, 1), 0.05);
-            var cutoff = amount.linexp(0, 1, 200, 6500);
-            var fade = Line.kr(0, 1, 0.2);
-            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop and free the sample buffer.
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var loudness = Loudness2.kr(chain, calibration: 100, attack: 0.005, release: 0.08, fftSize: 1024);
+        var sones = loudness[0];
+
+        // Opto-style non-linear gain reduction driven by sones
+        var threshold = 12.0;
+        var excess = (sones - threshold).max(0);
+        var gainReduction = (1.0 / (1.0 + (excess * 0.15))).lag(0.04);
+        var compressed = source * gainReduction;
+        var sound = compressed * 0.35;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, sones) };
+        sound * Line.kr(0, 1, 0.2) ! 2
+    }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Perceived Loudness", ~mir2Bus, 0.0, 50.0, "sones");
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
 link::Classes/Loudness::
+link::Classes/Amplitude::
 link::Classes/Amplitude::
