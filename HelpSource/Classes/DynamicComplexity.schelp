@@ -29,29 +29,46 @@ returns::
 Nonnegative level variation in dB.
 
 examples::
-The measured envelope shape moves the filter and a quiet reference tone; listen as the sample phrases change.
+DynamicComplexity computes the root-mean-square dB variation of non-silent RMS frames around the power-mean level of the rolling observation window. Steady continuous sounds produce low dynamic complexity (< 4 dB), while dynamic rhythmic grooves and articulated percussion produce high complexity (> 10 dB). In this example, dynamic complexity introduces a subtle granular delay scatter layer during highly dynamic passages. An interactive code::MIR2GUI.scope:: displays real-time dynamic complexity in dB.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var value = DynamicComplexity.kr(source, 0.5);
-        var control = (value / 18).clip(0, 1);
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 4500), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 150, 650), 0, 0.025))
-            * Line.kr(0, 1, 0.7) ! 2
+
+        var dynComp = DynamicComplexity.kr(source, windowTime: 0.5, frameTime: 0.005);
+        var compLag = dynComp.lag(0.08);
+        var scatterSend = compLag.linlin(4, 14, 0.0, 0.4).clip(0.0, 0.5);
+        var scatter = CombC.ar(source, 0.1, SinOsc.kr([0.4, 0.5]).range(0.02, 0.06), 0.5) * scatterSend;
+        var sound = (source * 0.25 ! 2) + scatter;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, compLag.clip(0, 24)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Dynamic Complexity", ~mir2Bus, 0.0, 20.0, "dB");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

@@ -33,28 +33,43 @@ returns::
 Array [direction, slopeDBPerSecond, fit].
 
 examples::
-A slow fade is applied to the source. Descending, neutral, and ascending trends select low, middle, and high tones; fit controls tone level.
+FadeDetection fits a linear regression line to rolling dB levels to detect whether sound is fading in (+1), fading out (-1), or stationary (0), qualified by a minimum goodness-of-fit threshold. In this example, detected fade-outs trigger an octave-up shimmer delay that swells musically as the primary note trails off. An interactive code::MIR2GUI.scope:: displays real-time fade direction.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var shaped = source * SinOsc.kr(0.25).range(0.03, 1);
-        var fade = FadeDetection.kr(shaped, 0.5, slopeThreshold: 2, minFit: 0.3);
-        var tone = SinOsc.ar(Select.kr(fade[0] + 1, [220, 440, 880]), 0, 0.03 * fade[2]);
-        (shaped * 0.2 + tone) * Line.kr(0, 1, 0.6) ! 2
+
+        var fade = FadeDetection.kr(source, windowTime: 0.5, frameTime: 0.005, slopeThreshold: 5.0, minFit: 0.5);
+        var dir = fade[0].lag(0.08);
+        var fadeOutGate = (dir < -0.5).lag(0.02, 0.15);
+        var shimmer = PitchShift.ar(source, 0.1, 2.0) * fadeOutGate * 0.3;
+        var sound = (source * 0.25 ! 2) + (shimmer ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, dir) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Fade Direction", ~mir2Bus, -1.0, 1.0, "dir");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

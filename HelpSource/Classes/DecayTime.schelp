@@ -33,30 +33,45 @@ returns::
 Decay duration in seconds; zero if the observation ends before both falling crossings.
 
 examples::
-One-second phrases have a shaped attack and decay. After each capture the measured event shape sets the reference-tone pitch; the audio content makes measurements vary.
+DecayTime measures the event decay duration in seconds from the 90% peak down to the 10% floor within a captured time window. In this example, measured decay time automatically sets the feedback decay time of a tempo-synced digital delay, allowing repeats to fade synchronously with the natural acoustic decay of each pluck. An interactive code::MIR2GUI.envelope:: displays the measured transient profile.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 2);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var trigger = Impulse.kr(1);
-        var shaped = source * EnvGen.kr(Env([0, 1, 0], [0.12, 0.35]), trigger);
-        var value = DecayTime.kr(shaped, trigger, maxTime: 0.6);
-        var control = (value / 0.3).clip(0, 1);
-        var tone = SinOsc.ar(control.linexp(0, 1, 160, 1000), 0, 0.04);
-        (shaped * 0.3 + tone) * Line.kr(0, 1, 0.8) ! 2
+
+        var trig = Impulse.kr(1.5);
+        var decaySec = DecayTime.kr(source, trig, maxTime: 0.5, frameTime: 0.005);
+        var decLag = decaySec.clip(0.05, 0.4).lag(0.05);
+        var delay = CombC.ar(source, 0.5, 0.2, decLag * 4) * 0.3;
+        var sound = (source * 0.25 ! 2) + (delay ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, [0.02, decLag]) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.envelope("Decay Profile", ~mir2Bus);
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

@@ -29,29 +29,45 @@ returns::
 Active fraction from zero through one.
 
 examples::
-The measured envelope shape moves the filter and a quiet reference tone; listen as the sample phrases change.
+EffectiveDuration counts the fraction of rolling RMS frames at or above 10% (-20 dB) of the maximum peak in the window (between 0 and 1). Short staccato plucks have low effective duration (~0.15), while ringing notes occupy a large fraction of the window. In this example, effective duration dynamically controls the decay time of an algorithmic stereo reverb: staccato notes get short snappy ambiences, while sustaining notes get lush lingering tails. An interactive code::MIR2GUI.scope:: displays real-time effective duration.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var value = EffectiveDuration.kr(source, 0.5);
-        var control = value;
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 4500), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 150, 650), 0, 0.025))
-            * Line.kr(0, 1, 0.7) ! 2
+
+        var effDur = EffectiveDuration.kr(source, windowTime: 0.5, frameTime: 0.005);
+        var durLag = effDur.lag(0.08);
+        var revDecay = durLag.linexp(0.05, 0.8, 0.2, 2.5);
+        var wet = CombC.ar(source, 0.5, [0.03, 0.045], revDecay) * 0.35;
+        var sound = (source * 0.25 ! 2) + wet;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, durLag.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Effective Duration", ~mir2Bus, 0.0, 1.0, "ratio");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

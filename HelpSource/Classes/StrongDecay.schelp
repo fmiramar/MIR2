@@ -29,29 +29,45 @@ returns::
 Nonnegative amplitude-like value; not a decay time or normalized probability.
 
 examples::
-The measured envelope shape moves the filter and a quiet reference tone; listen as the sample phrases change.
+StrongDecay computes the square root of integrated envelope energy divided by the temporal energy centroid (Gouyon & Herrera). It yields higher values when strong energy is concentrated early in the observation window. In this example, StrongDecay detects rapid initial drop-offs and activates a sympathetic resonant comb filter that gently extends the acoustic pluck's decay ring-down. An interactive code::MIR2GUI.scope:: displays real-time StrongDecay.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var value = StrongDecay.kr(source, 0.5);
-        var control = (value * 5).clip(0, 1);
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 4500), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 150, 650), 0, 0.025))
-            * Line.kr(0, 1, 0.7) ! 2
+
+        var decay = StrongDecay.kr(source, windowTime: 0.5, frameTime: 0.005);
+        var decayLag = decay.lag(0.08);
+        var ringSend = decayLag.linlin(0.05, 0.3, 0.0, 0.4).clip(0.0, 0.5);
+        var sympathetic = CombC.ar(source, 0.05, 1/330, 0.6) * ringSend;
+        var sound = (source * 0.25 ! 2) + (sympathetic ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, decayLag.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Strong Decay", ~mir2Bus, 0.0, 0.5, "amp");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

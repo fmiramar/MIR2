@@ -27,27 +27,45 @@ returns::
 Fraction from zero through one.
 
 examples::
-A tone fills the sample's quieter passages, with its level and pitch set by recent silence.
+SilenceRate tracks the proportion of rolling RMS envelope frames that fall below a specified decibel threshold (ranging from 0 for continuous sound to 1 for complete silence). In this example, when sparse playing leaves gaps of silence, SilenceRate automatically fades in an ethereal ambient drone pad, seamlessly filling the acoustic space. An interactive code::MIR2GUI.scope:: displays real-time silence rate.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var silence = SilenceRate.kr(source, -35, 0.5);
-        var reply = SinOsc.ar(silence.linexp(0, 1, 180, 900), 0, silence * 0.06);
-        (source * 0.2 + reply) * Line.kr(0, 1, 0.6) ! 2
+
+        var silence = SilenceRate.kr(source, thresholdDB: -35, windowTime: 0.5, frameTime: 0.005);
+        var silLag = silence.lag(0.1);
+        var drone = Mix.ar(SinOsc.ar([110, 164.81, 220], 0, 0.05)) * silLag;
+        var sound = (source * 0.25 ! 2) + (drone ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, silLag.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Silence Rate", ~mir2Bus, 0.0, 1.0, "ratio");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

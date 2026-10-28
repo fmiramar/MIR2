@@ -29,29 +29,45 @@ returns::
 Seconds; zero for a single occupied envelope frame.
 
 examples::
-The measured envelope shape moves the filter and a quiet reference tone; listen as the sample phrases change.
+EnvelopeSpread computes the energy-weighted temporal standard deviation (spread) in seconds within a rolling observation window. Staccato plucks produce a compact, narrow temporal spread (~0.05 s), while ringing sustains produce a broad spread. In this example, envelope spread controls feedback on a stereo echo line: tight staccato plucks receive rhythmic multi-tap repeats, while sustained notes receive a single gentle echo. An interactive code::MIR2GUI.scope:: displays real-time envelope spread in seconds.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var value = EnvelopeSpread.kr(source, 0.5);
-        var control = (value / 0.2).clip(0, 1);
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 4500), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 150, 650), 0, 0.025))
-            * Line.kr(0, 1, 0.7) ! 2
+
+        var spread = EnvelopeSpread.kr(source, windowTime: 0.5, frameTime: 0.005);
+        var spreadLag = spread.lag(0.08);
+        var echoFb = spreadLag.linlin(0.05, 0.25, 0.7, 0.1).clip(0.1, 0.75);
+        var echo = CombC.ar(source, 0.3, [0.15, 0.22], echoFb * 2) * 0.35;
+        var sound = (source * 0.25 ! 2) + echo;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, spreadLag.clip(0, 0.5)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Envelope Spread", ~mir2Bus, 0.0, 0.3, "s");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

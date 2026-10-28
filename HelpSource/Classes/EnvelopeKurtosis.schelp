@@ -29,29 +29,45 @@ returns::
 Nonnegative dimensionless kurtosis.
 
 examples::
-The measured envelope shape moves the filter and a quiet reference tone; listen as the sample phrases change.
+EnvelopeKurtosis computes the fourth energy-weighted temporal moment divided by squared variance (Pearson kurtosis, where 3 represents a Gaussian distribution). Highly impulsive plucked notes generate prominent kurtosis spikes (> 6). In this example, high kurtosis triggers an auxiliary crystalline chime layer, emphasizing crisp transients while leaving smooth sustained segments uncluttered. An interactive code::MIR2GUI.scope:: displays real-time envelope kurtosis.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var value = EnvelopeKurtosis.kr(source, 0.5);
-        var control = (value / 8).clip(0, 1);
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 4500), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 150, 650), 0, 0.025))
-            * Line.kr(0, 1, 0.7) ! 2
+
+        var kurt = EnvelopeKurtosis.kr(source, windowTime: 0.5, frameTime: 0.005);
+        var kurtLag = kurt.lag(0.05);
+        var chimeGate = (kurtLag > 6.0).lag(0.01, 0.1);
+        var chime = Ringz.ar(K2A.ar(chimeGate) * 0.05, 2400, 0.2) * 0.3;
+        var sound = (source * 0.25 ! 2) + (chime ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, kurtLag.clip(1, 20)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Envelope Kurtosis", ~mir2Bus, 1.0, 15.0, "kurt");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

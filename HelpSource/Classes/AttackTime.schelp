@@ -33,30 +33,45 @@ returns::
 Attack duration in seconds; zero when no increasing threshold interval was observed.
 
 examples::
-One-second phrases have a shaped attack and decay. After each capture the measured event shape sets the reference-tone pitch; the audio content makes measurements vary.
+AttackTime measures the physical attack duration in seconds from the 10% to 90% peak rise within an externally triggered capture window. In this example, detected note onsets trigger attack time analysis: the measured attack time dynamically modulates the attack slope of an auxiliary transient noise layer, blending transparently with acoustic attacks. An interactive code::MIR2GUI.envelope:: displays the measured attack and decay profile.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 2);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var trigger = Impulse.kr(1);
-        var shaped = source * EnvGen.kr(Env([0, 1, 0], [0.12, 0.35]), trigger);
-        var value = AttackTime.kr(shaped, trigger, maxTime: 0.6);
-        var control = (value / 0.3).clip(0, 1);
-        var tone = SinOsc.ar(control.linexp(0, 1, 160, 1000), 0, 0.04);
-        (shaped * 0.3 + tone) * Line.kr(0, 1, 0.8) ! 2
+
+        var trig = Impulse.kr(1.5);
+        var attackSec = AttackTime.kr(source, trig, maxTime: 0.5, frameTime: 0.005);
+        var attLag = attackSec.clip(0.005, 0.2).lag(0.05);
+        var click = HPF.ar(WhiteNoise.ar, 3000) * EnvGen.ar(Env.perc(attLag, 0.04), trig) * 0.25;
+        var sound = (source * 0.25 ! 2) + (click ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, [attLag, 0.3]) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.envelope("Attack Profile", ~mir2Bus);
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

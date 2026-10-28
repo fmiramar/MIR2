@@ -33,30 +33,46 @@ returns::
 Array [attackTimeSeconds, log10AttackTime]. Both outputs are zero when no valid attack was observed; use the positive seconds output to distinguish invalid data.
 
 examples::
-One-second phrases have a shaped attack and decay. After each capture the measured event shape sets the reference-tone pitch; the audio content makes measurements vary.
+LogAttackTime outputs the attack duration in seconds and its base-10 logarithm. In MIR classification, log10(attackTime) distinguishes percussive and plucked instruments (typically < -1.5, representing < 30 ms) from sustained or bowed instruments (> -1.0). In this example, log attack time dynamically classifies the sound, routing percussive plucks to a crisp resonant highpass filter while routing soft attacks to a lush reverb. An interactive code::MIR2GUI.scope:: displays real-time log attack time.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var trigger = Impulse.kr(1);
-        var shaped = source * EnvGen.kr(Env([0, 1, 0], [0.12, 0.35]), trigger);
-        var value = LogAttackTime.kr(shaped, trigger, maxTime: 0.6);
-        var control = (value[0] / 0.2).clip(0, 1);
-        var tone = SinOsc.ar(control.linexp(0, 1, 160, 1000), 0, 0.04);
-        (shaped * 0.3 + tone) * Line.kr(0, 1, 0.8) ! 2
+
+        var trig = Impulse.kr(1.5);
+        var attackData = LogAttackTime.kr(source, trig, maxTime: 0.5, frameTime: 0.005);
+        var logAtt = attackData[1].lag(0.05);
+        var isPluck = (logAtt < -1.3).lag(0.02, 0.1);
+        var brightPluck = HPF.ar(source, 2000) * isPluck * 0.4;
+        var sound = (source * 0.25 ! 2) + (brightPluck ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, logAtt.clip(-3, 0)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Log Attack Time", ~mir2Bus, -3.0, 0.0, "log(s)");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

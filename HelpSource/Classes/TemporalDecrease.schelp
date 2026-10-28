@@ -29,29 +29,44 @@ returns::
 Signed relative decrease per second.
 
 examples::
-The measured envelope shape moves the filter and a quiet reference tone; listen as the sample phrases change.
+TemporalDecrease fits a linear regression line to RMS envelope values versus time, negating the slope and normalizing by mean RMS amplitude. Positive values signify natural decay over the observation window; negative values signify envelope growth. In this example, temporal decrease controls an upward dynamic expander to smoothly linearize and sustain natural instrument note ring-downs. An interactive code::MIR2GUI.scope:: displays real-time temporal decrease slope.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("plucks.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var value = TemporalDecrease.kr(source, 0.5);
-        var control = value.linlin(-5, 5, 0, 1).clip(0, 1);
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 4500), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 150, 650), 0, 0.025))
-            * Line.kr(0, 1, 0.7) ! 2
+
+        var decrease = TemporalDecrease.kr(source, windowTime: 0.5, frameTime: 0.005);
+        var decLag = decrease.lag(0.08);
+        var sustainBoost = decLag.linlin(0, 6, 1.0, 2.5).clip(1.0, 3.0);
+        var expanded = (source * sustainBoost).softclip * 0.25;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, decLag.clip(-5, 10)) };
+        expanded * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Temporal Decrease", ~mir2Bus, -2.0, 8.0, "slope");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
