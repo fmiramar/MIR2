@@ -217,9 +217,47 @@ definitionlist::
 ## link::Classes/WaveletDaub2:: || Daubechies analysis, coefficient removal and audio reconstruction.
 ::
 
-section:: Examples and verification
+section:: Examples and visualization
 
-Class examples use a looping bundled sound, synchronized buffer setup and feature-controlled synthesis, filtering or panning. They can be changed to SoundIn using the commented source line. Each example includes cleanup. Onsets2 now includes the seven classical methods and corrected SuperFlux processing. Representative-recording onset evaluation is deferred to a later stage; numerical checks do not replace listening.
+Class help files feature musically meaningful, individually designed sound processes and live MIR visualization GUIs via the code::MIR2GUI:: toolkit.
+
+subsection:: Audio corpus
+Examples load dedicated CC0 1.0 audio material bundled in the extension's code::sounds/:: folder via code::MIR2GUI.soundPath::, with graceful fallbacks to self-contained synthetic source graphs:
+list::
+## strong::drums.wav::: Acoustic drum groove with crisp transients, kick, snare, and hi-hats (ideal for onsets, rhythm, flux, and tempo).
+## strong::piano-chords.wav::: Polyphonic grand piano progressions (ideal for chromagram, key, chord, and harmonic analysis).
+## strong::melody.wav::: Sustained vocal and instrumental melody (ideal for monophonic pitch tracking, vibrato, and melodic contour).
+## strong::plucks.wav::: Acoustic plucked acoustic strings (ideal for attack slope, decay time, and transient dynamics).
+## strong::stereo.wav::: Dynamic acoustic stereo panorama with moving panning (ideal for stereo correlation, panning, and coherence).
+## strong::bass-melody-mix.wav::: Multi-layer polyphonic mix (ideal for multipitch and predominant pitch extraction).
+## strong::texture.wav::: Ambient sound texture evolving between harmonic tones and turbulent noise (ideal for entropy, flatness, and wavelet spread).
+::
+Each example can also take live microphone or line input by uncommenting the code::SoundIn.ar(0):: alternative.
+
+subsection:: Live MIR2GUI visualizers
+The extension provides 10 real-time GUI visualizers designed according to standard MIR practice:
+list::
+## strong::MIR2GUI.scope::: Real-time scrolling time-series oscilloscope with feature range bounds and engineering units.
+## strong::MIR2GUI.bars::: Multi-band spectrum, filter bank, and cepstral bar monitor with peak hold decay and custom subband labels.
+## strong::MIR2GUI.heatmap::: 2D scrolling waterfall spectrogram and tempogram display.
+## strong::MIR2GUI.chroma::: 12-pitch-class circular polar radar wheel.
+## strong::MIR2GUI.tonnetz::: 2D planar projection of 6-dimensional Tonnetz harmonic space (fifth, minor third, and major third axes).
+## strong::MIR2GUI.stereo::: Polar goniometer (Lissajous X/Y phase scope) and stereo correlation meter.
+## strong::MIR2GUI.pianoRoll::: Scrolling fundamental frequency tracker plotted on a musical MIDI note grid.
+## strong::MIR2GUI.rhythm::: Circular tempo and beat phase dial.
+## strong::MIR2GUI.tristimulus::: Barycentric ternary triangle displaying relative harmonic energy distribution (T1, T2, T3).
+## strong::MIR2GUI.envelope::: Triggered transient envelope and attack/decay time-domain waveform scope.
+::
+
+section:: Verification and test suite
+
+The test suite in code::tests/sc/:: verifies class library compilation, SCDoc help file syntax, and headless Non-Real-Time (NRT) audio rendering across all 135 UGens:
+list::
+## code::compile_check.scd::: Verifies clean class compilation.
+## code::compile_help_examples.scd::: Parses and compiles all executable code blocks in every help file.
+## code::verify_scdoc.scd::: Validates SCDoc indexing and document integrity.
+## code::generate_example_check.py --nrt::: Automatically extracts and renders each UGen's help example via scsynth NRT, monitoring audio finite bounds, peak levels, and zero bad primitive calls.
+::
 
 section:: Further work
 
