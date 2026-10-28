@@ -41,6 +41,20 @@ units, timing, source references, and limits. Most output control-rate features;
 audio-input analyzers consume the complete audio block internally. FFT analyzers
 read the shared FFT buffer without changing its representation.
 
+### Musical Documentation, Audio Corpus and Live MIR Visualization
+
+Following an overhaul directive (detailed in [MIR2_DOCUMENTATION_AND_VISUALIZATION_PLAN.md](MIR2_DOCUMENTATION_AND_VISUALIZATION_PLAN.md)),
+MIR2 examples are moving beyond speech-only playback (`ExampleFiles.child`). The
+documentation uses a dedicated bundle of dry, uncompressed Creative Commons Zero (CC0)
+recordings in `sounds/` (`drums.wav`, `piano-chords.wav`, `melody.wav`, `plucks.wav`,
+`stereo.wav`, `bass-melody-mix.wav`, `texture.wav`) accompanied by self-contained
+synthetic fallbacks and commented `SoundIn.ar(0)` live inputs.
+
+Additionally, a lightweight pure-SuperCollider live visualization toolkit (`MIR2GUI`)
+provides real-time graphical monitors standard in MIR research: scrolling feature
+scopes, multi-band bar graphs, 2D spectrogram heatmaps, circular chroma wheels,
+2D Tonnetz harmonic grids, stereo goniometers, multi-pitch piano rolls, and rhythm radars.
+
 Wavelets support Haar/db1–db8 and periodic or redundant symmetric boundaries.
 Chord tracking offers an optional nine-quality vocabulary alongside the default
 major/minor set. `ChromaCQT` provides a measured low-register resolution option

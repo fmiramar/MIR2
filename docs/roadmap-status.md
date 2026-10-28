@@ -57,6 +57,12 @@ for every class. See `implementation-log.md` for exact checks and limits.
 
 ## Remaining evaluation and release work
 
+- **Documentation and visualization overhaul (directive active):** as specified in
+  `MIR2_DOCUMENTATION_AND_VISUALIZATION_PLAN.md`, replace uniform gain-scaling examples
+  with individually crafted musical synthesis processes; replace speech-only
+  `ExampleFiles.child` with a dedicated dry CC0 suite (`sounds/`) and self-contained
+  synthetic fallbacks; and introduce the `MIR2GUI` live visualization toolkit (chroma
+  wheels, Tonnetz, heatmaps, scopes, piano-rolls, rhythm radars).
 - **Recording-based quality:** the user explicitly deferred the proposed
   Onsets2 problem-recording test on 2026-10-23. General pitch/key/chord/beat
   accuracy, listening approval and broader corpus calibration are also not
