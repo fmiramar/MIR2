@@ -38,34 +38,46 @@ returns::
 An Array containing two Arrays: frequencies in Hz, and corresponding probabilities or evidence weights. Candidates are sorted strongest first; this represents alternative interpretations of a frame, not simultaneous notes.
 
 examples::
-Competing candidates become a softly weighted oscillator chord; changing uncertainty changes the harmony. Boot the server before evaluation. The short fade masks analysis warmup.
+FundamentalCandidates extracts multiple competing F0 candidates and their corresponding evidence weights instead of collapsing analysis to a single winner. In this example, 4 simultaneous pitch candidates are tracked across a polyphonic bass and melody mix, driving 4 independent sinusoidal resynthesis voices weighted by candidate likelihood. An interactive code::MIR2GUI.pianoRoll:: displays the primary tracked pitch contour.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("bass-melody-mix.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = FundamentalCandidates.kr(source, 4);
-        var voices = SinOsc.ar(result[0].max(20), 0, result[1] * 0.07);
-        var sound = Splay.ar(voices) + (source * 0.08);
-        sound * Line.kr(0, 1, 0.25)
+
+        var result = FundamentalCandidates.kr(source, maxCandidates: 4, minFreq: 60, maxFreq: 1200, frameSize: 2048, hop: 0.25);
+        var freqs = result[0];
+        var weights = result[1];
+        var voices = Mix.fill(4, { |i|
+            var freq = freqs[i].clip(40, 2000);
+            Pan2.ar(SinOsc.ar(freq, 0, weights[i].lag(0.04) * 0.15 * (freqs[i] > 40)), (i / 1.5) - 1.0)
+        });
+        var sound = (source * 0.2 ! 2) + voices;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freqs[0]) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("Candidate Pitch", ~mir2Bus, 36, 84);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
 link::Classes/Pitch2::
-link::Classes/FundamentalCandidates::
+link::Classes/PitchProb::
+link::Classes/MultiPitch::

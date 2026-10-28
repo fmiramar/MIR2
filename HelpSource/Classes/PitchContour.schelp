@@ -38,36 +38,44 @@ returns::
 An Array: tracked frequency in Hz, selected candidate observation probability, signed pitch jump in cents.
 
 examples::
-A two-update traceback stabilizes the candidate-driven oscillator heard at right. Boot the server before evaluation. The short fade masks analysis warmup.
+PitchContour performs Viterbi-style dynamic programming over a multi-candidate pitch graph with octave and voicing penalty costs and bounded traceback lag. In this example, it stabilizes pitch candidates extracted from an expressive saxophone solo, eliminating octave skips and tracking smooth glissandi with a vintage theremin sine voice. An interactive code::MIR2GUI.pianoRoll:: plots the tracked Viterbi contour.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var candidates = FundamentalCandidates.kr(source, 5, frameSize: 4096, hop: 0.25);
-        var tick = Impulse.kr(SampleRate.ir / 1024);
+
+        var candidates = FundamentalCandidates.kr(source, maxCandidates: 4, minFreq: 80, maxFreq: 1200, frameSize: 2048, hop: 0.25);
+        var tick = Impulse.kr(SampleRate.ir / 512);
         var track = PitchContour.kr(candidates[0], candidates[1], trig: tick, lag: 2);
-        var voice = SinOsc.ar(track[0].max(20), 0, Lag.kr(track[1] * (track[0] > 0), 0.02) * 0.15);
-        var sound = [source * 0.12, voice];
-        sound * Line.kr(0, 1, 0.25)
+        var freq = track[0].clip(50, 2000);
+        var theremin = SinOsc.ar(freq.lag(0.02), 0, track[1].lag(0.04) * 0.16 * (track[0] > 50));
+        var sound = (source * 0.25) + theremin;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, track[0]) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("Viterbi Pitch Contour", ~mir2Bus, 36, 84);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Pitch2::
 link::Classes/FundamentalCandidates::
+link::Classes/PitchProb::
+link::Classes/Pitch2::

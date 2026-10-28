@@ -41,35 +41,46 @@ returns::
 An Array containing frequency Array, relative-strength Array, and detected count. Strength is residual salience relative to the first selected source, not probability.
 
 examples::
-A shifted copy creates a small mixture; each extracted F0 drives one spatialized oscillator. Boot the server before evaluation. The short fade masks analysis warmup.
+MultiPitch implements an iterative spectral subtraction harmonic summation algorithm adapted from Klapuri (ISMIR 2006) to estimate multiple concurrent fundamental frequencies. In this example, it analyzes a polyphonic mixture of walking bass and treble melody: the two detected F0 streams independently synthesize an analog-style resonant bass voice and a sparkling treble lead. An interactive code::MIR2GUI.pianoRoll:: plots the primary tracked melody line.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("bass-melody-mix.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var mixed = source + PitchShift.ar(source, 0.12, 1.5, 0, 0.01) * 0.5;
-        var result = MultiPitch.kr(mixed, 3, 100, 1200);
-        var voices = SinOsc.ar(result[0].max(20), 0, result[1] * (result[0] > 0) * 0.045);
-        var sound = Splay.ar(voices) + (mixed * 0.1);
-        sound * Line.kr(0, 1, 0.25)
+
+        var result = MultiPitch.kr(source, maxPolyphony: 2, minFreq: 55, maxFreq: 1200, frameSize: 2048, hop: 0.25);
+        var freqs = result[0];
+        var strengths = result[1];
+
+        // Bass voice from lower candidate, melody voice from upper candidate
+        var bass = SinOsc.ar(freqs[0].clip(40, 400).lag(0.03), 0, strengths[0].lag(0.04) * 0.2 * (freqs[0] > 40));
+        var melody = Saw.ar(freqs[1].clip(150, 2000).lag(0.03)) * strengths[1].lag(0.04) * 0.12 * (freqs[1] > 100);
+        var sound = (source * 0.2) + bass + melody;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freqs[0]) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("MultiPitch Tracker", ~mir2Bus, 36, 84);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Pitch2::
+link::Classes/PredominantPitch::
 link::Classes/FundamentalCandidates::
+link::Classes/Pitch2::

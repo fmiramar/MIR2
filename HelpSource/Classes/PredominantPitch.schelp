@@ -35,34 +35,45 @@ returns::
 An Array: frequency in Hz, selected contour score divided by eligible contour score sum, voiced flag.
 
 examples::
-The source plays at left; the selected continuing melodic contour drives the right oscillator. Boot the server before evaluation. The short fade masks analysis warmup.
+PredominantPitch extracts the dominant melodic contour from complex polyphonic mixtures via causal contour continuity linking and salience accumulation inspired by Salamon & Gomez (2012). In this example, it isolates the singing treble melody from a dense walking-bass mixture, synthesizing a Moog-style lead that locks onto the melodic line while rejecting lower accompaniment. An interactive code::MIR2GUI.pianoRoll:: plots the extracted predominant pitch.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("bass-melody-mix.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = PredominantPitch.kr(source, 100, 1200);
-        var follower = SinOsc.ar(result[0].max(20), 0, Lag.kr(result[1] * result[2], 0.04) * 0.16);
-        var sound = [source * 0.12, follower];
-        sound * Line.kr(0, 1, 0.25)
+
+        var result = PredominantPitch.kr(source, minFreq: 150, maxFreq: 1400, frameSize: 2048, hop: 0.25);
+        var freq = result[0];
+        var score = result[1];
+        var voiced = result[2];
+
+        var leadSynth = Saw.ar(freq.clip(100, 2500).lag(0.02)) * (score * voiced).lag(0.03) * 0.18;
+        var sound = (source * 0.25) + leadSynth;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("Predominant Pitch", ~mir2Bus, 36, 84);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/MultiPitch::
+link::Classes/PitchContour::
 link::Classes/Pitch2::
-link::Classes/FundamentalCandidates::

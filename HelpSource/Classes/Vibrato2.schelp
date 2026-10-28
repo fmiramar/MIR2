@@ -32,38 +32,47 @@ returns::
 An Array: presence flag, modulation rate in Hz, peak-to-peak extent in cents, explained residual-variance fraction times weighted coverage.
 
 examples::
-A known vibrato is added to the estimated contour; its detected rate controls the right-channel tremolo. Boot the server before evaluation. The short fade masks analysis warmup.
+Vibrato2 measures the instantaneous modulation rate (Hz) and peak-to-peak extent (cents) of pitch vibrato extracted from a continuous pitch contour. In this example, detected vibrato parameters synchronize an amplitude tremolo effect: whenever the performer introduces vibrato, the sound tremolos synchronously with the acoustic rate. An interactive code::MIR2GUI.scope:: tracks the detected vibrato rate in Hz.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var pitch = PitchMPM.kr(source, 80, 1200, 4096);
-        // Add known vibrato to the extracted contour so its detection is audible.
-        var contour = pitch[0] * (SinOsc.kr(5.5) * 0.7).midiratio;
-        var result = Vibrato2.kr(contour, pitch[2], 3, 10, 10, 0.8);
-        var tone = SinOsc.ar(contour.max(20), 0, pitch[2] * 0.09);
-        var tremolo = 1 - (SinOsc.kr(result[1].max(0.1)).range(0, 0.7) * result[0]);
-        var sound = [source * 0.1 + tone, tone * tremolo];
-        sound * Line.kr(0, 1, 0.25)
+
+        var pitch = PitchMPM.kr(source, 80, 1200, 2048, 0.25);
+        var result = Vibrato2.kr(pitch[0], pitch[1], minRate: 3, maxRate: 9, minExtent: 15, windowTime: 0.6);
+        var presence = result[0];
+        var rate = result[1];
+        var extent = result[2];
+
+        // Amplitude tremolo synchronized with detected vibrato rate
+        var tremoloLFO = SinOsc.kr(rate.clip(2, 10)).range(1.0 - (presence.lag(0.05) * 0.6), 1.0);
+        var sound = (source * tremoloLFO * 0.3) ! 2;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, rate) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Vibrato Rate", ~mir2Bus, 0.0, 10.0, "Hz");
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/PitchStability::
+link::Classes/PitchDeviation::
 link::Classes/Pitch2::
-link::Classes/FundamentalCandidates::

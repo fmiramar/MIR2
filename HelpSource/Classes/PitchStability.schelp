@@ -23,36 +23,46 @@ returns::
 An Array: stability = exp(-deviationCents / 50), weighted population standard deviation in cents.
 
 examples::
-Steady pitch supports a sine tone; pitch motion opens a noise band. Boot the server before evaluation. The short fade masks analysis warmup.
+PitchStability computes rolling weighted variance in cents over an observation window, returning an exponential stability metric ($1.0$ for rock-solid pitch, approaching $0.0$ during vibrato, trills, and glissandi). In this example, it gates a lush stereo tape delay: fast melodic transitions stay dry and focused, while long held notes bloom out into warm delay repeats. An interactive code::MIR2GUI.scope:: tracks the real-time stability metric.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var pitch = PitchMPM.kr(source, 80, 1200, 4096);
+
+        var pitch = PitchMPM.kr(source, 80, 1200, 2048, 0.25);
         var stability = PitchStability.kr(pitch[0], pitch[1], 0.25);
-        var stableTone = SinOsc.ar(pitch[0].max(20), 0, stability[0] * 0.1 * pitch[2]);
-        var gestureNoise = BPF.ar(PinkNoise.ar(0.08), 500 + (stability[1].clip(0, 1000) * 4), 0.3);
-        var sound = (source * 0.1 + stableTone + (gestureNoise * (1 - stability[0]) * pitch[2])) ! 2;
-        sound * Line.kr(0, 1, 0.25)
+        var isStable = stability[0].lag(0.04);
+
+        // Delay send gated by pitch stability
+        var delaySend = source * isStable;
+        var delay = CombC.ar(delaySend, 0.5, [0.25, 0.33], 1.8) * 0.35;
+        var sound = (source * 0.25 ! 2) + delay;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, stability[0]) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Pitch Stability", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/PitchDeviation::
+link::Classes/Vibrato2::
 link::Classes/Pitch2::
-link::Classes/FundamentalCandidates::

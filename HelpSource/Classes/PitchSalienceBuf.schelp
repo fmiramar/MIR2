@@ -50,39 +50,49 @@ argument:: binsPerOctave
 Grid density from 12 through 96.
 
 examples::
-Read seven positions from the dense salience grid to animate a spectral oscillator bank. Boot the server before evaluation. The short fade masks analysis warmup.
+PitchSalienceBuf computes a continuous high-resolution pitch-salience representation across a logarithmic frequency grid, writing the frame directly into a control Buffer. In this example, 7 equidistant positions across the salience grid are read via code::BufRd.kr:: to animate a microtonal sine resynthesizer tracking the acoustic melody. An interactive code::MIR2GUI.scope:: monitors salience at the tonic frequency.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
-    var salience = Buffer.alloc(s, PitchSalienceBuf.numBins(110, 880, 24), 1);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2SalienceBuffer = Buffer.alloc(s, PitchSalienceBuf.numBins(110, 880, 24), 1);
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var update = PitchSalienceBuf.kr(source, salience, 110, 880, 24, 4096, 0.25);
-        var strengths = BufRd.kr(1, salience, [0, 12, 24, 36, 48, 60, 72]);
-        var freqs = 110 * (2 ** ([0, 12, 24, 36, 48, 60, 72] / 24));
-        var voices = SinOsc.ar(freqs, 0, Lag.kr(strengths, 0.04) * 0.06);
-        var sound = Splay.ar(voices) + (source * 0.08);
-        sound * Line.kr(0, 1, 0.25)
+
+        var buf = ~mir2SalienceBuffer ? 1;
+        var update = PitchSalienceBuf.kr(source, buf, 110, 880, 24, 2048, 0.25);
+        var indices = [0, 12, 24, 36, 48, 60, 72];
+        var strengths = BufRd.kr(1, buf, indices);
+        var freqs = 110 * (2 ** (indices / 24));
+        var voices = Mix.fill(7, { |i|
+            Pan2.ar(SinOsc.ar(freqs[i], 0, strengths[i].lag(0.04) * 0.12), (i / 3.0) - 1.0)
+        });
+        var sound = (source * 0.25 ! 2) + voices;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, strengths[0]) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2PitchBuffer = buffer;
-    ~mir2SalienceBuffer = salience;
+
+    ~mir2GUI = MIR2GUI.scope("Primary Salience", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
-~mir2SalienceBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2SalienceBuffer.notNil) { ~mir2SalienceBuffer.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/PitchSalience::
 link::Classes/Pitch2::
 link::Classes/FundamentalCandidates::

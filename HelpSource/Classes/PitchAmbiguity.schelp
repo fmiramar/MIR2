@@ -35,36 +35,45 @@ returns::
 An Array: normalized candidate entropy, octave ambiguity, strongest octave-related competitor in Hz.
 
 examples::
-Candidate entropy opens a noise band; octave competition adds a tone at the competing frequency. Boot the server before evaluation. The short fade masks analysis warmup.
+PitchAmbiguity computes candidate entropy and octave competition across competing fundamental frequencies. In this example, candidate entropy regulates the wet mix of a complex ring modulator: stable, unequivocal pitches remain pure and unmodulated, while ambiguous transitions and multiphonics inject aggressive ring modulation sidebands. An interactive code::MIR2GUI.scope:: tracks the real-time entropy metric.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = PitchAmbiguity.kr(source, method: \yin);
-        var pulse = SinOsc.ar(result[2].max(60), 0, result[1] * 0.06);
-        var noise = BPF.ar(PinkNoise.ar(0.06), 300 + (result[0] * 5000), 0.3);
-        var sound = (source * 0.1) + pulse + (noise * result[0]);
-        sound = sound ! 2;
-        sound * Line.kr(0, 1, 0.25)
+
+        var result = PitchAmbiguity.kr(source, minFreq: 80, maxFreq: 1200, frameSize: 2048, hop: 0.25, method: \yin);
+        var entropy = result[0].lag(0.04);
+        var competitor = result[2].clip(40, 2000).lag(0.04);
+
+        // Ring modulator driven by competitor frequency and scaled by entropy
+        var ringMod = (source * SinOsc.ar(competitor * 1.5) * 2.0).tanh;
+        var sound = (source * 0.25) + (ringMod * (entropy * 0.4));
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, result[0]) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Candidate Entropy", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
 link::Classes/Pitch2::
 link::Classes/FundamentalCandidates::
+link::Classes/PitchConsensus::

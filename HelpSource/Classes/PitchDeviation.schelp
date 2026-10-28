@@ -23,37 +23,43 @@ returns::
 Signed deviation in cents. Positive is sharp; negative is flat. Exact half-semitone ties use round-away-from-zero in the grid index.
 
 examples::
-Compare the detected intonation at left with its nearest equal-tempered pitch at right. Boot the server before evaluation. The short fade masks analysis warmup.
+PitchDeviation measures signed microtonal pitch deviation in cents against an equal-tempered 12-TET grid or an arbitrary tuning reference. In this example, it drives an adaptive pitch-correction synthesizer: detected cents deviation quantizes a parallel tracking voice into exact 12-TET intonation beside the expressive acoustic source. An interactive code::MIR2GUI.scope:: plots the real-time cents deviation ($-50 \dots +50$ cents).
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var pitch = PitchMPM.kr(source, 80, 1200, 4096);
-        var cents = PitchDeviation.kr(pitch[0]);
-        var snapped = pitch[0] * (cents.neg / 100).midiratio;
-        var original = SinOsc.ar(pitch[0].max(20), 0, pitch[1] * pitch[2] * 0.07);
-        var quantized = SinOsc.ar(snapped.max(20), 0, pitch[1] * pitch[2] * 0.07);
-        var sound = [original + (source * 0.08), quantized + (source * 0.08)];
-        sound * Line.kr(0, 1, 0.25)
+
+        var pitch = PitchMPM.kr(source, 80, 1200, 2048, 0.25);
+        var cents = PitchDeviation.kr(pitch[0], mode: \nearest12TET);
+        var snappedFreq = pitch[0] * (cents.neg / 100).midiratio;
+        var tunedVoice = SinOsc.ar(snappedFreq.clip(50, 2000).lag(0.02), 0, pitch[1].lag(0.04) * 0.15 * (pitch[0] > 50));
+        var sound = (source * 0.25) + tunedVoice;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, cents) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Cents Deviation", ~mir2Bus, -50.0, 50.0, "cents");
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/PitchStability::
+link::Classes/TuningFrequency::
 link::Classes/Pitch2::
-link::Classes/FundamentalCandidates::

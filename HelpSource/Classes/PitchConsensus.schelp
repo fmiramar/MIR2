@@ -35,35 +35,46 @@ returns::
 An Array: winning cluster frequency in Hz, agreement, weighted RMS spread in cents, octave-conflict weight fraction.
 
 examples::
-High agreement produces a clean follower; disagreement adds audible noise. Boot the server before evaluation. The short fade masks analysis warmup.
+PitchConsensus fuses multiple independent pitch estimators (YIN, MPM, and SWIPE) using confidence-weighted clustering to provide rock-solid fault-tolerant pitch tracking. In this example, it drives an adaptive harmonic comb resonator: when estimators achieve high consensus agreement, the resonator responds with pure, glassy resonance; when estimators disagree or fight octave ties, the resonator softly attenuates. An interactive code::MIR2GUI.pianoRoll:: plots the consensus pitch.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = PitchConsensus.kr(source, 80, 1200);
-        var oscillator = SinOsc.ar(result[0].max(20), 0, 0.1 * (result[0] > 0));
-        var noise = PinkNoise.ar((1 - result[1]) * 0.05);
-        var sound = [source * 0.12, oscillator * result[1] + noise];
-        sound * Line.kr(0, 1, 0.25)
+
+        var result = PitchConsensus.kr(source, minFreq: 80, maxFreq: 1200, frameSize: 2048, hop: 0.25);
+        var freq = result[0];
+        var agreement = result[1];
+        var delayTime = freq.clip(80, 1500).reciprocal.lag(0.02);
+
+        // Comb resonator gated by cross-algorithm agreement
+        var comb = CombC.ar(source, 0.05, delayTime, 0.3) * agreement.lag(0.04) * 0.4;
+        var sound = (source * 0.25) + comb;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("Consensus Pitch", ~mir2Bus, 36, 84);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
 link::Classes/Pitch2::
-link::Classes/FundamentalCandidates::
+link::Classes/PitchSWIPE::
+link::Classes/PitchProb::

@@ -35,34 +35,45 @@ returns::
 An Array: frequency in Hz, strength from 0 through 1, voiced flag, octave competitor ratio.
 
 examples::
-Compare the source at left with prime-harmonic spectral pitch resynthesis at right. Boot the server before evaluation. The short fade masks analysis warmup.
+PitchSWIPE tracks fundamental frequency using Camacho & Harris's prime-harmonic spectral cosine matching algorithm with candidate-dependent multi-resolution windows. In this example, it drives an intelligent synthetic vocal harmonizer: detected pitch tunes a parallel Saw/BPF lead that doubles the saxophone solo, gracefully fading on unvoiced breath. An interactive code::MIR2GUI.pianoRoll:: plots the tracked SWIPE pitch contour.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2PitchExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = PitchSWIPE.kr(source, 80, 1200);
-        var follower = SinOsc.ar(Lag.kr(result[0].max(20), 0.02), 0, Lag.kr(result[1] * result[2], 0.02) * 0.16);
-        var sound = [source * 0.12, follower];
-        sound * Line.kr(0, 1, 0.25)
+
+        var result = PitchSWIPE.kr(source, minFreq: 80, maxFreq: 1200, frameSize: 4096, hop: 0.25);
+        var freq = result[0];
+        var strength = result[1];
+        var voiced = result[2];
+
+        var synthLead = Saw.ar(freq.clip(50, 2000).lag(0.02)) * (strength * voiced).lag(0.03) * 0.18;
+        var sound = (source * 0.25) + synthLead;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2PitchBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("SWIPE Pitch Tracker", ~mir2Bus, 36, 84);
 }).play(AppClock);
 )
 ::
-
-Stop and release the example:
 code::
 (
-~mir2PitchExample.free;
-~mir2PitchBuffer.free;
- )
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+)
 ::
 
 subsection:: See also
 link::Guides/MIR2::
 link::Classes/Pitch2::
-link::Classes/FundamentalCandidates::
+link::Classes/PitchYIN::
+link::Classes/PitchConsensus::
