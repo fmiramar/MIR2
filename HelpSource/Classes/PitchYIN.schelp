@@ -41,26 +41,39 @@ Returns approximate first-result latency in seconds for a sample rate and frame 
 instancemethods::
 
 examples::
-The estimated fundamental drives a sine voice, gated by the voiced decision. Listen for octave changes and tracking delay.
+PitchYIN estimates monophonic F0 and continuous confidence using the cumulative mean normalized difference function (CMNDF). In this example, it drives an intelligent microtonal harmonizer: detected pitch tunes a 3-voice chord (1/1, 5/4, 3/2 intervals), while confidence cleanly mutes the harmonizer during breath pauses. An interactive code::MIR2GUI.pianoRoll:: plots the real-time pitch contour.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = PitchYIN.kr(source, 60, 1500, 2048, 0.25, 0.1);
-        var tone = SinOsc.ar(result[0].clip(40, 1500).lag(0.03), 0, 0.07) * result[2].lag(0.02);
-        (source * 0.12 + tone) * Line.kr(0, 1, 0.3) ! 2
+
+        var yin = PitchYIN.kr(source, 100, 1500, 2048, 0.25, 0.15);
+        var freq = yin[0];
+        var conf = yin[1];
+        var voiced = yin[2];
+        var harmonies = SinOsc.ar(freq * [1.0, 1.25, 1.5], 0, 0.05 * conf.lag(0.04)).sum;
+        var sound = (source * 0.25) + (harmonies * 0.3);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("YIN Pitch Tracker", ~mir2Bus, 36, 84);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

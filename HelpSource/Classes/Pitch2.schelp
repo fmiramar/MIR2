@@ -50,26 +50,43 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
-A tracked sine voice follows the source. Octave ambiguity attenuates the added voice when the evidence is uncertain.
+Pitch2 provides a unified F0 tracker with explicit octave ambiguity and confidence metrics. In this example, detected pitch tunes an adaptive harmonic ring modulator: the carrier frequency locks in consonant intervals to the melodic source, while octave ambiguity dynamically reins in modulation intensity when pitch candidate rivalry is high. An interactive code::MIR2GUI.pianoRoll:: plots the fundamental pitch contour in real time.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = Pitch2.kr(source, 60, 2000, 2048, 0.25, \mpm);
-        var tone = SinOsc.ar(result[0].clip(40, 2000).lag(0.03), 0, 0.07);
-        ((source * 0.12) + (tone * result[2].lag(0.02) * (1 - (result[3] * 0.75)))) * Line.kr(0, 1, 0.3) ! 2
+
+        var pitch = Pitch2.kr(source, minFreq: 80, maxFreq: 1500, frameSize: 2048, hop: 0.25, algorithm: \mpm);
+        var freq = pitch[0];
+        var conf = pitch[1];
+        var voiced = pitch[2];
+        var ambiguity = pitch[3];
+
+        var carrier = SinOsc.ar((freq * 1.5).clip(40, 3000).lag(0.03));
+        var modDepth = (conf * (1.0 - ambiguity)).lag(0.05);
+        var ring = (source * carrier * 1.5).tanh * modDepth;
+        var sound = (source * 0.25) + (ring * 0.2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("Pitch2 Tracker", ~mir2Bus, 36, 84);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

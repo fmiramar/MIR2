@@ -39,25 +39,37 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
-Repeating-structure evidence crossfades between noise and a stable sine tone.
+Periodicity reports repeating-structure evidence without requiring a commitment to an F0 decision. In this example, periodicity controls the feedback damping of a Karplus-Strong physical waveguide: periodic sustained sections produce long ringing tones, while non-periodic friction decays instantly into muted plucks. An interactive code::MIR2GUI.scope:: tracks the live periodicity index.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("texture.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var value = Periodicity.kr(source, 40, 2000, 2048, 0.25, \nsdf).lag(0.04);
-        (source * 0.12 + XFade2.ar(WhiteNoise.ar(0.04), SinOsc.ar(110, 0, 0.06), value.linlin(0, 1, -1, 1))) * Line.kr(0, 1, 0.3) ! 2
+
+        var periodicity = Periodicity.kr(source, 60, 2000, 2048, 0.25, \nsdf);
+        var feedback = periodicity.linlin(0.0, 1.0, 0.1, 0.98).lag(0.05);
+        var waveguide = CombC.ar(source, 0.05, 110.reciprocal, feedback * 2.0);
+        var sound = (source * 0.2) + (waveguide * 0.3);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, periodicity) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Periodicity", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

@@ -42,26 +42,47 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
-Voicing evidence changes the balance between breath-like noise and a pitched excitation.
+Voicing separates periodic, harmonic vocal or instrumental sustains from noisy consonants, transient bursts, and breath. In this example, it drives a dual-path adaptive processor: voiced sections route through a lush stereo chorus resonator, while unvoiced sibilance and breath route into a gritty, saturated distortion stage. An interactive code::MIR2GUI.scope:: plots the continuous voicing evidence in real time.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var result = Voicing.kr(source, 1024, 0.25, 40, 1000, \hybrid, 0.5);
-        var excitation = XFade2.ar(WhiteNoise.ar(0.04), Pulse.ar(110, 0.3, 0.04), result[1].lag(0.04).linlin(0, 1, -1, 1));
-        (source * 0.12 + excitation) * Line.kr(0, 1, 0.3) ! 2
+
+        var voicing = Voicing.kr(source, 1024, 0.25, 80, 1200, \hybrid, 0.5);
+        var voicedFlag = voicing[0];
+        var evidence = voicing[1];
+        var voicedSmooth = evidence.lag(0.04);
+
+        // Voiced path: stereo chorus resonator
+        var voicedSig = source * voicedSmooth;
+        var chorus = CombC.ar(voicedSig, 0.05, 0.02 + SinOsc.kr(0.4, [0, pi/2], 0.003), 0.4);
+
+        // Unvoiced path: driven saturation for breath/consonants
+        var unvoicedSig = source * (1.0 - voicedSmooth);
+        var driven = (unvoicedSig * 6).tanh * 0.25 ! 2;
+
+        var sound = (source * 0.2 ! 2) + chorus + driven;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, evidence) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Voicing Probability", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

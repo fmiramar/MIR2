@@ -39,26 +39,38 @@ Percentile frequency in Hz.
 instancemethods::
 
 examples::
-The 85-percent rolloff follows spectral brightness and controls the cutoff of the audible source.
+The 85-percentile spectral rolloff tracks high-frequency energy distribution. In this example, it drives an adaptive exciter and sizzle gate: high-frequency bursts open an auxiliary ringing comb resonator, highlighting drum sizzle without muddying the low end. An interactive code::MIR2GUI.scope:: plots the rolloff boundary frequency in real time.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
+
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-        var value = SpecPcile2.kr(chain, 0.85, fftSize: 1024);
-        LPF.ar(source, value.clip(150, 9000).lag(0.05)) * 0.3 * Line.kr(0, 1, 0.3) ! 2
+        var rolloff = SpecPcile2.kr(chain, 0.85, fftSize: 1024);
+        var sizzleOpen = (rolloff.clip(2000, 14000) / 14000).lag(0.04);
+        var exciter = HPF.ar(source, 4000) * sizzleOpen * 0.4;
+        var sound = (source * 0.25) + (exciter * 0.3);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, rolloff) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Spectral Rolloff (85%)", ~mir2Bus, 500, 16000, "Hz");
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

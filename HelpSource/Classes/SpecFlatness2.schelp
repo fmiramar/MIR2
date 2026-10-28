@@ -36,28 +36,42 @@ A ratio from 0 through 1.
 instancemethods::
 
 examples::
-Spectral flatness crossfades a pitched resonator with a noise texture, following tonal versus noisy passages.
+Spectral flatness measures the ratio of geometric to arithmetic mean of the spectrum. In this example, flatness dynamically crossfades between a pitched resonant drone (when the sound has tonal peaks) and a wide granular white noise diffuser (when the sound is noisy and flat). An interactive code::MIR2GUI.scope:: monitors flatness in real time.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("texture.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
+
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-        var value = SpecFlatness2.kr(chain, fftSize: 1024).sqrt.lag(0.06);
-        var tone = SinOsc.ar(220, 0, 0.06);
-        var texture = BPF.ar(PinkNoise.ar(0.25), 1500, 0.5);
-        (source * 0.12 + XFade2.ar(tone, texture, value.linlin(0, 1, -1, 1))) * Line.kr(0, 1, 0.3) ! 2
+        var flatness = SpecFlatness2.kr(chain, minFreq: 100, maxFreq: 12000, fftSize: 1024);
+        var flatSmooth = flatness.lag(0.05);
+
+        // Resonant pitched drone (favored on low flatness / tonal content)
+        var drone = BPF.ar(Saw.ar([110, 220, 330]), 220, 0.1).sum * (1.0 - flatSmooth);
+        // Diffuse noise texture (favored on high flatness / stochastic content)
+        var diffuser = Dust2.ar(2000) * flatSmooth * 0.4;
+        var sound = (source * 0.2) + (drone * 0.25) + (diffuser * 0.2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, flatness) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Spectral Flatness", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

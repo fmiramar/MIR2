@@ -52,28 +52,38 @@ returns::
 Array: trigger and novelty in 0 through 1. Novelty describes the current frame; a trigger confirms the preceding frame's peak.
 
 examples::
-Detected events excite a pitched resonator over the source. Change the method symbol and tune the threshold to hear how the onset decisions differ.
+Onsets2 provides causal onset detection with SuperFlux and classical spectral methods. In this example, detected drum transients fire a tuned physical woodblock resonator that tracks performance accents. An interactive code::MIR2GUI.envelope:: visualizes onset triggers and transient novelty.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 2);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
+
         var chain = FFT(LocalBuf(2048), source, hop: 0.25);
-        var onset = Onsets2.kr(chain, 0.3, \superflux, fftSize: 2048, hop: 0.25);
-        var strike = Decay2.ar(K2A.ar(onset[0]), 0.001, 0.035) * PinkNoise.ar(0.12);
-        var bell = Ringz.ar(strike, [660, 990], 0.12).sum * 0.2;
-        (source * 0.18 + bell) * Line.kr(0, 1, 0.2) ! 2
+        var onset = Onsets2.kr(chain, 0.25, \superflux, fftSize: 2048, hop: 0.25);
+        var trig = K2A.ar(onset[0]);
+        var woodblock = Ringz.ar(trig, 880, 0.08) * 0.3;
+        var sound = (source * 0.25) + woodblock;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, onset) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.envelope("Onset Detection", ~mir2Bus);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
