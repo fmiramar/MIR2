@@ -33,32 +33,51 @@ returns::
 An Array of four control-rate values: frequency in Hz (zero when unvoiced), learned confidence from 0 through 1, voiced flag 0 or 1, and the sum of the 251 VQT energy bins. The last value depends on input level and frontend normalization; it is neither waveform RMS nor calibrated loudness.
 
 examples::
-The original voice is on the left; a two-partial synthesized voice following the estimated pitch is on the right. Listen for pitch errors and delay as well as successful tracking. Export a model for the server's actual sample rate first, using the extension README.
+PitchPESTO estimates fundamental frequency and voicing confidence using a deep residual convolutional neural network. In this example, an acoustic vocal/instrumental melody is analyzed in real time. The detected pitch and confidence steer a two-partial synthesized tracking voice panned right while the acoustic phrase plays on the left. An interactive code::MIR2GUI.pianoRoll:: displays the estimated pitch in real time. Export a model for the server's actual sample rate first, using the extension README.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var rate = s.sampleRate.asInteger;
-        var modelPath = PitchPESTO.filenameSymbol.asString.dirname.dirname
-            +/+ "models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
-        if(File.exists(modelPath).not) {
-            Error("PitchPESTO: export a model for this server rate and copy it to " ++ modelPath).throw;
+Routine({
+    var rate = s.sampleRate.asInteger;
+    var modelPath = PitchPESTO.filenameSymbol.asString.dirname.dirname
+        +/+ "models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
+    var audioPath = MIR2GUI.soundPath("melody.wav");
+
+    if(File.exists(modelPath).not) {
+        modelPath = Platform.userExtensionDir +/+ "MIR2Neural/models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
+    };
+    if(File.exists(modelPath).not) {
+        Error("PitchPESTO: export a model for this server rate and copy it to " ++ modelPath).throw;
+    };
+
+    ~mir2PESTOModel = Buffer.read(s, modelPath);
+    ~mir2Buffer = if(audioPath.notNil) { Buffer.read(s, audioPath) } { Buffer.read(s, ExampleFiles.child) };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+
+    ~mir2PESTOExample = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic voice fallback
+            var f0 = SinOsc.kr(0.4).range(220, 440);
+            Saw.ar(f0) * 0.2
         };
-        ~mir2PESTOModel = Buffer.read(s, modelPath);
-        ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2PESTOExample = {
-            var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var result = PitchPESTO.kr(source, ~mir2PESTOModel, 0.8);
-            var frequency = Gate.kr(result[0], result[2]).clip(40, 2000).lag(0.03);
-            var envelope = Amplitude.kr(source, 0.01, 0.12).clip(0, 0.3);
-            var voice = SinOsc.ar(frequency) + (SinOsc.ar(frequency * 2) * 0.3);
-            voice = voice * envelope * result[2].lag(0.02) * 0.4;
-            [source * 0.2, voice] * Line.kr(0, 1, 0.4)
-        }.play;
-    }).play(AppClock);
-};
+        // For live input instead: source = SoundIn.ar(0);
+
+        var result = PitchPESTO.kr(source, ~mir2PESTOModel, 0.8);
+        var frequency = Gate.kr(result[0], result[2]).clip(40, 2000).lag(0.03);
+        var envelope = Amplitude.kr(source, 0.01, 0.12).clip(0, 0.3);
+        var voice = SinOsc.ar(frequency) + (SinOsc.ar(frequency * 2) * 0.3);
+        var sound;
+        voice = voice * envelope * result[2].lag(0.02) * 0.4;
+        sound = [source * 0.2, voice] * Line.kr(0, 1, 0.4);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, frequency) };
+        sound
+    }.play;
+
+    ~mir2GUI = MIR2GUI.pianoRoll("PESTO Neural Pitch", ~mir2Bus, minMIDI: 48, maxMIDI: 84);
+}).play(AppClock);
 )
 ::
 Stop the Synth before releasing its model:
@@ -66,9 +85,11 @@ code::
 (
 Routine({
     ~mir2PESTOExample.free;
+    if(~mir2GUI.notNil) { ~mir2GUI.close };
+    if(~mir2Bus.notNil) { ~mir2Bus.free };
     s.sync;
-    ~mir2Buffer.free;
-    ~mir2PESTOModel.free;
+    if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+    if(~mir2PESTOModel.notNil) { ~mir2PESTOModel.free };
 }).play(AppClock);
 )
 ::
