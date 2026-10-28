@@ -27,34 +27,42 @@ returns::
 Median in the same units as the input.
 
 examples::
-A level-derived feature updates 25 times per second. Its processed dynamics control the filter and reference tone, making the utility audible.
+FeatureMedian applies a sliding rank filter to reject transient anomalies and erratic pitch jitter from feature streams. In this example, it filters the pitch output from an acoustic saxophone solo: spurious octave jumps and unvoiced pitch glitches are stripped away, yielding a rock-solid pitch trajectory driving an expressive synthesizer lead. An interactive code::MIR2GUI.scope:: monitors the stabilized pitch contour.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var tick = Impulse.kr(25);
-        var feature = Latch.kr(Amplitude.kr(source, 0.005, 0.02).linlin(0, 0.3, 200, 3000), tick);
-        var value = FeatureMedian.kr(feature, trigger: tick, frameTime: 0.04);
-        var control = value.linlin(200, 3000, 0, 1).clip(0, 1);
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 5000), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 160, 700), 0, 0.025))
-            * Line.kr(0, 1, 0.5) ! 2
+
+        var pitch = PitchMPM.kr(source, minFreq: 100, maxFreq: 1200, frameSize: 2048, hop: 0.25);
+        var rawFreq = pitch[0];
+        var medianFreq = FeatureMedian.kr(rawFreq, size: 7, trigger: -1, frameTime: 0.01);
+        var leadSynth = Saw.ar([medianFreq.clip(40, 2000), (medianFreq * 1.005).clip(40, 2000)]).sum * 0.15 * pitch[1].lag(0.05);
+        var sound = (source * 0.25) + leadSynth;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, medianFreq) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Median Filtered Pitch", ~mir2Bus, 100.0, 1000.0, "Hz");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/FeatureSmooth::
 link::Classes/Median::

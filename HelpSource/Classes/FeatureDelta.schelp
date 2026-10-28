@@ -27,34 +27,44 @@ returns::
 Derivative in input units per second.
 
 examples::
-A level-derived feature updates 25 times per second. Its processed dynamics control the filter and reference tone, making the utility audible.
+FeatureDelta calculates the causal regression first derivative of any control-rate feature stream. In this example, the velocity of spectral centroid changes is tracked on a drum groove: rapid upward spectral surges trigger a resonant micro-glitch stutter delay, accentuating transient attacks. An interactive code::MIR2GUI.scope:: plots the real-time feature derivative.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var tick = Impulse.kr(25);
-        var feature = Latch.kr(Amplitude.kr(source, 0.005, 0.02).linlin(0, 0.3, 200, 3000), tick);
-        var value = FeatureDelta.kr(feature, trigger: tick, frameTime: 0.04);
-        var control = value.linlin(-4000, 4000, 0, 1).clip(0, 1);
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 5000), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 160, 700), 0, 0.025))
-            * Line.kr(0, 1, 0.5) ! 2
+
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var centroid = SpecCentroid2.kr(chain, fftSize: 1024);
+        var delta = FeatureDelta.kr(centroid, radius: 2, trigger: -1, frameTime: 0.01);
+        var surge = (delta > 2000);
+        var glitchDelay = CombN.ar(source * surge.lag(0.005), 0.2, 0.04, 0.3);
+        var sound = (source * 0.25) + (glitchDelay * 0.35);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, delta) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Spectral Centroid Delta", ~mir2Bus, -4000.0, 4000.0, "Hz/s");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/FeatureDeltaDelta::
+link::Classes/FeatureSmooth::
 link::Classes/Slope::

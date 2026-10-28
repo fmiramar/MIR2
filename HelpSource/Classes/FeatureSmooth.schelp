@@ -27,34 +27,44 @@ returns::
 Smoothed input value.
 
 examples::
-A level-derived feature updates 25 times per second. Its processed dynamics control the filter and reference tone, making the utility audible.
+FeatureSmooth performs causal one-pole exponential smoothing calibrated in physical seconds. In this example, it processes spectral flux extracted from a bowing friction texture: fast fluctuations are integrated into a slow, organic swell parameter that smoothly breathes open the wet space of an algorithmic reverb. An interactive code::MIR2GUI.scope:: plots the smoothed feature trajectory.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("texture.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var tick = Impulse.kr(25);
-        var feature = Latch.kr(Amplitude.kr(source, 0.005, 0.02).linlin(0, 0.3, 200, 3000), tick);
-        var value = FeatureSmooth.kr(feature, trigger: tick, frameTime: 0.04);
-        var control = value.linlin(200, 3000, 0, 1).clip(0, 1);
-        var filtered = RLPF.ar(source, control.linexp(0, 1, 250, 5000), 0.25);
-        (filtered * 0.25 + SinOsc.ar(control.linexp(0, 1, 160, 700), 0, 0.025))
-            * Line.kr(0, 1, 0.5) ! 2
+
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var flux = FFTFlux2.kr(chain, fftSize: 1024);
+        var smoothedFlux = FeatureSmooth.kr(flux, time: 0.2, trigger: -1, frameTime: 0.01);
+        var revSize = smoothedFlux.linlin(0.0, 0.4, 0.1, 0.95).clip(0.1, 0.98);
+        var verb = FreeVerb.ar(source, 0.7, revSize, 0.5) * 0.4;
+        var sound = (source * 0.2) + verb;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, smoothedFlux) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Smoothed Feature", ~mir2Bus, 0.0, 0.5);
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/FeatureMedian::
+link::Classes/FeatureDelta::
 link::Classes/Lag::
