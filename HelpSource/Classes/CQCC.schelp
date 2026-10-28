@@ -57,34 +57,48 @@ returns::
 Array of numCoeffs cepstral values. These are signed log-power coordinates, not bounded probabilities.
 
 examples::
-Two nonconstant cepstral coordinates control filter colour and stereo position, making the changing spectral-envelope description audible.
+CQCC computes cepstral coefficients derived from uniform resampling of a constant-Q log spectrum. In this example, 13 constant-Q cepstral coefficients dynamically modulate an FM carrier: lower cepstral orders control the FM modulation index while higher orders control carrier frequency offsets, creating an expressive timbral shadow tracking acoustic piano chords. An interactive code::MIR2GUI.bars:: displays the 13 cepstral coefficients in real time.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("piano-chords.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 13);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var coefficients = CQCC.kr(source, numCoeffs: 8, fmin: 110, numBins: 48, include0: 0);
-        var shape = (coefficients[0] * 0.08).tanh.lag(0.05);
-        var detail = (coefficients[1] * 0.08).tanh.lag(0.05);
-        var filtered = RLPF.ar(source, shape.linexp(-1, 1, 250, 4500), 0.3) * 0.25;
-        var sound = Pan2.ar(filtered, detail * 0.8);
-        sound * Line.kr(0, 1, 0.35)
+
+        var cqcc = CQCC.kr(source, numCoeffs: 13, fmin: 110, numBins: 48, include0: 1);
+        var c1 = cqcc[1].lag(0.04);
+        var c2 = cqcc[2].lag(0.04);
+
+        // FM timbral synthesizer shadowed by CQCC
+        var modIndex = c1.linlin(-20, 20, 0.2, 5.0).clip(0.1, 8.0);
+        var carrierFreq = c2.linlin(-15, 15, 110, 440).clip(80, 880);
+        var modulator = SinOsc.ar(carrierFreq * 2) * (modIndex * carrierFreq);
+        var carrier = SinOsc.ar(carrierFreq + modulator) * 0.15;
+        var sound = (source * 0.25) + carrier;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, cqcc) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.bars("CQCC Coefficients", ~mir2Bus, 13, -30.0, 30.0);
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/CQT::
 link::Classes/MFCC2::
-link::Classes/FFT::
+link::Classes/ChromaCQT::

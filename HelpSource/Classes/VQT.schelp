@@ -57,34 +57,44 @@ argument:: gamma
 Bandwidth offset in Hz. The helper defaults to zero; pass the VQT gamma explicitly when sizing a VQT.
 
 examples::
-The balance between lower and upper VQT bands follows the sample and opens the filter. The positive gamma makes low-band decisions respond with a shorter observation window.
+VQT introduces a bandwidth offset code::gamma:: to shorten low-frequency analysis windows, delivering faster temporal response for transient bass articulation. In this example, 48 VQT bins analyze a bass-melody mix: fast low-end activity modulates an analog-style Moog ladder filter tracking walking bass lines cleanly. An interactive code::MIR2GUI.heatmap:: displays the real-time variable-Q spectrogram.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("bass-melody-mix.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 48);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var magnitudes = VQT.kr(source, fmin: 110, numBins: 36, gamma: 30);
-        var low = magnitudes.copyRange(0, 11).sum;
-        var high = magnitudes.copyRange(12, 35).sum;
-        var brightness = (high / (low + high + 1e-9)).clip(0, 1).lag(0.03);
-        var sound = RLPF.ar(source, brightness.linexp(0, 1, 300, 5000), 0.35) * 0.3;
-        sound * Line.kr(0, 1, 0.25) ! 2
+
+        var magnitudes = VQT.kr(source, fmin: 55, numBins: 48, binsPerOctave: 12, gamma: 25, hop: 0.25);
+        var lowEnergy = magnitudes[0..11].sum.lag(0.02);
+        var highEnergy = magnitudes[24..47].sum.lag(0.02);
+        var filterCutoff = lowEnergy.linlin(0.01, 1.0, 150, 2500).clip(100, 5000);
+        var filtered = MoogFF.ar(source, filterCutoff, 1.5) * 1.5;
+        var sound = (source * 0.2) + (filtered * 0.25);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, magnitudes.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.heatmap("VQT Spectrogram", ~mir2Bus, 48);
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
 link::Classes/CQT::
-link::Classes/FFT::
+link::Classes/ChromaCQT::
+link::Classes/CQCC::

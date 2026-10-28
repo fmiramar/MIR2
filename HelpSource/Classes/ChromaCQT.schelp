@@ -40,26 +40,39 @@ returns::
 Twelve control-rate pitch-class powers, C first, with the selected normalization.
 
 examples::
-The sample's pitch-class distribution controls a sustained octave-folded oscillator bank. The dry source helps make the analysis delay audible.
+ChromaCQT folds constant-Q spectral energy across multiple octaves into twelve equal-tempered pitch classes (C through B). In this example, it drives a 12-voice polyphonic organ resynthesizer: detected pitch classes continuously open corresponding pipe-organ sine voices, doubling piano chord progressions with lush harmonic resonance. An interactive code::MIR2GUI.chroma:: displays the real-time energy distribution across the circular chroma wheel.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("piano-chords.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 12);
     s.sync;
-    ~mir2ChromaExample = {
+    ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chroma = ChromaCQT.kr(source, fmin: 110, normalize: \sum);
-        var voices = SinOsc.ar((60 + (0..11)).midicps, 0, chroma.lag(0.08) * 0.16).sum;
-        ((source * 0.15) + voices) * Line.kr(0, 1, 0.5) ! 2
+
+        var chroma = ChromaCQT.kr(source, fmin: 110, octaves: 4, binsPerOctave: 12, normalize: \max);
+        var notes = (60 + (0..11)).midicps;
+        var organ = Mix.fill(12, { |i|
+            SinOsc.ar(notes[i], 0, chroma[i].lag(0.06) * 0.12)
+        });
+        var sound = (source * 0.25) + (organ * 0.3);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, chroma) };
+        sound * Line.kr(0, 1, 0.3) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.chroma("Chroma CQT Wheel", ~mir2Bus);
 }).play(AppClock);
 )
 ::
 code::
 (
-~mir2ChromaExample.free;
-~mir2Buffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
@@ -68,4 +81,4 @@ link::Guides/MIR2::
 link::Classes/CQT::
 link::Classes/HPCP::
 link::Classes/Chromagram2::
-link::Classes/FFT::
+link::Classes/Tonnetz::
