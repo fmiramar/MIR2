@@ -38,30 +38,50 @@ returns::
 Array [phaseRadians, phaseConcentration], with phase in -pi..pi and concentration in 0..1.
 
 examples::
-Low and high source bands occupy opposite sides, with a small channel delay. The selected band measurement controls a tone's pitch and position.
+InterchannelPhase computes the circular mean of the interchannel spectral phase in radians (-pi to +pi) and its phase concentration (0 to 1). In this example, measured phase difference controls an allpass phase-correction delay line, dynamically aligning phase differences between stereo channels. An interactive code::MIR2GUI.scope:: displays real-time interchannel phase in radians.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("stereo.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
-        // For live input instead: source = SoundIn.ar(0);
-        var left = LPF.ar(source, 900) + (HPF.ar(source, 1800) * 0.15);
-        var right = LPF.ar(source, 900) * 0.15 + HPF.ar(source, 1800);
-        var value = InterchannelPhase.kr(left, DelayC.ar(right, 0.01, 0.001), minFreq: 100, maxFreq: 2500);
-        var control = value[0].linlin(-pi, pi, 0, 1);
-        var tone = Pan2.ar(SinOsc.ar(control.linexp(0, 1, 180, 1100), 0, 0.035), control * 2 - 1);
-        ([left, right] * 0.2 + tone) * Line.kr(0, 1, 0.4)
+        var source = if(~mir2Buffer.isKindOf(Buffer) and: { ~mir2Buffer.numChannels >= 2 }) {
+            PlayBuf.ar(2, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            if(~mir2Buffer.notNil) {
+                var sig = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+                [sig, DelayC.ar(sig, 0.02, 0.003)]
+            } {
+                // Synthetic stereo fallback
+                var l = Saw.ar(220) * 0.2 + PinkNoise.ar(0.1);
+                var r = Saw.ar(222) * 0.2 + PinkNoise.ar(0.1);
+                [l, r]
+            }
+        };
+        // For live input instead: source = SoundIn.ar([0, 1]);
+
+        var phaseData = InterchannelPhase.kr(source[0], source[1], frameSize: 1024, hop: 0.5, averageTime: 0.1, minFreq: 150, maxFreq: 4000);
+        var phaseRad = phaseData[0].lag(0.08);
+        var phaseDelay = phaseRad.linlin(-pi, pi, 0.0001, 0.002).clip(0.0001, 0.005);
+        var correctedR = AllpassC.ar(source[1], 0.01, phaseDelay, 0.05);
+        var sound = [source[0], correctedR] * 0.25;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, phaseRad) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Interchannel Phase", ~mir2Bus, -pi, pi, "rad");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

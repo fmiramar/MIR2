@@ -26,30 +26,51 @@ returns::
 Mid/side ratio in dB; silence returns zero.
 
 examples::
-The source pans slowly and its right analysis channel is delayed. The measured stereo relationship sets a quiet comparison-tone pitch.
+MidSideRatio computes the logarithmic power ratio between mid and side components in decibels (positive values indicate center-dominant mono energy; negative values indicate side-dominant wide energy). In this example, the mid/side ratio controls a dynamic spatial compressor, providing transparent acoustic stabilization across the stereo image. An interactive code::MIR2GUI.scope:: displays real-time mid/side ratio in dB.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("stereo.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
-        // For live input instead: source = SoundIn.ar(0);
-        var pan = SinOsc.kr(0.15);
-        var stereo = Pan2.ar(source, pan);
-        var value = MidSideRatio.kr(stereo[0], DelayC.ar(stereo[1], 0.01, 0.002));
-        var control = value.linlin(-18, 18, 0, 1).clip(0, 1);
-        var tone = Pan2.ar(SinOsc.ar(control.linexp(0, 1, 200, 1000), 0, 0.035), pan.neg);
-        (stereo * 0.2 + tone) * Line.kr(0, 1, 0.1)
+        var source = if(~mir2Buffer.isKindOf(Buffer) and: { ~mir2Buffer.numChannels >= 2 }) {
+            PlayBuf.ar(2, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            if(~mir2Buffer.notNil) {
+                var sig = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+                [sig, DelayC.ar(sig, 0.02, 0.003)]
+            } {
+                // Synthetic stereo fallback
+                var l = Saw.ar(220) * 0.2 + PinkNoise.ar(0.1);
+                var r = Saw.ar(222) * 0.2 + PinkNoise.ar(0.1);
+                [l, r]
+            }
+        };
+        // For live input instead: source = SoundIn.ar([0, 1]);
+
+        var msRatio = MidSideRatio.kr(source[0], source[1], windowTime: 0.05);
+        var msLag = msRatio.lag(0.08);
+        var mid = (source[0] + source[1]) * 0.5;
+        var side = (source[0] - source[1]) * 0.5;
+        var sideBoost = msLag.linlin(0, 18, 1.3, 0.8).clip(0.5, 1.5);
+        var sound = [mid + (side * sideBoost), mid - (side * sideBoost)] * 0.25;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, msLag.clip(-24, 24)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Mid/Side Ratio", ~mir2Bus, -18.0, 18.0, "dB");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

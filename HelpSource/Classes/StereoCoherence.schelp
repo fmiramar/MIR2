@@ -38,30 +38,50 @@ returns::
 Coherence from zero through one; silence or no shared energy returns zero.
 
 examples::
-Low and high source bands occupy opposite sides, with a small channel delay. The selected band measurement controls a tone's pitch and position.
+StereoCoherence measures the magnitude-squared cross-spectral coherence between two audio channels within a specified frequency band (0 for uncorrelated/diffuse sound, 1 for fully coherent linear relationship). In this example, low coherence (indicating diffuse ambient reverberation or room decorrelation) automatically opens an ambient stereo reverb send, while highly coherent direct sound remains crisp and upfront. An interactive code::MIR2GUI.scope:: displays real-time stereo coherence.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("stereo.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
-        // For live input instead: source = SoundIn.ar(0);
-        var left = LPF.ar(source, 900) + (HPF.ar(source, 1800) * 0.15);
-        var right = LPF.ar(source, 900) * 0.15 + HPF.ar(source, 1800);
-        var value = StereoCoherence.kr(left, DelayC.ar(right, 0.01, 0.001), minFreq: 100, maxFreq: 2500);
-        var control = value;
-        var tone = Pan2.ar(SinOsc.ar(control.linexp(0, 1, 180, 1100), 0, 0.035), control * 2 - 1);
-        ([left, right] * 0.2 + tone) * Line.kr(0, 1, 0.4)
+        var source = if(~mir2Buffer.isKindOf(Buffer) and: { ~mir2Buffer.numChannels >= 2 }) {
+            PlayBuf.ar(2, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            if(~mir2Buffer.notNil) {
+                var sig = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+                [sig, DelayC.ar(sig, 0.02, 0.003)]
+            } {
+                // Synthetic stereo fallback
+                var l = Saw.ar(220) * 0.2 + PinkNoise.ar(0.1);
+                var r = Saw.ar(222) * 0.2 + PinkNoise.ar(0.1);
+                [l, r]
+            }
+        };
+        // For live input instead: source = SoundIn.ar([0, 1]);
+
+        var coh = StereoCoherence.kr(source[0], source[1], frameSize: 1024, hop: 0.5, averageTime: 0.2, minFreq: 200, maxFreq: 5000);
+        var cohLag = coh.lag(0.08);
+        var diffuseSend = (1 - cohLag).clip(0, 1) * 0.5;
+        var wet = FreeVerb2.ar(source[0], source[1], 1.0, 0.7, 0.3) * diffuseSend;
+        var sound = (source * 0.25) + wet;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, cohLag.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Stereo Coherence", ~mir2Bus, 0.0, 1.0, "index");
 }).play(AppClock);
 )
 ::
-Stop and release the buffer:
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
