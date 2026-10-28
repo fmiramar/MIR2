@@ -26,31 +26,45 @@ returns::
 Two controls: frequency in Hz and raw FFT magnitude.
 
 examples::
-A sine follows the strongest partial while the original recording stays quietly audible. Listen for overtone jumps when a different spectral peak becomes strongest.
+FFTPeak2 extracts the frequency (Hz) and raw magnitude of the strongest local spectral peak using parabolic interpolation. In this example, the dominant spectral peak frequency tunes an audio-rate sine wave carrier for a heterodyne ring modulator, producing musical sum and difference sidebands centered around the principal melodic overtone. An interactive code::MIR2GUI.scope:: displays real-time dominant peak frequency.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var peak = FFTPeak2.kr(chain, fftSize: 1024);
-            var voice = SinOsc.ar(Lag.kr(peak[0].clip(80, 4000), 0.03), 0, 0.08);
-            var gate = Lag.kr((peak[1] > 0.01), 0.03);
-            var fade = Line.kr(0, 1, 0.15);
-            ((source * 0.08) + (voice * gate)) * fade ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var peak = FFTPeak2.kr(chain, minFreq: 80, maxFreq: 5000, interpolate: 1, fftSize: 1024);
+        var peakFreq = peak[0].clip(80, 5000).lag(0.04);
+        var peakMag = peak[1].lag(0.04);
+        var carrier = SinOsc.ar(peakFreq);
+        var ringMod = (source * carrier) * (peakMag > 0.02).lag(0.02) * 0.25;
+        var sound = (source * 0.2) + ringMod;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, peakFreq) };
+        sound * Line.kr(0, 1, 0.2) ! 2
+    }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Dominant Peak Freq", ~mir2Bus, 100.0, 3000.0, "Hz");
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

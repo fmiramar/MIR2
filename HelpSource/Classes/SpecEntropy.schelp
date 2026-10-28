@@ -37,31 +37,44 @@ returns::
 One control-rate descriptor value.
 
 examples::
-The descriptor opens a low-pass filter: stronger descriptor values make the sample brighter. The mapping is deliberately bounded so the result stays audible on this recording.
+SpecEntropy computes the Shannon entropy of the power spectrum (0 for a pure sinusoidal tone, approaching 1 for white noise). In this example, high spectral entropy routes the audio into a diffuse multi-tap delay network, while low entropy preserves direct focused sound. An interactive code::MIR2GUI.scope:: displays real-time normalized spectral entropy.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var feature = SpecEntropy.kr(chain, fftSize: 1024);
-            var amount = Lag.kr(feature.clip(0, 1), 0.08);
-            var cutoff = amount.linexp(0, 1, 250, 6500);
-            var fade = Line.kr(0, 1, 0.15);
-            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("texture.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic texture fallback
+            PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var entropy = SpecEntropy.kr(chain, mode: \normalized, minFreq: 40, maxFreq: 12000, fftSize: 1024);
+        var entLag = entropy.lag(0.08);
+        var scatter = CombC.ar(source, 0.1, SinOsc.kr([0.3, 0.4]).range(0.02, 0.07), 1.2) * entLag * 0.4;
+        var direct = source * (1 - (entLag * 0.5));
+        var sound = (direct ! 2) + scatter;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, entropy.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2) * 0.3
+    }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Spectral Entropy", ~mir2Bus, 0.0, 1.0, "norm");
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

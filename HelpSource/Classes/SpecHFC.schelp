@@ -37,31 +37,47 @@ returns::
 One control-rate descriptor value.
 
 examples::
-The descriptor opens a low-pass filter: stronger descriptor values make the sample brighter. The mapping is deliberately bounded so the result stays audible on this recording.
+SpecHFC computes high-frequency-content energy by weighting spectral bins by their frequency. In percussion processing, HFC rises sharply on cymbal and hi-hat transients. In this example, HFC controls an automatic high-frequency transient gate, routing cymbal shimmer to an airy stereo chorus while preserving clean dry bass and snare. An interactive code::MIR2GUI.scope:: displays real-time high-frequency content.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var feature = SpecHFC.kr(chain, fftSize: 1024);
-            var amount = Lag.kr(((feature + 1).log / 18).clip(0, 1), 0.08);
-            var cutoff = amount.linexp(0, 1, 250, 6500);
-            var fade = Line.kr(0, 1, 0.15);
-            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var hfc = SpecHFC.kr(chain, weighting: \linear, minFreq: 1000, maxFreq: 18000, spectrumMode: 0, fftSize: 1024);
+        var gate = (hfc > 300).lag(0.005, 0.08);
+        var cymbalWash = HPF.ar(source, 4000) * gate;
+        var chorus = DelayC.ar(cymbalWash, 0.02, SinOsc.kr([0.5, 0.7]).range(0.002, 0.008)) * 0.3;
+        var sound = (source * 0.25 ! 2) + chorus;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, (hfc / 10).clip(0, 1000)) };
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+
+    ~mir2GUI = MIR2GUI.scope("High Frequency Content", ~mir2Bus, 0.0, 500.0, "HFC");
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

@@ -34,31 +34,43 @@ returns::
 One control-rate descriptor value.
 
 examples::
-The descriptor opens a low-pass filter: stronger descriptor values make the sample brighter. The mapping is deliberately bounded so the result stays audible on this recording.
+SpecStrongPeak measures the fraction of total spectral mass concentrated in the single strongest bin (between 0 and 1). Pure sinusoidal or resonant acoustic tones exhibit high concentration; broadband noise exhibits low concentration. In this example, strong peak concentration tunes the resonance Q of a tracking bandpass filter to accentuate vocal and instrumental formants. An interactive code::MIR2GUI.scope:: displays real-time strong peak concentration.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var feature = SpecStrongPeak.kr(chain, fftSize: 1024);
-            var amount = Lag.kr((feature * 8).clip(0, 1), 0.08);
-            var cutoff = amount.linexp(0, 1, 250, 6500);
-            var fade = Line.kr(0, 1, 0.15);
-            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var peakRatio = SpecStrongPeak.kr(chain, minFreq: 80, maxFreq: 8000, spectrumMode: 0, fftSize: 1024);
+        var resQ = peakRatio.lag(0.08).linlin(0.05, 0.4, 0.5, 0.05).clip(0.05, 0.8);
+        var filtered = BPF.ar(source, 1200, resQ) * 0.4;
+        var sound = (source * 0.25) + filtered;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, peakRatio.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2) ! 2
+    }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Strong Peak Fraction", ~mir2Bus, 0.0, 0.5, "ratio");
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

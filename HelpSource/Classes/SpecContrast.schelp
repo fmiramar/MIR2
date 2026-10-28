@@ -30,31 +30,45 @@ returns::
 One value per band, with the optional SpecContrast valley vector appended.
 
 examples::
-The 300..1800 Hz band controls the output filter, making changes in this region audible as changes in brightness.
+SpecContrast calculates the dB difference between peak and valley energy quantiles in each frequency subband (Jiang et al. 2002). Tonal sounds with prominent partials produce high contrast; noisy or diffuse sounds produce low contrast. In this example, 4 subbands (`#[0, 300, 1800, 6000, 20000]`) measure dynamic contrast, driving an active multi-band expander that clarifies spectral definition. An interactive code::MIR2GUI.bars:: displays real-time contrast across subbands.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var feature = SpecContrast.kr(chain, boundaries: #[0, 300, 1800, 6000, 20000], fftSize: 1024);
-            var amount = Lag.kr((feature[1] / 50).clip(0, 1), 0.05);
-            var cutoff = amount.linexp(0, 1, 250, 6500);
-            var fade = Line.kr(0, 1, 0.15);
-            (RLPF.ar(source, cutoff, 0.5) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 4);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var contrast = SpecContrast.kr(chain, boundaries: #[0, 300, 1800, 6000, 20000], quantile: 0.1, includeValleys: 0, spectrumMode: 0, fftSize: 1024);
+        var midContrast = contrast[1].lag(0.05);
+        var sound = (source * (1 + (midContrast / 60 * 0.3))) ! 2 * 0.25;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, contrast.clip(0, 60)) };
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+
+    ~mir2GUI = MIR2GUI.bars("Spectral Contrast (dB)", ~mir2Bus, 4, 0.0, 40.0);
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

@@ -34,31 +34,45 @@ returns::
 One control-rate descriptor value.
 
 examples::
-The descriptor opens a low-pass filter: stronger descriptor values make the sample brighter. The mapping is deliberately bounded so the result stays audible on this recording.
+SpecEnergy calculates the unnormalized total spectral energy (sum of squared magnitudes). In this example, spectral energy modulates analog tape saturation drive and warmth, producing pleasing non-linear saturation on energetic drum hits while leaving quiet taps transparent. An interactive code::MIR2GUI.scope:: displays real-time spectral energy.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var feature = SpecEnergy.kr(chain, fftSize: 1024);
-            var amount = Lag.kr(((feature + 1).log / 10).clip(0, 1), 0.08);
-            var cutoff = amount.linexp(0, 1, 250, 6500);
-            var fade = Line.kr(0, 1, 0.15);
-            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var energy = SpecEnergy.kr(chain, minFreq: 20, maxFreq: 20000, spectrumMode: 1, fftSize: 1024);
+        var drive = energy.lag(0.05).linexp(0.1, 10.0, 1.0, 3.5).clip(1.0, 4.0);
+        var saturated = (source * drive).tanh * 0.3;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, energy.clip(0, 50)) };
+        saturated * Line.kr(0, 1, 0.2) ! 2
+    }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Spectral Energy", ~mir2Bus, 0.0, 20.0, "energy");
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

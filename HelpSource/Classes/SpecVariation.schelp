@@ -34,31 +34,46 @@ returns::
 One control-rate descriptor value.
 
 examples::
-The descriptor opens a low-pass filter: stronger descriptor values make the sample brighter. The mapping is deliberately bounded so the result stays audible on this recording.
+SpecVariation computes the normalized cosine distance between consecutive FFT spectra (ranging from 0 to 1). It measures timbral change independent of absolute energy changes. In this example, sharp spectral transitions (such as sudden percussive hits or timbral shifts) trigger momentary reverse swell delays, creating dynamic rhythmic echoes. An interactive code::MIR2GUI.scope:: displays real-time spectral variation.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var feature = SpecVariation.kr(chain, fftSize: 1024);
-            var amount = Lag.kr((feature * 4).clip(0, 1), 0.08);
-            var cutoff = amount.linexp(0, 1, 250, 6500);
-            var fade = Line.kr(0, 1, 0.15);
-            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var variation = SpecVariation.kr(chain, minFreq: 50, maxFreq: 15000, spectrumMode: 0, fftSize: 1024);
+        var trig = (variation > 0.35).lag(0.01, 0.1);
+        var swell = CombC.ar(source, 0.2, 0.15, 0.8) * trig * 0.4;
+        var sound = (source * 0.25 ! 2) + swell;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, variation.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Spectral Variation", ~mir2Bus, 0.0, 1.0, "dist");
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

@@ -34,31 +34,46 @@ returns::
 One control-rate descriptor value.
 
 examples::
-The descriptor opens a low-pass filter: stronger descriptor values make the sample brighter. The mapping is deliberately bounded so the result stays audible on this recording.
+SpecBandRatio calculates the ratio of energy in a specified frequency band to total spectral energy (between 0 and 1). In this example, it measures the proportion of energy in the 40 to 300 Hz low band. When low bass energy dominates (e.g. heavy kicks), an active mix tilt filter gently boosts high frequencies to maintain crisp clarity. An interactive code::MIR2GUI.scope:: displays real-time low-band energy ratio.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var feature = SpecBandRatio.kr(chain, minFreq: 300, maxFreq: 1800, fftSize: 1024);
-            var amount = Lag.kr(feature.clip(0, 1), 0.08);
-            var cutoff = amount.linexp(0, 1, 250, 6500);
-            var fade = Line.kr(0, 1, 0.15);
-            (RLPF.ar(source, cutoff, 0.6) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var ratio = SpecBandRatio.kr(chain, minFreq: 40, maxFreq: 300, spectrumMode: 1, fftSize: 1024);
+        var highBoost = ratio.lag(0.05).linlin(0.2, 0.8, 0.0, 6.0).clip(0.0, 8.0);
+        var eq = BHiShelf.ar(source, 4000, 1.0, highBoost);
+        var sound = eq * 0.25 ! 2;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, ratio.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Low Band Energy Ratio", ~mir2Bus, 0.0, 1.0, "ratio");
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

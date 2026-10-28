@@ -26,31 +26,48 @@ returns::
 One value per band, with the optional SpecContrast valley vector appended.
 
 examples::
-The 300..1800 Hz band controls the output filter, making changes in this region audible as changes in brightness.
+FFTSubbandPower2 computes the mean bin power in each independently bounded frequency band. In this example, 4 subbands (`#[0, 250, 1500, 6000, 20000]`) monitor the balance between sub-bass, midrange, and treble. The normalized relative power across bands drives an active parametric equalizer, dynamically compensating for mix imbalances in real time. An interactive code::MIR2GUI.bars:: displays normalized power across subbands.
 code::
 (
-s.waitForBoot {
-    Routine({
-        var buffer = Buffer.read(s, ExampleFiles.child);
-        s.sync;
-        ~mir2Example = {
-            var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
-            // For live input instead: source = SoundIn.ar(0);
-            var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-            var feature = FFTSubbandPower2.kr(chain, boundaries: #[0, 300, 1800, 6000, 20000], fftSize: 1024);
-            var amount = Lag.kr((feature[1] / (feature.sum + 1e-9)).clip(0, 1), 0.05);
-            var cutoff = amount.linexp(0, 1, 250, 6500);
-            var fade = Line.kr(0, 1, 0.15);
-            (RLPF.ar(source, cutoff, 0.5) * 0.18 * fade) ! 2
-        }.play;
-        ~mir2Example.onFree { buffer.free };
-    }).play(AppClock);
-};
-)
+Routine({
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 4);
+    s.sync;
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
+        // For live input instead: source = SoundIn.ar(0);
 
-// Stop the example and release its sample buffer.
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var subPower = FFTSubbandPower2.kr(chain, boundaries: #[0, 250, 1500, 6000, 20000], spectrumMode: 1, fftSize: 1024);
+        var normPower = (subPower / (subPower.sum + 1e-6)).lag(0.08);
+        var bassBoost = normPower[0].linlin(0.1, 0.6, 3.0, -3.0);
+        var trebleBoost = normPower[3].linlin(0.05, 0.4, 4.0, -4.0);
+        var eq = BHiShelf.ar(BLowShelf.ar(source, 200, 1.0, bassBoost), 6000, 1.0, trebleBoost);
+        var sound = eq * 0.25 ! 2;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, normPower) };
+        sound * Line.kr(0, 1, 0.2)
+    }.play;
+
+    ~mir2GUI = MIR2GUI.bars("Subband Power", ~mir2Bus, 4, 0.0, 1.0);
+}).play(AppClock);
+)
+::
+code::
 (
 ~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
