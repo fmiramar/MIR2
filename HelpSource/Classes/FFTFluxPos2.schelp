@@ -26,31 +26,44 @@ returns::
 One nonnegative control-rate evidence value.
 
 examples::
-The measured spectral change opens a filtered noise accompaniment over the source.
+FFTFluxPos2 computes half-wave rectified spectral flux, summing only positive bin energy increases while discarding negative decays. In this example, it gates an ambient reverb burst exclusively on attack onsets of a drum loop: the steady tail remains completely dry, while each new drum strike injects an expansive bloom of reverberation. An interactive code::MIR2GUI.scope:: plots positive flux in real time.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(1024), source);
-        var value = FFTFluxPos2.kr(chain);
-        var texture = BPF.ar(PinkNoise.ar(0.15), 1800, 0.5) * (value * 2).clip(0, 1).lag(0.03);
-        (source * 0.16 + texture) * Line.kr(0, 1, 0.25) ! 2
+
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var posFlux = FFTFluxPos2.kr(chain, fftSize: 1024);
+        var gate = (posFlux > 2.0).lagud(0.005, 0.12);
+        var reverb = FreeVerb.ar(source * gate, 0.8, 0.85, 0.2) * 0.35;
+        var sound = (source * 0.25) + reverb;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, posFlux) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Positive Spectral Flux", ~mir2Bus, 0.0, 10.0);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/FFTFlux2::
 link::Classes/Onsets2::
+link::Classes/FFTComplexDev2::
 link::Classes/FFTFlux2::

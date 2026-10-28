@@ -22,31 +22,43 @@ returns::
 One nonnegative control-rate evidence value.
 
 examples::
-The measured spectral change opens a filtered noise accompaniment over the source.
+FFTMKL2 calculates information-theoretic Modified Kullback-Leibler spectral divergence, emphasizing unexpected new frequency appearances over steady background noise. In this example, it drives an aggressive transient exciter: sudden spectral bursts in acoustic drums spawn high-frequency resonant pings that cleanly accentuate stick clicks and snare snaps. An interactive code::MIR2GUI.scope:: plots the real-time MKL divergence metric.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(1024), source);
-        var value = FFTMKL2.kr(chain);
-        var texture = BPF.ar(PinkNoise.ar(0.15), 1800, 0.5) * (value * 1).clip(0, 1).lag(0.03);
-        (source * 0.16 + texture) * Line.kr(0, 1, 0.25) ! 2
+
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var mkl = FFTMKL2.kr(chain, fftSize: 1024);
+        var surge = (mkl - 150).max(0).lag(0.02);
+        var ping = HPF.ar(source, 3000) * (surge * 0.1).clip(0, 3);
+        var sound = (source * 0.25) + (ping * 0.2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, mkl) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Modified KL Divergence", ~mir2Bus, 0.0, 350.0);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
+link::Classes/FFTComplexDev2::
 link::Classes/FFTFlux2::
+link::Classes/Onsets2::

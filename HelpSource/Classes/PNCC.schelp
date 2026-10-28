@@ -40,34 +40,47 @@ returns::
 Array of numCoeffs cepstral values. These are dimensionless features; higher coefficients can be negative.
 
 examples::
-PNCC spectral shape controls a resonant filter and stereo position. Its medium-time processing creates an audible lag relative to rapid source changes.
+PNCC extracts Power-Normalized Cepstral Coefficients designed for noise-robust speech and audio analysis via medium-time spectral averaging, asymmetric background noise suppression, and power-law compression. In this example, 13 PNCC coefficients modulate a dual-oscillator vocal formant synth: the synthesized timbre shadows the saxophone melody with high immunity to background room noise. An interactive code::MIR2GUI.bars:: displays the 13 power-normalized cepstral coefficients in real time.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 13);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var coefficients = PNCC.kr(source, numCoeffs: 3, include0: 0);
-        var cutoff = coefficients[0].tanh.linexp(-1, 1, 250, 5000).lag(0.04);
-        var position = coefficients[1].tanh.lag(0.08);
-        var shaped = RLPF.ar(source, cutoff, 0.4);
-        Pan2.ar(((source * 0.08) + (shaped * 0.18)) * Line.kr(0, 1, 0.3), position)
+
+        var pncc = PNCC.kr(source, numCoeffs: 13, numBands: 32, minFreq: 80, maxFreq: 8000, include0: 1);
+        var c1 = pncc[1].lag(0.04);
+        var c2 = pncc[2].lag(0.04);
+
+        // Vocal formant synthesizer driven by PNCC
+        var cutoff = c1.linlin(-15, 15, 250, 4000).clip(150, 6000);
+        var q = c2.linlin(-10, 10, 0.15, 0.8).clip(0.1, 0.9);
+        var synthVoice = BPF.ar(Saw.ar([110, 220]), cutoff, q).sum * 0.25;
+        var sound = (source * 0.25) + synthVoice;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, pncc) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.bars("PNCC Coefficients", ~mir2Bus, 13, -25.0, 25.0);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/GFCC::
 link::Classes/MFCC2::
-link::Classes/FeatureDelta::
-link::Classes/FeatureDeltaDelta::
+link::Classes/GFCC::
+link::Classes/BFCC::

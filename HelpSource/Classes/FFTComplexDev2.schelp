@@ -24,31 +24,43 @@ returns::
 One nonnegative control-rate evidence value.
 
 examples::
-The measured spectral change opens a filtered noise accompaniment over the source.
+FFTComplexDev2 measures complex-domain spectral deviation by predicting current bin coordinates from previous amplitude and phase trajectories. In this example, it drives a transient stutter processor: sharp complex prediction errors triggered by acoustic drum hits open a rhythmic micro-glitch comb filter. An interactive code::MIR2GUI.scope:: tracks the real-time complex deviation evidence.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(1024), source);
-        var value = FFTComplexDev2.kr(chain, rectify: 1);
-        var texture = BPF.ar(PinkNoise.ar(0.15), 1800, 0.5) * (value * 0.6).clip(0, 1).lag(0.03);
-        (source * 0.16 + texture) * Line.kr(0, 1, 0.25) ! 2
+
+        var chain = FFT(LocalBuf(1024), source, hop: 0.5);
+        var dev = FFTComplexDev2.kr(chain, rectify: 1, fftSize: 1024);
+        var trig = (dev > 1.2);
+        var glitch = CombN.ar(source * trig.lag(0.01), 0.2, 0.04, 0.25);
+        var sound = (source * 0.25) + (glitch * 0.3);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, dev) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Complex Deviation", ~mir2Bus, 0.0, 5.0);
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
+link::Classes/FFTPhaseDev2::
 link::Classes/FFTFlux2::
+link::Classes/Onsets2::
