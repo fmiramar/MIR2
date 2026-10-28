@@ -33,27 +33,38 @@ Centroid frequency in Hz, or 0 for silence.
 instancemethods::
 
 examples::
-The spectral center controls a resonant filter cutoff; brighter passages open the filter.
+The spectral centroid measures the brightness center-of-mass in Hz. In this example, it drives an adaptive spectral tilt cross-modulator: bright cymbal and snare hits open an auxiliary high-frequency pitch-shifted shimmer comb, while low-frequency bass hits remain grounded and dry. An interactive code::MIR2GUI.scope:: plots the real-time centroid frequency in Hz.
 code::
 (
 Routine({
-    ~mir2Buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
         var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
+
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
-        var value = SpecCentroid2.kr(chain, fftSize: 1024);
-        var wet = RLPF.ar(source, value.clip(150, 7000).lag(0.06), 0.25);
-        ((source * 0.08) + (wet * 0.3)) * Line.kr(0, 1, 0.3) ! 2
+        var centroid = SpecCentroid2.kr(chain, fftSize: 1024);
+        var brightNorm = (centroid.clip(200, 8000) / 8000).lag(0.04);
+        var comb = CombC.ar(source, 0.05, (centroid.clip(200, 4000).reciprocal * 4), 0.2) * brightNorm;
+        var sound = (source * 0.2) + (comb * 0.25);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, centroid) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
+
+    ~mir2GUI = MIR2GUI.scope("Spectral Centroid", ~mir2Bus, 0, 8000, "Hz");
 }).play(AppClock);
 )
 ::
 code::
 (
 ~mir2Example.free;
-~mir2Buffer.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

@@ -90,6 +90,7 @@ endif()
 install(FILES README.md CHANGELOG.md LICENSE ORIGINS.md THIRD_PARTY_NOTICES.md
     DESTINATION MIR2)
 install(DIRECTORY docs/ DESTINATION MIR2/docs)
+install(DIRECTORY sounds/ DESTINATION MIR2/sounds)
 install(DIRECTORY benchmarks/ DESTINATION MIR2/benchmarks)
 install(DIRECTORY scripts/ DESTINATION MIR2/scripts)
 install(DIRECTORY tests/listening/ DESTINATION MIR2/tests/listening)
