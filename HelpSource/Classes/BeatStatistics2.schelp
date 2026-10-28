@@ -47,37 +47,48 @@ returns::
 [BPM, confidence, secondaryBPM, dominance, entropy].
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+BeatStatistics2 analyzes metric pulse hierarchy, extracting primary and secondary tempo candidates, evidence dominance, and distribution entropy. In this example, it drives an adaptive groove accompaniment: evidence dominance adjusts the swing feel of a synthetic hi-hat oscillator, creating a looser, swung ride when secondary pulse competition is high. An interactive code::MIR2GUI.scope:: tracks the real-time dominance metric.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
-        var stats = BeatStatistics2.kr(onset[1]);
-        var sound = Pan2.ar(RLPF.ar(source, stats[4].linexp(0, 1, 300, 5000), 0.4), stats[3].linlin(0, 1, -0.8, 0.8));
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 1024, hop: 0.25);
+        var stats = BeatStatistics2.kr(onset[1], minBPM: 50, maxBPM: 220);
+        var bpm = stats[0].clip(50, 200);
+        var dominance = stats[3].lag(0.05);
+
+        // Adaptive swung hi-hat running at 8th-note pulse
+        var hatTrig = Impulse.kr((bpm / 60.0 * 2).max(0.5));
+        var hat = HPF.ar(WhiteNoise.ar(0.1), 7000) * Decay2.kr(hatTrig, 0.001, 0.04) * dominance;
+        var sound = (source * 0.25 ! 2) + Pan2.ar(hat, 0.5);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, stats[3]) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Tempo Dominance", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
 link::Classes/Tempo::
+link::Classes/PulseClarity::
 link::Classes/BeatTrack3::

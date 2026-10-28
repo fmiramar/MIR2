@@ -47,37 +47,47 @@ returns::
 One control-rate value from 0 to 1.
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+PulseClarity measures the concentration and distinctness of rhythmic periodicities, quantifying how clearly a human listener perceives an underlying beat. In this example, pulse clarity controls the sidechain gating on a lush synthesizer pad: strong metric grooves cause the pad to rhythmically duck and pump in sync with the beat, while vague, rubato sections allow the pad to wash out into wide ambient diffusion. An interactive code::MIR2GUI.scope:: tracks the real-time pulse clarity metric.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 1024, hop: 0.25);
         var clarity = PulseClarity.kr(onset[1]);
-        var sound = RLPF.ar(source, clarity.linexp(0, 1, 250, 8000), 0.25) ! 2;
+        var claritySmooth = clarity.lag(0.04);
+
+        // Ambient pad sidechained by pulse clarity
+        var pad = LPF.ar(Saw.ar([110, 165, 220]).sum, 1500) * 0.1;
+        var pump = pad * (1.0 - (claritySmooth * 0.7));
+        var sound = (source * 0.25 ! 2) + pump;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, clarity) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Pulse Clarity", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
 link::Classes/Tempo::
+link::Classes/BeatStatistics2::
 link::Classes/BeatTrack3::

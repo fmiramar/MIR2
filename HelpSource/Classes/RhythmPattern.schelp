@@ -84,31 +84,49 @@ method:: frequencies
 Returns the modulation-frequency grid for minHz, maxHz and numBins. Defaults match kr.
 
 examples::
-A repeating sample drives a second filtered layer. The relative modulation activity of the upper Bark bands opens its filter. The first feature update occurs after 1.5 seconds.
+Extracts an 8-band by 8-bin fluctuation pattern from drum groove audio. RhythmPattern measures the temporal modulation frequencies across Bark bands. The rhythmic modulation energy in low vs high Bark bands drives dynamic comb filtering and stereo spatialization.
+
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 64);
     s.sync;
-    ~mir2RhythmPatternExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * SinOsc.kr(3).range(0.1, 1);
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
         // For live input instead: source = SoundIn.ar(0);
+
         var chain = FFT(LocalBuf(1024), source, 0.25);
-        var matrix = RhythmPattern.kr(chain, numBands: 8, windowTime: 1.5).clump(16);
-        var activity = matrix.copyRange(4, 7).flat.sum / (matrix.flat.sum + 1e-9);
-        var filtered = RLPF.ar(source, activity.clip(0, 1).lag(0.15).linexp(0, 1, 150, 6000), 0.3);
-        [source * 0.3, filtered * 0.2] * Line.kr(0, 1, 0.2)
+        // 8 Bark bands x 8 modulation bins = 64 values
+        var pattern = RhythmPattern.kr(chain, numBands: 8, numBins: 8, minHz: 0.5, maxHz: 8.0, windowTime: 2.0);
+        var lowActivity = pattern.keep(32).sum.lag(0.1);
+        var highActivity = pattern.drop(32).sum.lag(0.1);
+        var modComb = CombC.ar(source, 0.05, lowActivity.linexp(0, 5, 0.002, 0.02), 0.3) * 0.3;
+        var panned = Pan2.ar(source * 0.3, highActivity.linlin(0, 5, -0.6, 0.6)) + (modComb ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, pattern.clip(0, 1)) };
+        panned * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2RhythmPatternBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.heatmap("Rhythm Pattern (8 bands x 8 bins)", ~mir2Bus, 64);
 }).play(AppClock);
 )
 ::
-Stop and release:
 code::
 (
-~mir2RhythmPatternExample.free;
-~mir2RhythmPatternBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

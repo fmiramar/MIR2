@@ -40,32 +40,50 @@ returns::
 A flat band-major Array: all numBins magnitudes of band zero, then band one, etc. If phase is 1, all phase channels follow all magnitudes. Use code::values.clump(numBins):: to form rows (or first take the magnitude portion when phase is enabled). All parameters except the envelope values are fixed at construction.
 
 examples::
-The sample is split into slow bass and fast treble pulses. Their measured 2 Hz and 5 Hz modulation amplitudes control two audible resonant accents after a 1.5-second warmup.
+RhythmTransform measures per-band envelope modulation frequencies across an absolute Hz grid, exposing how rhythmic energy fluctuates independently within different spectral registers. In this example, 4 frequency bands are analyzed into 8 modulation bins ($0.5 \dots 8$ Hz): modulation peaks drive a multiband resonant vocoder tracking acoustic drum grooves. An interactive code::MIR2GUI.heatmap:: displays the 32-cell modulation matrix.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 32);
     s.sync;
-    ~mir2RhythmTransformExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var low = LPF.ar(source, 600) * SinOsc.kr(2).range(0.1, 1);
-        var high = HPF.ar(source, 1200) * SinOsc.kr(5).range(0.1, 1);
-        var bands = [Amplitude.kr(low, 0.005, 0.02), Amplitude.kr(high, 0.005, 0.02)];
-        var matrix = RhythmTransform.kr(bands, windowTime: 1.5, normalization: \band).clump(16);
-        var bass = SinOsc.ar(110, 0, matrix[0][3].lag(0.1) * 0.07);
-        var treble = SinOsc.ar(880, 0, matrix[1][9].lag(0.1) * 0.05);
-        [((low + high) * 0.3) + bass, ((low + high) * 0.3) + treble] * Line.kr(0, 1, 0.2)
+
+        var band1 = LPF.ar(source, 250);
+        var band2 = BPF.ar(source, 600, 0.5);
+        var band3 = BPF.ar(source, 2000, 0.5);
+        var band4 = HPF.ar(source, 5000);
+        var envelopes = [
+            Amplitude.kr(band1, 0.005, 0.02),
+            Amplitude.kr(band2, 0.005, 0.02),
+            Amplitude.kr(band3, 0.005, 0.02),
+            Amplitude.kr(band4, 0.005, 0.02)
+        ];
+        var matrix = RhythmTransform.kr(envelopes, numBins: 8, minHz: 0.5, maxHz: 8.0, windowTime: 2.0, normalization: \band);
+        var clampedMatrix = matrix.clump(8);
+
+        // Resonant modulation pulses
+        var bassPulse = SinOsc.ar(80, 0, clampedMatrix[0][2].lag(0.05) * 0.2);
+        var snarePulse = SinOsc.ar(440, 0, clampedMatrix[2][3].lag(0.05) * 0.12);
+        var sound = (source * 0.25 ! 2) + Pan2.ar(bassPulse + snarePulse, 0.0);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, matrix.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2RhythmTransformBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.heatmap("Rhythm Transform", ~mir2Bus, 32);
 }).play(AppClock);
 )
 ::
-Stop and release:
 code::
 (
-~mir2RhythmTransformExample.free;
-~mir2RhythmTransformBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

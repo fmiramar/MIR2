@@ -44,38 +44,47 @@ returns::
 An Array of numBins accumulated strengths.
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+BeatHistogram maintains an exponentially decayed histogram of tempo evidence by combining normalized autocorrelation and Fourier periodicity metrics. In this example, 32 BPM bins analyze a dynamic drum groove: the accumulated histogram controls the balance of a sub-harmonic bass reinforcement pulse, locking to the most persistent metric tempo. An interactive code::MIR2GUI.bars:: displays the real-time tempo distribution histogram.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 32);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
-        var values = BeatHistogram.kr(onset[1], decay: 0.5);
-        var feature = (values * BeatHistogram.bpms).sum / values.sum.max(1e-9);
-        var sound = [source * 0.25, SinOsc.ar(feature.clip(30, 300) * 3, 0, 0.06)];
-        sound * Line.kr(0, 1, 0.2)
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 1024, hop: 0.25);
+        var hist = BeatHistogram.kr(onset[1], minBPM: 60, maxBPM: 220, numBins: 32, decay: 2.0);
+        var normHist = (hist / (hist.sum + 1e-6)).lag(0.05);
+
+        // Sub-bass resonance reinforced at dominant tempo
+        var peakStrength = normHist.inject(0, { |maxVal, val| maxVal.max(val) });
+        var subPulse = SinOsc.ar(60, 0, peakStrength * 0.2);
+        var sound = (source * 0.25) + subPulse;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, normHist) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.bars("Beat Histogram", ~mir2Bus, 32, 0.0, 0.4);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
+link::Classes/Tempogram::
+link::Classes/FourierTempogram::
 link::Classes/Tempo::
-link::Classes/BeatTrack3::

@@ -23,37 +23,47 @@ returns::
 Events per second.
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+OnsetRate counts detected rising-edge onset triggers over a rolling timestamp window to measure activity density in events per second. In this example, it drives an adaptive tube saturation effect: sparse beats remain clean and dynamic, while intense fills and rapid snare flurries drive the processor into aggressive harmonic distortion. An interactive code::MIR2GUI.scope:: tracks the real-time onset rate in events/second.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
-        var density = OnsetRate.kr(onset[0], windowTime: 2);
-        var sound = RLPF.ar(source, density.clip(0, 8).linexp(0, 8, 300, 7000), 0.3) ! 2;
-        sound * Line.kr(0, 1, 0.2)
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 1024, hop: 0.25);
+        var rate = OnsetRate.kr(onset[0], windowTime: 2.0);
+        var rateSmooth = rate.lag(0.04);
+
+        // Saturation drive scaled by playing density
+        var drive = (1.0 + (rateSmooth * 1.5)).clip(1.0, 8.0);
+        var driven = (source * drive).tanh * 0.3;
+        var sound = (source * 0.2) + driven;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, rate) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Onset Rate", ~mir2Bus, 0.0, 15.0, "events/s");
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/OnsetStatistics2::
 link::Classes/Onsets2::
 link::Classes/Tempo::
-link::Classes/BeatTrack3::

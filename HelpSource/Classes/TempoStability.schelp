@@ -26,38 +26,48 @@ returns::
 One stability score from 0 to 1.
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+TempoStability computes the confidence-weighted standard deviation of tempo over a rolling control window, outputting a normalized score ($1.0$ for rock-solid mechanical timing, decaying toward $0.0$ during tempo drifts and rubato). In this example, it controls feedback on a stereo flanger: steady tempos produce resonant metallic comb tones, while tempo fluctuations cleanly damp the feedback. An interactive code::MIR2GUI.scope:: plots the real-time stability score.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
-        var tempo = Tempo.kr(onset[1]);
-        var stable = TempoStability.kr(tempo[0], tempo[1], windowTime: 2);
-        var sound = [source * 0.25, SinOsc.ar(440, 0, stable * tempo[1] * 0.08)];
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 1024, hop: 0.25);
+        var tempo = Tempo.kr(onset[1], tempoSmooth: 0.2);
+        var stable = TempoStability.kr(tempo[0], tempo[1], windowTime: 3.0);
+        var stableSmooth = stable.lag(0.04);
+
+        // Flanger feedback gated by tempo stability
+        var flangerMod = SinOsc.kr(0.4, [0, pi/2], 0.002, 0.005);
+        var flanger = CombC.ar(source, 0.02, flangerMod, stableSmooth.linlin(0, 1, 0.1, 0.8)) * 0.3;
+        var sound = (source * 0.25 ! 2) + flanger;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, stable) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Tempo Stability", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
+link::Classes/TempoRubato::
 link::Classes/Tempo::
-link::Classes/BeatTrack3::
+link::Classes/BeatStatistics2::

@@ -41,38 +41,46 @@ returns::
 An Array of numBins tempo strengths; normalized values are 0–1.
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+Tempogram computes cyclic autocorrelation tempo evidence across a wide BPM lag spectrum ($40 \dots 240$ BPM). In this example, it analyzes an acoustic drum groove: peak tempo evidence modulates an auxiliary poly-metric comb delay network that locks into sympathetic resonance with the drum meter. An interactive code::MIR2GUI.heatmap:: displays the real-time autocorrelation tempogram.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 48);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
-        var values = Tempogram.kr(onset[1]);
-        var feature = values.inject(0, { |maximum, value| maximum.max(value) });
-        var sound = RLPF.ar(source, feature.linexp(0, 1, 300, 6000), 0.3) ! 2;
-        sound * Line.kr(0, 1, 0.2)
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 1024, hop: 0.25);
+        var tempoGram = Tempogram.kr(onset[1], minBPM: 40, maxBPM: 240, numBins: 48, windowTime: 4.0, hopTime: 0.1);
+        var peakEnergy = tempoGram.inject(0, { |maxVal, val| maxVal.max(val) }).lag(0.05);
+
+        // Sympathetic metric comb resonator
+        var comb = CombC.ar(source, 0.5, 60.0 / 120.0 * 0.5, 0.4) * peakEnergy.clip(0, 1) * 0.3;
+        var sound = (source * 0.25) + comb;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, tempoGram.clip(0, 1)) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.heatmap("Tempogram", ~mir2Bus, 48);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
+link::Classes/FourierTempogram::
+link::Classes/BeatHistogram::
 link::Classes/Tempo::
-link::Classes/BeatTrack3::

@@ -92,38 +92,48 @@ returns::
 [beatTrigger, subdivisionTrigger, BPM, phase0to1, confidence].
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+AutoTrack2 provides automatic causal beat and subdivision tracking with phase continuity locking. In this example, it drives an adaptive acoustic click-track resynthesizer: beat triggers generate resonant woodblock pings locking onto acoustic drum downbeats, demonstrating reliable tempo synchronization. An interactive code::MIR2GUI.rhythm:: displays the real-time beat radar and tempo readout.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 2);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
-        var beat = AutoTrack2.kr(chain, fftSize: 2048, hop: 0.25);
-        var tick = Decay2.kr(beat[0], 0.001, 0.08);
-        var sound = [source * 0.25, SinOsc.ar(1000, 0, tick * 0.12)];
-        sound * Line.kr(0, 1, 0.2)
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var track = AutoTrack2.kr(chain, minBPM: 60, maxBPM: 180, fftSize: 1024, hop: 0.25);
+        var beatTrig = track[0];
+        var subTrig = track[1];
+        var bpm = track[2];
+        var conf = track[4];
+
+        // Resonant woodblock click on downbeats
+        var click = Ringz.ar(Decay2.ar(K2A.ar(beatTrig), 0.001, 0.02) * 0.1, 1200, 0.04);
+        var sound = (source * 0.25) + click;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, [bpm, conf]) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.rhythm("AutoTrack 2", ~mir2Bus);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
-link::Classes/Tempo::
 link::Classes/BeatTrack3::
+link::Classes/Tempo::
+link::Classes/Onsets2::

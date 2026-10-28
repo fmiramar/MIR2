@@ -29,37 +29,44 @@ returns::
 An Array of band energy fractions, initially zero until a complete interval.
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+BeatBandRatio accumulates squared FFT magnitudes across configurable frequency subbands during each beat interval, reporting the energy fraction of each subband at every new beat. In this example, it drives an automatic tilt EQ balancer: when low-frequency kick drums dominate the interval energy, high frequencies receive an adaptive presence boost. An interactive code::MIR2GUI.scope:: tracks the low-band energy fraction.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
-        var bands = BeatBandRatio.kr(chain, onset[0], fftSize: 2048);
-        var sound = Pan2.ar(source * 0.4, (bands.last - bands.first).clip(-0.9, 0.9));
-        sound * Line.kr(0, 1, 0.2)
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 1024, hop: 0.25);
+        var bands = BeatBandRatio.kr(chain, onset[0], boundaries: [0, 250, 1500, 8000, 20000], fftSize: 1024);
+        var lowRatio = bands[0].lag(0.04);
+        var highBoost = BHiShelf.ar(source, 3500, 1.0, lowRatio.linlin(0.1, 0.7, 0, 8));
+        var sound = (source * 0.15) + (highBoost * 0.2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, bands[0]) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Low Band Energy Fraction", ~mir2Bus, 0.0, 1.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/Onsets2::
-link::Classes/Tempo::
+link::Classes/BeatLoudness::
 link::Classes/BeatTrack3::
+link::Classes/SpecBandRatio::

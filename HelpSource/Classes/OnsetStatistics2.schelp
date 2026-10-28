@@ -23,37 +23,48 @@ returns::
 [eventsPerSecond, meanIntervalSeconds, intervalStandardDeviationSeconds, intervalCoefficientOfVariation]. Fewer than two events yields zero interval statistics.
 
 examples::
-The sample is rhythmically gated to give the estimator repeatable attacks. Analysis drives the filtering, panning or second synthesized voice. Allow a few seconds for tempo acquisition.
+OnsetStatistics2 measures rolling inter-onset intervals (IOI) from event triggers, returning event rate, mean interval, standard deviation, and coefficient of variation. In this example, mean IOI dynamically modulates the rate and pitch spread of an auxiliary generative bell cluster: fast drumming produces tight, high-pitched clusters, while sparse grooves produce slow, resonant chime strikes. An interactive code::MIR2GUI.scope:: tracks the mean IOI in seconds.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("drums.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2RhythmExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1)
-            * Decay2.kr(Impulse.kr(2), 0.005, 0.12);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(2048), source, 0.25);
-        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 2048, hop: 0.25);
-        var stats = OnsetStatistics2.kr(onset[0], windowTime: 2);
-        var sound = [source * 0.25, SinOsc.ar(stats[0].linexp(0, 10, 150, 1500), 0, 0.06)];
-        sound * Line.kr(0, 1, 0.2)
+
+        var chain = FFT(LocalBuf(1024), source, 0.25);
+        var onset = Onsets2.kr(chain, threshold: 0.15, fftSize: 1024, hop: 0.25);
+        var stats = OnsetStatistics2.kr(onset[0], windowTime: 3.0);
+        var meanIOI = stats[1].clip(0.05, 1.5).lag(0.05);
+
+        // Algorithmic bell cluster triggered at rates derived from mean IOI
+        var bellTrig = Impulse.kr((1.0 / meanIOI).clip(0.5, 10));
+        var bellFreq = meanIOI.linexp(0.1, 1.0, 2200, 440);
+        var bell = Ringz.ar(Decay2.ar(K2A.ar(bellTrig), 0.002, 0.05) * 0.05, bellFreq, 0.25) * 0.3;
+        var sound = (source * 0.25) + bell;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, stats[1]) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2RhythmBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Mean IOI", ~mir2Bus, 0.0, 1.0, "s");
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2RhythmExample.free;
-~mir2RhythmBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
+link::Classes/OnsetRate::
 link::Classes/Onsets2::
 link::Classes/Tempo::
-link::Classes/BeatTrack3::
