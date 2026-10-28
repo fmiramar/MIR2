@@ -32,36 +32,43 @@ returns::
 Nonnegative roughness sum; zero for silence or fewer than two peaks. The value is not constrained to 0 through 1.
 
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+SensoryDissonance2 models acoustic roughness based on the Sethares parametrization of the Plomp & Levelt sensory dissonance curves across all pairs of spectral peaks. In this example, it drives an adaptive waveshaping saturator: consonant harmonic chords pass through with warmth and clarity, while crunchy dissonant intervals trigger aggressive saturation and wavefolding. An interactive code::MIR2GUI.scope:: tracks the real-time roughness metric.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("piano-chords.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2TonalExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(4096), source, 0.25);
-        var roughness = SensoryDissonance2.kr(chain);
-        var driven = (source * (1 + (roughness.clip(0, 8) * 3))).tanh * 0.12;
-        var sound = [source * 0.1, driven];
-        sound * Line.kr(0, 1, 0.2)
+
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var roughness = SensoryDissonance2.kr(chain, model: \minimum, maxPeaks: 32, normalize: 1, fftSize: 2048);
+        var drive = (1.0 + (roughness.clip(0, 5) * 4)).lag(0.04);
+        var saturated = (source * drive).tanh * 0.3;
+        var sound = (source * 0.2) + saturated;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, roughness) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2TonalBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Sensory Roughness", ~mir2Bus, 0.0, 5.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2TonalExample.free;
-~mir2TonalBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/HPCP::
+link::Classes/Inharmonicity::
 link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::
+link::Classes/Tonnetz::

@@ -35,37 +35,52 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+Tristimulus partitions harmonic partial energy into three psychoacoustic bands: fundamental ($T_1$), low harmonics 2--4 ($T_2$), and high harmonics 5+ ($T_3$). In this example, these three energy proportions continuously morph between three auxiliary synth layers: fundamental depth (sub sine), mid-range warmth (resonant triangle), and upper spectral shimmer (sparkling high partials). An interactive code::MIR2GUI.tristimulus:: plots the coordinates on a barycentric ternary triangle.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 3);
     s.sync;
-    ~mir2TonalExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var pitch = PitchMPM.kr(source, 80, 1600, 4096, 0.25);
-        var chain = FFT(LocalBuf(4096), source, 0.25);
-        var groups = Tristimulus.kr(chain, pitch[0]);
-        var tones = SinOsc.ar([220, 880, 3520], 0, Lag.kr(groups, 0.03) * 0.07);
-        var sound = Splay.ar(tones) + (source * 0.1);
-        sound * Line.kr(0, 1, 0.2)
+
+        var pitch = PitchMPM.kr(source, 80, 1600, 2048, 0.25);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var tri = Tristimulus.kr(chain, pitch[0], maxHarmonics: 16, fftSize: 2048);
+        var t1 = tri[0].lag(0.04);
+        var t2 = tri[1].lag(0.04);
+        var t3 = tri[2].lag(0.04);
+        var f0 = pitch[0].clip(80, 1500);
+
+        // Three distinct timbral textures weighted by T1, T2, T3
+        var sub = SinOsc.ar(f0 * 0.5, 0, t1 * 0.2);
+        var mid = LFTri.ar(f0, 0, t2 * 0.15);
+        var high = BPF.ar(Saw.ar(f0 * 3), f0 * 4, 0.2) * (t3 * 0.25);
+        var synthLayer = (sub + mid + high) * pitch[1].lag(0.05);
+        var sound = (source * 0.25) + synthLayer;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, tri) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2TonalBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.tristimulus("Harmonic Tristimulus", ~mir2Bus);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2TonalExample.free;
-~mir2TonalBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/HPCP::
 link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::
+link::Classes/OddEvenRatio::
+link::Classes/HarmonicCentroid::

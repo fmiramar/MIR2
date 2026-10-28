@@ -35,38 +35,51 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+OddEvenRatio measures the energy balance between odd and even harmonic partials. In this example, it drives an adaptive waveform morpher: when odd harmonics dominate, the auxiliary oscillator morphs toward a hollow square wave (clarinet-like); when even harmonics are balanced, it morphs toward a rich sawtooth (brass-like). An interactive code::MIR2GUI.scope:: tracks the real-time odd-to-even ratio.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2TonalExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var pitch = PitchMPM.kr(source, 80, 1600, 4096, 0.25);
-        var chain = FFT(LocalBuf(4096), source, 0.25);
-        var ratio = OddEvenRatio.kr(chain, pitch[0]);
-        var oddFraction = ratio / (ratio + 1);
-        var filtered = RLPF.ar(source, 300 + (oddFraction * 5000), 0.2);
-        var sound = [source * 0.1, filtered * 0.2];
-        sound * Line.kr(0, 1, 0.2)
+
+        var pitch = PitchMPM.kr(source, 80, 1600, 2048, 0.25);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var ratio = OddEvenRatio.kr(chain, pitch[0], maxHarmonics: 16, fftSize: 2048);
+        var oddFraction = (ratio / (ratio + 1.0)).lag(0.04);
+        var f0 = pitch[0].clip(80, 1500);
+
+        // Morphs between Saw (even+odd) and Pulse (odd only)
+        var saw = Saw.ar(f0) * (1.0 - oddFraction);
+        var pulse = Pulse.ar(f0, 0.5) * oddFraction;
+        var synthLayer = (saw + pulse) * 0.15 * pitch[1].lag(0.05);
+        var sound = (source * 0.25) + synthLayer;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, ratio) };
+        sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
-    ~mir2TonalBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Odd/Even Harmonic Ratio", ~mir2Bus, 0.1, 5.0);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2TonalExample.free;
-~mir2TonalBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/HPCP::
+link::Classes/Tristimulus::
+link::Classes/HarmonicPeaks::
+link::Classes/HarmonicCentroid::
 link::Classes/HarmonicPeaks::
 link::Classes/Pitch2::

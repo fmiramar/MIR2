@@ -35,38 +35,48 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+HarmonicPeaks extracts the exact frequencies and amplitudes of up to code::maxHarmonics:: spectral partials associated with a fundamental frequency. In this example, it drives an additive sine bank spatializer: detected harmonic partials are synthesized as individual sinusoidal voices and spread across the stereo field from low order (left) to high order (right). An interactive code::MIR2GUI.bars:: displays the real-time energy distribution across all 16 harmonic partials.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("melody.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 16);
     s.sync;
-    ~mir2TonalExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
         // For live input instead: source = SoundIn.ar(0);
-        var pitch = PitchMPM.kr(source, 80, 1600, 4096, 0.25);
-        var chain = FFT(LocalBuf(4096), source, 0.25);
-        var partials = HarmonicPeaks.kr(chain, pitch[0], 8);
-        var weights = partials[1] / (partials[1].sum + 1e-9);
-        var tones = SinOsc.ar(partials[0].max(20), 0, weights * 0.12 * (partials[0] > 0));
-        var sound = [source * 0.12, tones.sum];
+
+        var pitch = PitchMPM.kr(source, 80, 1600, 2048, 0.25);
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var partials = HarmonicPeaks.kr(chain, pitch[0], 16, fftSize: 2048);
+        var norm = (partials[1] / (partials[1].sum + 1e-6)).lag(0.04);
+
+        var tones = Mix.fill(16, { |i|
+            var freq = partials[0][i].clip(40, 10000);
+            Pan2.ar(SinOsc.ar(freq, 0, norm[i] * 0.25 * (partials[0][i] > 30)), (i / 7.5) - 1.0)
+        });
+        var sound = (source * 0.2 ! 2) + tones;
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, norm) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2TonalBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.bars("Harmonic Partials", ~mir2Bus, 16, 0.0, 0.6);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2TonalExample.free;
-~mir2TonalBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
 subsection:: See also
 link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
+link::Classes/Inharmonicity::
+link::Classes/Tristimulus::
 link::Classes/Pitch2::
