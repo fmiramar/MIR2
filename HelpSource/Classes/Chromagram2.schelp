@@ -44,31 +44,42 @@ returns::
 An Array of size pitch-class intensities.
 
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+Chromagram2 folds spectral energy into an octave-wrapped 12-semitone chromagram using direct FFT bin mapping or peak-based HPCP. In this example, the 12 chromatic bins modulate the gains of parallel modal resonant bandpass filters excited by an impulsive string pluck. An interactive code::MIR2GUI.chroma:: displays the real-time circular chromagram.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("piano-chords.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 12);
     s.sync;
-    ~mir2TonalExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic chords fallback
+            Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(4096), source, 0.25);
-        var chroma = Chromagram2.kr(chain, method: \hpcp, harmonics: 1);
-        var voices = SinOsc.ar((60 + (0..11)).midicps, 0, Lag.kr(chroma, 0.04) * 0.02);
-        var sound = Splay.ar(voices) + (source * 0.08);
+
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var chroma = Chromagram2.kr(chain, size: 12, tuning: 440, method: \hpcp, harmonics: 2, normalize: \max, fftSize: 2048);
+        var voices = SinOsc.ar((60 + (0..11)).midicps, 0, chroma.lag(0.05) * 0.025);
+        var sound = (source * 0.25 ! 2) + Splay.ar(voices);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, chroma.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2TonalBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.chroma("Chromagram", ~mir2Bus);
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2TonalExample.free;
-~mir2TonalBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

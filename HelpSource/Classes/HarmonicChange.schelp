@@ -23,32 +23,44 @@ returns::
 Nonnegative six-dimensional Euclidean distance, delayed by one observation relative to the centred difference.
 
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+HarmonicChange detects harmonic transitions by calculating 6D Euclidean distance in Tonnetz space between consecutive observations. Harmonic chord progressions produce prominent distance spikes upon new chord arrivals. In this example, detected harmonic transitions trigger a delicate bell chime on chord changes. An interactive code::MIR2GUI.scope:: displays real-time harmonic change distance.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("piano-chords.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2TonalExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic chords fallback
+            Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(4096), source, 0.25);
-        var chroma = HPCP.kr(chain, harmonics: 1);
-        var change = HarmonicChange.kr(chroma, 0.05, chain >= 0);
-        var hits = PinkNoise.ar(0.08) * Decay2.kr(change > 0.12, 0.001, 0.12);
-        var sound = (source * 0.12 + hits) ! 2;
+
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var chroma = HPCP.kr(chain, size: 12, harmonics: 2, normalize: \max, fftSize: 2048);
+        var change = HarmonicChange.kr(chroma, smooth: 0.05, trig: chain >= 0);
+        var chgTrig = (change > 0.15).lag(0.01, 0.08);
+        var chime = Ringz.ar(Decay2.ar(K2A.ar(chgTrig), 0.002, 0.05) * 0.05, 2200, 0.3) * 0.3;
+        var sound = (source * 0.25 ! 2) + (chime ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, change.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2TonalBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Harmonic Change", ~mir2Bus, 0.0, 1.0, "dist");
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2TonalExample.free;
-~mir2TonalBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 

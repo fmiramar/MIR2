@@ -29,31 +29,43 @@ returns::
 An Array: estimated A reference in Hz, cents relative to A440, and circular concentration from 0 through 1. Silence returns zeros.
 
 examples::
-The analysis controls audible synthesis or processing. Boot the server first; use headphones or moderate speaker volume.
+TuningFrequency calculates a circular weighted estimate of concert pitch relative to A440, returning estimated reference A (Hz), signed cents detuning, and circular concentration. In this example, it monitors acoustic piano tuning and tunes a reference test sine oscillator to demonstrate automatic calibration to non-standard concert pitch. An interactive code::MIR2GUI.scope:: displays real-time estimated concert A in Hz.
 code::
 (
 Routine({
-    var buffer = Buffer.read(s, ExampleFiles.child);
+    var path = MIR2GUI.soundPath("piano-chords.wav");
+    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~mir2Bus = Bus.control(s, 1);
     s.sync;
-    ~mir2TonalExample = {
-        var source = PlayBuf.ar(1, buffer, BufRateScale.kr(buffer), loop: 1);
+    ~mir2Example = {
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic chords fallback
+            Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
+        };
         // For live input instead: source = SoundIn.ar(0);
-        var chain = FFT(LocalBuf(4096), source, 0.25);
-        var tuning = TuningFrequency.kr(chain);
-        var beats = SinOsc.ar([440, tuning[0].clip(400, 480)], 0, tuning[2] * 0.04).sum;
-        var sound = [source * 0.12, beats];
+
+        var chain = FFT(LocalBuf(2048), source, 0.25);
+        var tuning = TuningFrequency.kr(chain, minFreq: 100, maxFreq: 6000, fftSize: 2048);
+        var estA = tuning[0].lag(0.08);
+        var refTone = SinOsc.ar(estA.clip(420, 460), 0, tuning[2].lag(0.08) * 0.05);
+        var sound = (source * 0.25 ! 2) + (refTone ! 2);
+
+        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, estA.clip(420, 460)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
-    ~mir2TonalBuffer = buffer;
+
+    ~mir2GUI = MIR2GUI.scope("Concert A Tuning", ~mir2Bus, 430.0, 450.0, "Hz");
 }).play(AppClock);
 )
 ::
-
-Stop and release:
 code::
 (
-~mir2TonalExample.free;
-~mir2TonalBuffer.free;
+~mir2Example.free;
+if(~mir2GUI.notNil) { ~mir2GUI.close };
+if(~mir2Bus.notNil) { ~mir2Bus.free };
+if(~mir2Buffer.notNil) { ~mir2Buffer.free };
 )
 ::
 
