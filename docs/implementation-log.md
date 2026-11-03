@@ -293,3 +293,33 @@ on supernova with a parallel group. Idle CPU returned near baseline after the
 cycles. [The live measurements](neural-pitch-live-measurements.json) preserve
 phase statistics and trace hashes; the report distinguishes these short local
 checks from longer endurance and general polyphony qualification.
+
+## 2026-10-28 — musical documentation overhaul, CC0 audio corpus and MIR2GUI live toolkit
+
+Completed the comprehensive overhaul of all 135 base UGen help files and PitchPESTO
+under the approved master plan (MIR2_DOCUMENTATION_AND_VISUALIZATION_PLAN.md).
+
+1. Curated CC0 Audio Corpus (sounds/):
+   Installed 7 clean, uncompressed CC0 1.0 Universal audio files (44.1 kHz 16-bit WAV,
+   peak-normalized to -1.0 dBFS with 5 ms zero-crossing edge fades): drums.wav,
+   piano-chords.wav, melody.wav, plucks.wav, stereo.wav, bass-melody-mix.wav,
+   and texture.wav. Full provenance, Freesound IDs, author attribution, and DSP
+   processing history are documented in sounds/README.md.
+2. Pure-SuperCollider Live MIR GUI Toolkit (Classes/MIR2GUI.sc):
+   Implemented 10 standard real-time MIR visualizers: MIR2Scope, MIR2BarView,
+   MIR2Heatmap, MIR2ChromaWheel, MIR2TonnetzView, MIR2StereoScope,
+   MIR2PianoRoll, MIR2RhythmWheel, MIR2TristimulusView, and MIR2EnvelopeView.
+   All views are integrated via factory methods (MIR2GUI.soundPath, MIR2GUI.chroma,
+   etc.), execute safely across headless and graphical environments, and cleanly release
+   their polling SkipJack routines upon window closure.
+3. Musical Examples Across All 135 Classes:
+   Replaced sterile speech-gain scaling with handcrafted, musically meaningful DSP processes
+   (vocoders, resynthesis banks, adaptive combs, envelope shapers, harmonic resynthesizers,
+   and dynamic stereo spatializers). Every example provides graceful fallback to self-contained
+   synthetic source graphs and includes a commented SoundIn.ar(0) alternative.
+4. End-to-End Verification:
+   - compile_check.scd: Passed without errors (MIR2_COMPILE_OK).
+   - compile_help_examples.scd: Compiled every executable snippet across all 135 help files (MIR2_HELP_EXAMPLES_OK).
+   - verify_scdoc.scd: Cleanly indexed and rendered all 135 class help files and guides with 0 errors and 0 warnings (MIR2_SCDOC_OK).
+   - generate_example_check.py --nrt: Headless NRT audio rendering across all 135 classes verified finite audible levels with zero badPrimitive calls.
+   - All files mirrored to user Extensions directory (~/Library/Application Support/SuperCollider/Extensions/MIR2/).
