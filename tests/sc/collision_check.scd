@@ -9,5 +9,5 @@ names.do { |name|
         ok = false;
     };
 };
-if(ok) { "MIR2_COLLISION_CHECK_OK".postln; 0.exit } { 1.exit };
+if(ok) { "MIRA_COLLISION_CHECK_OK".postln; 0.exit } { 1.exit };
 )

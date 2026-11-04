@@ -1,0 +1,223 @@
+class:: MIRaGUI
+summary:: Graphical visualizers and file inspection toolkit for MIRa
+categories:: GUI>MIR, Libraries>MIR
+related:: Classes/MIRaPlot, Classes/MIRaColormap, Classes/MIRaFileAnalyzer, Guides/MIRa-file-visualization, Guides/MIRa
+
+description::
+MIRaGUI provides a comprehensive suite of real-time monitoring views and whole-audio-file visual inspection tools for Music Information Retrieval in SuperCollider.
+
+It includes 10 real-time reactive visualizers connected via control buses, alongside convenient front-end launchers for whole-file plots and the interactive multi-tier file inspector (link::Classes/MIRaPlot::).
+
+classmethods::
+
+subsection:: File Visualization & Inspection
+
+method:: plotFile
+Launches the synchronized multi-tier MIR File Inspector with audio scrubbing, colormap options, and playback. Shortcut for link::Classes/MIRaPlot#*dashboard::.
+argument:: audioPath
+Path to the audio file or sound name in code::sounds/::.
+argument:: colormap
+Colormap symbol (default: code::\magma::).
+argument:: width
+Window width.
+argument:: height
+Window height.
+returns:: A link::Classes/Window::.
+
+method:: waveshow
+Displays a standalone waveform with detected onsets and RMS envelope. Shortcut for link::Classes/MIRaPlot#*waveshow::.
+argument:: audioPath
+Path to the audio file.
+argument:: width
+Window width.
+argument:: height
+Window height.
+returns:: A link::Classes/Window::.
+
+method:: spectrogram
+Displays a 2D Constant-Q spectrogram with dB scaling, ticks, and colorbar. Shortcut for link::Classes/MIRaPlot#*spectrogram::.
+argument:: audioPath
+Path to the audio file.
+argument:: colormap
+Colormap symbol.
+argument:: width
+Window width.
+argument:: height
+Window height.
+returns:: A link::Classes/Window::.
+
+method:: chromagram
+Displays a 12-pitch-class chromagram (HPCP). Shortcut for link::Classes/MIRaPlot#*chromagram::.
+argument:: audioPath
+Path to the audio file.
+argument:: colormap
+Colormap symbol.
+argument:: width
+Window width.
+argument:: height
+Window height.
+returns:: A link::Classes/Window::.
+
+method:: pitch
+Displays extracted fundamental frequency on a MIDI note grid. Shortcut for link::Classes/MIRaPlot#*pitch::.
+argument:: audioPath
+Path to the audio file.
+argument:: width
+Window width.
+argument:: height
+Window height.
+returns:: A link::Classes/Window::.
+
+method:: soundPath
+Resolves a filename located in MIRa's code::sounds/:: corpus across installed and local extension paths.
+argument:: filename
+String filename (e.g. code::"melody.wav"::, code::"drums.wav"::, code::"piano-chords.wav"::).
+returns:: An absolute file path string or nil.
+
+subsection:: Real-Time Stream Visualizers
+
+method:: scope
+Real-time scrolling scalar oscilloscope with min/max bounds and engineering units.
+argument:: name
+String title.
+argument:: bus
+A control link::Classes/Bus::.
+argument:: minVal
+Minimum value for vertical axis.
+argument:: maxVal
+Maximum value for vertical axis.
+argument:: units
+String engineering units label (e.g. code::"Hz"::, code::"dB"::).
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: bars
+Multi-band vertical bar monitor with decaying peak hold lines and optional bin labels.
+argument:: name
+String title.
+argument:: bus
+Multichannel control link::Classes/Bus::.
+argument:: numBars
+Number of bars to display.
+argument:: minVal
+Minimum bar value.
+argument:: maxVal
+Maximum bar value.
+argument:: labels
+Array of string labels.
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: heatmap
+2D scrolling waterfall spectrogram and tempogram display.
+argument:: name
+String title.
+argument:: bus
+Multichannel control link::Classes/Bus::.
+argument:: numBins
+Number of vertical frequency bins.
+argument:: minVal
+Minimum value.
+argument:: maxVal
+Maximum value.
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: chroma
+12-pitch-class circular polar radar wheel with semitone note names.
+argument:: name
+String title.
+argument:: bus
+12-channel control link::Classes/Bus:: carrying chroma energies.
+argument:: tuning
+Reference A4 tuning frequency in Hz (default: 440).
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: tonnetz
+2D planar projection of 6-dimensional Tonnetz harmonic space.
+argument:: name
+String title.
+argument:: bus
+6-channel control link::Classes/Bus:: carrying Tonnetz coordinates.
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: stereo
+Polar goniometer (Lissajous phase scope) and stereo correlation meter.
+argument:: name
+String title.
+argument:: bus
+2-channel audio or control link::Classes/Bus::.
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: pianoRoll
+Scrolling fundamental frequency tracker on a musical MIDI note grid.
+argument:: name
+String title.
+argument:: bus
+Control link::Classes/Bus:: carrying frequency in Hz.
+argument:: minMIDI
+Lowest MIDI note displayed (default: 36).
+argument:: maxMIDI
+Highest MIDI note displayed (default: 84).
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: rhythm
+Circular tempo dial and beat phase indicator.
+argument:: name
+String title.
+argument:: bus
+Control link::Classes/Bus::.
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: tristimulus
+Barycentric ternary triangle showing relative harmonic energy distribution (T1, T2, T3).
+argument:: name
+String title.
+argument:: bus
+3-channel control link::Classes/Bus::.
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+method:: envelope
+Triggered transient envelope and attack/decay time-domain waveform scope.
+argument:: name
+String title.
+argument:: bus
+Control link::Classes/Bus::.
+argument:: width
+Window width.
+argument:: height
+Window height.
+
+examples::
+code::
+(
+// Whole-audio-file multi-tier inspector:
+s.waitForBoot({
+    MIRaGUI.plotFile("melody.wav");
+});
+)
+::

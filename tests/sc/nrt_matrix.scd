@@ -3,7 +3,7 @@ var sampleRates = [44100, 48000, 96000];
 var blockSizes = [1, 64, 256];
 var channelCount = 15;
 var duration = 0.15;
-var definition = SynthDef(\mir2NRT, {
+var definition = SynthDef(\miraNRT, {
     var source = SinOsc.ar(220, 0, 0.2);
     var chain = FFT(LocalBuf(1024), source, 0.5);
     var onset = Onsets2.kr(chain, fftSize: 1024);
@@ -31,7 +31,7 @@ Routine({
         sampleRates.do { |sampleRate|
             blockSizes.do { |blockSize|
                 var outputPath = Platform.defaultTempDir +/+
-                    "mir2-nrt-%-%.wav".format(sampleRate, blockSize);
+                    "mira-nrt-%-%.wav".format(sampleRate, blockSize);
                 var options = ServerOptions.new;
                 var score;
                 var completed = FlowVar.new;
@@ -48,7 +48,7 @@ Routine({
                 options.blockSize = blockSize;
                 score = Score([
                     [0.0, [\d_recv, definition.asBytes]],
-                    [0.0, [\s_new, \mir2NRT, 1000, 0, 0]],
+                    [0.0, [\s_new, \miraNRT, 1000, 0, 0]],
                     [duration, [\n_free, 1000]]
                 ]);
                 score.recordNRT(
@@ -63,7 +63,7 @@ Routine({
                 completed.value;
                 soundFile = SoundFile.openRead(outputPath);
                 if(soundFile.isOpen.not or: { soundFile.numChannels != channelCount }) {
-                    Error("MIR2 NRT output file/channel failure").throw
+                    Error("MIRa NRT output file/channel failure").throw
                 };
                 frames = soundFile.numFrames;
                 data = FloatArray.newClear(frames * channelCount);
@@ -71,7 +71,7 @@ Routine({
                 soundFile.close;
                 File.delete(outputPath);
                 if(data.any({ |value| value.isNaN or: { value.abs > 1e30 } })) {
-                    Error("MIR2 NRT emitted NaN or Inf").throw
+                    Error("MIRa NRT emitted NaN or Inf").throw
                 };
                 lastFrame = (sampleRate * 0.12).asInteger.min(frames - 1);
                 values = Array.fill(channelCount, { |channel|
@@ -83,7 +83,7 @@ Routine({
                     or: { values[12] < 0.5 }
                     or: { (values[13] - 220).abs > 3 }) {
                     values.postln;
-                    Error("MIR2 NRT pitch bounds failed").throw
+                    Error("MIRa NRT pitch bounds failed").throw
                 };
                 summaries.add([
                     sampleRate, blockSize, values[0].round(0.01),
@@ -92,7 +92,7 @@ Routine({
                 ])
             }
         };
-        "MIR2_NRT_MATRIX_OK".postln;
+        "MIRA_NRT_MATRIX_OK".postln;
         "sampleRate blockSize centroid yinHz mpmHz periodicity voicing".postln;
         summaries.do(_.postln);
         0.exit

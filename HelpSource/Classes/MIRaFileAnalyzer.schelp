@@ -1,0 +1,74 @@
+class:: MIRaFileAnalyzer
+summary:: High-speed whole-audio-file MIR feature extraction engine
+categories:: Analysis>MIR, Libraries>MIR
+related:: Classes/MIRaPlot, Classes/MIRaGUI, Guides/MIRa-file-visualization
+
+description::
+MIRaFileAnalyzer performs high-speed Non-Real-Time (NRT) batch feature extraction on entire audio files. It compiles an optimized headless analysis graph and runs it via link::Classes/Score::.recordNRT using MIRa's native C++ signal-processing UGens, extracting multi-tier musical descriptors at rates exceeding 50x real-time.
+
+Extracted features include:
+list::
+## strong::RMS Envelope::: Root-mean-square amplitude tracking.
+## strong::Pitch F0 & Voicing::: Fundamental frequency in Hz, continuous confidence, and voicing probability via link::Classes/PitchYIN::.
+## strong::Harmonic Pitch Class Profile (HPCP)::: 12-bin harmonic chromagram via link::Classes/HPCP::.
+## strong::Constant-Q Spectrogram (CQT)::: Multi-octave logarithmic time-frequency matrix via link::Classes/CQT::.
+## strong::Spectral Centroid & Flatness::: Brightness and noisiness via link::Classes/SpecCentroid2:: and link::Classes/SpecFlatness2::.
+## strong::Transient Onsets::: Onset trigger events and timestamps via link::Classes/Onsets2::.
+::
+
+classmethods::
+
+method:: analyze
+Asynchronously analyzes an audio file and passes the results to a completion callback.
+argument:: audioPath
+Path to the audio file.
+argument:: hopHz
+Hop rate in Hertz (frames per second, default: 100 Hz, corresponding to a 10 ms analysis hop).
+argument:: numCQT
+Number of CQT frequency bins (default: 72 bins = 6 octaves at 12 bins/octave).
+argument:: fmin
+Minimum frequency of CQT analysis in Hz (default: 65.4 Hz = C2).
+argument:: action
+A link::Classes/Function:: evaluated on completion with a link::Classes/Dictionary:: containing the extracted data:
+list::
+## code::\path::: Resolved file path.
+## code::\duration::: File duration in seconds.
+## code::\sampleRate::: Sample rate in Hz.
+## code::\numChannels::: Channel count.
+## code::\times::: link::Classes/FloatArray:: of frame timestamps in seconds.
+## code::\rms::: link::Classes/FloatArray:: of RMS amplitude.
+## code::\pitch::: link::Classes/FloatArray:: of F0 in Hz.
+## code::\pitchMIDI::: link::Classes/FloatArray:: of MIDI pitch values.
+## code::\voicing::: link::Classes/FloatArray:: of binary voicing indicators.
+## code::\confidence::: link::Classes/FloatArray:: of pitch confidence (0..1).
+## code::\centroid::: link::Classes/FloatArray:: of spectral centroid in Hz.
+## code::\flatness::: link::Classes/FloatArray:: of spectral flatness (0..1).
+## code::\onsets::: link::Classes/Array:: of detected onset times in seconds.
+## code::\chroma::: 2D Array code::[numFrames][12]:: of HPCP chroma power.
+## code::\cqt::: 2D Array code::[numFrames][numCQT]:: of CQT magnitude.
+::
+
+method:: extractWaveformPeaks
+Reads an audio file directly and returns an array of min/max sample peak pairs for high-performance waveform rendering.
+argument:: audioPath
+Path to the audio file.
+argument:: numPeaks
+Target number of peak sample pairs (default: 1000).
+returns:: An link::Classes/Array:: of code::[minSample, maxSample]:: pairs.
+
+examples::
+code::
+(
+// Extract whole-file MIR features and inspect summary statistics:
+var soundPath = MIRaGUI.soundPath("melody.wav");
+MIRaFileAnalyzer.analyze(soundPath, action: { |data|
+    "Analysis completed for: %".format(data[\path]).postln;
+    "Duration: % seconds (% frames at 100 Hz)".format(data[\duration].round(0.01), data[\times].size).postln;
+    "Detected onsets: %".format(data[\onsets].size).postln;
+    "Pitch range: % Hz to % Hz".format(
+        data[\pitch].select({ |f| f > 0 }).minItem.round(0.1),
+        data[\pitch].maxItem.round(0.1)
+    ).postln;
+});
+)
+::

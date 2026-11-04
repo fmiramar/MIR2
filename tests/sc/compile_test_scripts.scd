@@ -1,5 +1,14 @@
 (
-var projectRoot = thisProcess.nowExecutingPath.dirname.dirname.dirname;
+var execPath = thisProcess.nowExecutingPath;
+var projectRoot = if(execPath.notNil and: { PathName(execPath).isAbsolutePath }) {
+    execPath.dirname.dirname.dirname
+} {
+    if(File.exists("tests/sc/compile_check.scd")) {
+        PathName(".").fullPath
+    } {
+        Pitch2.filenameSymbol.asString.dirname.dirname
+    }
+};
 var paths = [
     projectRoot +/+ "tests/sc/compile_check.scd",
     projectRoot +/+ "tests/sc/collision_check.scd",
@@ -22,7 +31,7 @@ paths.do { |path|
 };
 
 if(ok) {
-    "MIR2_TEST_SCRIPTS_COMPILE_OK".postln;
+    "MIRA_TEST_SCRIPTS_COMPILE_OK".postln;
     0.exit
 } {
     1.exit

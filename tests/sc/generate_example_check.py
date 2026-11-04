@@ -2,7 +2,7 @@
 """Generate installed help graph, SCDoc and instrumented NRT audio checks.
 
 Run the generated script with sclang. The third audio channel records invalid
-MIR2 primitive outputs before example clipping/smoothing can conceal them.
+MIRa primitive outputs before example clipping/smoothing can conceal them.
 """
 from pathlib import Path
 import argparse
@@ -29,7 +29,7 @@ if args.classes:
     if len(files) != len(args.classes):
         raise SystemExit('Requested example class not found')
 lines = ['(', 'var ok = true, definitions = List.new, names = List.new;',
-         'var buffer = 0, salience = 1;', '~miraBuffer = 0; ~mir2Buffer = 0;']
+         'var buffer = 0, salience = 1;', '~miraBuffer = 0; ~miraBuffer = 0;']
 if args.server == 'supernova':
     lines += ['Server.supernova;', 'Score.program = Score.program.replace("scsynth", "supernova");']
 if not args.skip_docs:
@@ -59,7 +59,7 @@ for index, path in enumerate(files):
     if index % 16 == 0:
         lines += ['{']
     text = path.read_text(encoding='utf-8')
-    match = re.search(r'~(?:mira|mir2)\w*Example\s*=\s*\{(.*?)^\s*\}.play;', text, re.S | re.M)
+    match = re.search(r'~(?:mira|mira)\w*Example\s*=\s*\{(.*?)^\s*\}.play;', text, re.S | re.M)
     if not match:
         raise SystemExit('No audible example graph: ' + path.name)
     name, body = path.stem, match.group(1)
@@ -68,7 +68,7 @@ for index, path in enumerate(files):
     lines += ['try {', f'    var definition = SynthDef(\\example{name}, {{',
               '        var sound = {', body, '        }.value;',
               '''        var units = UGen.buildSynthDef.children.copy.select { |ugen|
-            (ugen.class.filenameSymbol.asString.find("/MIR2/Classes/").notNil or: { ugen.class.filenameSymbol.asString.find("/MIRa/Classes/").notNil })
+            (ugen.class.filenameSymbol.asString.find("/MIRa/Classes/").notNil or: { ugen.class.filenameSymbol.asString.find("/MIRa/Classes/").notNil })
         };
         var invalid = units.collect { |ugen|
             var signals = if(ugen.isKindOf(MultiOutUGen)) { ugen.channels } { [ugen] };
@@ -92,7 +92,7 @@ for index, path in enumerate(files):
               f'}} {{ |error| "EXAMPLE_FAILED {name}".postln; error.reportError; ok = false }};']
     if index % 16 == 15 or index == len(files) - 1:
         lines += ['}.value;']
-lines += ['if(ok.not) { 1.exit };', 'if(ok) {', f'"MIR2_EXAMPLE_GRAPHS_OK {len(files)}".postln;']
+lines += ['if(ok.not) { 1.exit };', 'if(ok) {', f'"MIRA_EXAMPLE_GRAPHS_OK {len(files)}".postln;']
 if not args.nrt:
     lines += ['0.exit;']
 else:
@@ -146,7 +146,7 @@ else:
             "NRT_EXAMPLE_FAILED % peak % badPrimitive %".format(name, peak, badPrimitive).postln; ok = false
         } { "NRT_EXAMPLE_OK % peak % badPrimitive %".format(name, peak, badPrimitive).postln };
     };
-    if(ok) { "MIR2_EXAMPLE_NRT_OK".postln; 0.exit } { 1.exit };
+    if(ok) { "MIRA_EXAMPLE_NRT_OK".postln; 0.exit } { 1.exit };
 }).play(AppClock);'''.replace('DURATION', str(args.duration)).replace('SAMPLE_RATE', str(args.sample_rate))
         .replace('BLOCK_SIZE', str(args.block_size)).replace('AUDIO_PATH', audio)
         .replace('OSC_PATH', json.dumps(str(output.with_suffix('.osc'))))

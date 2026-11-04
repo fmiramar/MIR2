@@ -1,5 +1,5 @@
 (
-var server = Server(\mir2Supernova, NetAddr("127.0.0.1", 57148));
+var server = Server(\miraSupernova, NetAddr("127.0.0.1", 57148));
 
 Server.supernova;
 server.options.numOutputBusChannels = 2;
@@ -17,7 +17,7 @@ server.waitForBoot({
         try {
             recordBuffer = Buffer.alloc(server, 16384, 1);
             server.sync;
-            SynthDef(\mir2SupernovaSmoke, { |recordBuf|
+            SynthDef(\miraSupernovaSmoke, { |recordBuf|
                 var source = SinOsc.ar(220, 0, 0.2);
                 var chain = FFT(LocalBuf(1024), source, 0.5);
                 var values = [
@@ -37,7 +37,7 @@ server.waitForBoot({
                     loop: 0, doneAction: Done.freeSelf)
             }).add;
             server.sync;
-            Synth(\mir2SupernovaSmoke, [\recordBuf, recordBuffer], server);
+            Synth(\miraSupernovaSmoke, [\recordBuf, recordBuffer], server);
             0.4.wait;
             server.sync;
             condition = Condition({ data.notNil });
@@ -47,12 +47,12 @@ server.waitForBoot({
             });
             condition.wait;
             if(data.any({ |value| value.isNaN or: { value.abs > 1e30 } })) {
-                Error("MIR2 supernova emitted NaN or Inf").throw
+                Error("MIRa supernova emitted NaN or Inf").throw
             };
             if(data.abs.maxItem < 1e-6) {
-                Error("MIR2 supernova analysis stayed silent").throw
+                Error("MIRa supernova analysis stayed silent").throw
             };
-            "MIR2_SUPERNOVA_OK peak=%".format(data.abs.maxItem.round(0.0001)).postln;
+            "MIRA_SUPERNOVA_OK peak=%".format(data.abs.maxItem.round(0.0001)).postln;
             recordBuffer.free;
             server.sync;
             server.quit;
@@ -67,7 +67,7 @@ server.waitForBoot({
         }
     }).play(SystemClock)
 }, 20, {
-    "MIR2 supernova server failed to boot".error;
+    "MIRa supernova server failed to boot".error;
     Server.scsynth;
     1.exit
 })

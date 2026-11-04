@@ -79,6 +79,28 @@ MIRaGUI {
     *envelope { |name="Transient Envelope", bus, width=380, height=200|
         ^MIRaEnvelopeView(name, bus, width, height)
     }
+
+    // --- Whole-File Visual Display & Analysis Methods ---
+
+    *waveshow { |audioPath, width = 840, height = 280|
+        ^MIRaPlot.waveshow(audioPath, width, height)
+    }
+
+    *spectrogram { |audioPath, colormap = \magma, width = 840, height = 360|
+        ^MIRaPlot.spectrogram(audioPath, colormap, width, height)
+    }
+
+    *chromagram { |audioPath, colormap = \viridis, width = 840, height = 320|
+        ^MIRaPlot.chromagram(audioPath, colormap, width, height)
+    }
+
+    *pitch { |audioPath, width = 840, height = 320|
+        ^MIRaPlot.pitch(audioPath, width, height)
+    }
+
+    *plotFile { |audioPath, colormap = \magma, width = 960, height = 740|
+        ^MIRaPlot.dashboard(audioPath, colormap: colormap, width: width, height: height)
+    }
 }
 
 MIRaBaseView {

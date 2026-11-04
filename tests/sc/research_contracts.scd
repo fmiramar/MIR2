@@ -12,7 +12,7 @@ if(server == "supernova") {
 };
 if(ChordTrack.label(0, 5) != "C:maj7" or: {ChordTrack.qualityNames(\extended).size != 9}
     or: {ChordTrack.qualityNames.size != 2}) { "CHORD_LABEL_FAILED".postln; 1.exit };
-definition = SynthDef(\mir2ResearchContracts, {
+definition = SynthDef(\miraResearchContracts, {
     var source = SinOsc.ar(220, 0, 0.2);
     var chroma = ChromaCQT.kr(source, fmin: 110, normalize: \sum);
     var quiet = ChromaCQT.kr(DC.ar(0), fmin: 110, normalize: \l2);
@@ -111,6 +111,6 @@ Routine({
     ["channel minima", minima].postln;
     ["channel maxima", maxima].postln;
     ["reconstruction error", residual, "phase advance error", phaseError, "phase updates", phaseUpdates].postln;
-    if(ok) { "MIR2_RESEARCH_CONTRACTS_OK".postln; 0.exit } { 1.exit };
+    if(ok) { "MIRA_RESEARCH_CONTRACTS_OK".postln; 0.exit } { 1.exit };
 }).play(AppClock);
 )

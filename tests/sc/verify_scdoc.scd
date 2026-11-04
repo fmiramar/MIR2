@@ -26,7 +26,7 @@ pages.do { |path|
 };
 
 if(ok) {
-    "MIR2_SCDOC_OK".postln;
+    "MIRA_SCDOC_OK".postln;
     0.exit
 } {
     1.exit

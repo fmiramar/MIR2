@@ -1,0 +1,80 @@
+class:: MIRaColormap
+summary:: Perceptually uniform color lookup tables for MIR visual displays
+categories:: GUI>Color, Libraries>MIR
+related:: Classes/MIRaPlot, Classes/MIRaGUI, Guides/MIRa-file-visualization
+
+description::
+MIRaColormap provides perceptually uniform color lookup tables and packed 32-bit ARGB pixel buffers for high-performance raster rendering of time-frequency representations (such as spectrograms and chromagrams) in SuperCollider.
+
+It includes 5 standard color palettes widely used in music information retrieval and data visualization toolkits (such as matplotlib and librosa):
+list::
+## strong::\magma::: Dark violet through crimson and bright orange to golden yellow. Ideal for high-contrast time-frequency spectrograms.
+## strong::\viridis::: Deep navy blue through emerald green to bright warm yellow. Perceptually linear across lightness and colorblind-safe.
+## strong::\plasma::: Dark indigo purple through magenta and vibrant pink to yellow. High perceptual dynamic range.
+## strong::\inferno::: Black through intense violet and fiery orange to light yellow. Accentuates quiet background noise floors and peaks.
+## strong::\coolwarm::: Symmetrical diverging blue-to-red colormap centered at neutral gray. Ideal for bipolar features and correlation matrices.
+::
+
+classmethods::
+
+method:: colorAt
+Returns an interpolated link::Classes/Color:: for a normalized scalar value between 0.0 and 1.0.
+argument:: val
+Normalized float value code::[0.0, 1.0]::.
+argument:: name
+Symbol naming the colormap (e.g. code::\magma::, code::\viridis::).
+returns:: A link::Classes/Color::.
+
+method:: pixelAt
+Returns a 32-bit packed integer in ARGB format code::(0xAARRGGBB):: for fast direct blitting into link::Classes/Image:: pixel buffers.
+argument:: val
+Normalized float value code::[0.0, 1.0]::.
+argument:: name
+Colormap symbol.
+returns:: An link::Classes/Integer::.
+
+method:: table
+Returns an link::Classes/Array:: of 256 pre-calculated link::Classes/Color:: instances for the requested palette.
+argument:: name
+Colormap symbol.
+argument:: size
+Number of color steps (default: 256).
+returns:: An link::Classes/Array:: of link::Classes/Color::.
+
+method:: pixelTable
+Returns an link::Classes/Int32Array:: of 256 pre-computed packed 32-bit ARGB color pixels.
+argument:: name
+Colormap symbol.
+argument:: size
+Table size (default: 256).
+returns:: An link::Classes/Int32Array::.
+
+method:: drawColorbar
+Renders a colorbar gradient inside a specified rectangle using link::Classes/Pen::.
+argument:: rect
+A link::Classes/Rect::.
+argument:: name
+Colormap symbol (e.g. code::\magma::).
+argument:: vertical
+Boolean indicating vertical (true) or horizontal (false) gradient orientation.
+
+examples::
+code::
+(
+// Preview all 5 standard MIRa colormaps:
+var win = Window("MIRa Colormap Palettes", Rect(100, 100, 520, 260)).front;
+var names = [\magma, \viridis, \plasma, \inferno, \coolwarm];
+win.view.background = Color(0.12, 0.12, 0.14);
+
+win.drawFunc = {
+    names.do { |name, i|
+        var y = 20 + (i * 45);
+        Pen.fillColor = Color.white;
+        Pen.font = Font("Sans", 11, true);
+        Pen.stringAtPoint(name.asString.capitalize, Point(20, y + 4));
+        MIRaColormap.drawColorbar(Rect(110, y, 380, 24), name, vertical: false);
+    };
+};
+win.refresh;
+)
+::

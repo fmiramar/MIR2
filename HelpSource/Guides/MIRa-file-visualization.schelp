@@ -1,0 +1,97 @@
+title:: MIRa Whole-Audio-File Visualization
+summary:: Comprehensive guide to whole-file MIR visual displays, colormaps, and interactive audio inspection
+categories:: Guides, GUI>MIR, Libraries>MIR
+related:: Classes/MIRaPlot, Classes/MIRaGUI, Classes/MIRaColormap, Classes/MIRaFileAnalyzer, Guides/MIRa
+
+MIRa provides two complementary visualization workflows:
+numberedlist::
+## strong::Real-Time Stream Monitoring::: Driven by live control-rate buses using link::Classes/MIRaGUI:: (e.g. scopes, chroma wheels, Tonnetz views, piano rolls).
+## strong::Whole-Audio-File Display & Inspection::: Offline batch extraction and full-file visual rendering using link::Classes/MIRaPlot:: and link::Classes/MIRaFileAnalyzer::, matching standard MIR research toolkits such as librosa (Python), Essentia (C++/Python), and MIRtoolbox / MATLAB Audio Toolbox.
+::
+
+section:: Architecture and Performance
+
+Analyzing an entire sound file frame-by-frame in real-time can be tedious for long recordings. MIRa uses headless Non-Real-Time (NRT) processing via link::Classes/Score::.recordNRT:
+list::
+## The audio file is loaded into an NRT server instance.
+## Native C++ MIRa UGens (link::Classes/PitchYIN::, link::Classes/HPCP::, link::Classes/CQT::, link::Classes/Onsets2::, link::Classes/SpecCentroid2::, link::Classes/SpecFlatness2::) run concurrently in a single interconnected analysis graph.
+## 90 feature channels are streamed to a floating-point soundfile at a uniform hop rate (default: 100 Hz / 10 ms).
+## Extraction executes at over 50x real-time speed (e.g. 12 seconds of polyphonic audio extracts in under 200 ms).
+## 2D time-frequency matrices are converted to packed 32-bit ARGB pixels (link::Classes/MIRaColormap::) and loaded directly into Qt link::Classes/Image:: surfaces for hardware-accelerated bilinear raster rendering.
+::
+
+section:: Colormap Palettes
+
+Spectrograms and chromagrams utilize 5 perceptually uniform color palettes (link::Classes/MIRaColormap::):
+table::
+## strong::Name:: || strong::Visual Character:: || strong::Primary Application::
+## code::\magma:: || Dark purple to golden yellow || High-contrast spectrograms, harmonic partials
+## code::\viridis:: || Deep navy to emerald and bright yellow || Perceptually uniform, colorblind-safe chromagrams
+## code::\plasma:: || Dark violet to warm pink and yellow || Wide dynamic range frequency analysis
+## code::\inferno:: || Black to fiery orange and pale yellow || Emphasizing quiet noise floors and transient peaks
+## code::\coolwarm:: || Symmetrical blue-white-red diverging || Centered correlation matrices and bipolar features
+::
+
+section:: Interactive Audio File Inspector
+
+The flagship interface is link::Classes/MIRaPlot#*dashboard::, which provides:
+list::
+## strong::Synchronized Multi-Tier Display::: Vertically stacked, time-aligned representations of waveform, CQT spectrogram, HPCP chromagram, pitch contour, and spectral dynamics.
+## strong::Interactive Scrubbing::: Click or drag anywhere across the plots to position the playback cursor and audition that point in the sound file.
+## strong::Playback Controls::: Integrated Play/Pause/Stop transport with precise current and total duration timecode readout.
+## strong::Colormap Switching::: Live dropdown selector updating spectrogram and chromagram palettes instantly.
+## strong::Accurate Engineering Axes::: Physical time in seconds, CQT frequency labels in Hertz (C2 to B7), semitone chroma names (C to B), and decibel colorbars.
+::
+
+section:: Examples
+
+subsection:: 1. Launching the Full Interactive Inspector
+code::
+(
+s.waitForBoot({
+    // Analyze and open the synchronized multi-tier inspector
+    var soundPath = MIRaGUI.soundPath("melody.wav");
+    MIRaPlot.dashboard(soundPath);
+});
+)
+::
+
+subsection:: 2. Standalone Constant-Q Spectrogram with Magma Colormap
+code::
+(
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("piano-chords.wav");
+    MIRaPlot.spectrogram(soundPath, colormap: \magma);
+});
+)
+::
+
+subsection:: 3. Harmonic Pitch Class Profile (HPCP Chromagram)
+code::
+(
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("piano-chords.wav");
+    MIRaPlot.chromagram(soundPath, colormap: \viridis);
+});
+)
+::
+
+subsection:: 4. Fundamental Frequency (F0) on Musical Note Grid
+code::
+(
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("melody.wav");
+    MIRaPlot.pitch(soundPath);
+});
+)
+::
+
+subsection:: 5. Waveform with Detected Transient Onsets
+code::
+(
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("drums.wav");
+    MIRaPlot.waveshow(soundPath);
+});
+)
+::

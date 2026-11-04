@@ -1,0 +1,154 @@
+class:: MIRaPlot
+summary:: Whole-audio-file visual display and interactive MIR inspector
+categories:: GUI>MIR, Libraries>MIR
+related:: Guides/MIRa-file-visualization, Classes/MIRaGUI, Classes/MIRaColormap, Classes/MIRaFileAnalyzer
+
+description::
+MIRaPlot provides whole-audio-file graphical displays and an interactive multi-tier inspection dashboard, bringing standard Music Information Retrieval (MIR) visual conventions (such as those in librosa, Essentia, and MIRtoolbox) to SuperCollider.
+
+It supports fast Non-Real-Time (NRT) batch extraction of audio files using MIRa's native C++ signal-processing primitives (including link::Classes/PitchYIN::, link::Classes/HPCP::, link::Classes/CQT::, link::Classes/Onsets2::, link::Classes/SpecCentroid2::, and link::Classes/SpecFlatness2::). Matrices are rendered into hardware-accelerated link::Classes/Image:: surfaces with perceptual colormaps (link::Classes/MIRaColormap::).
+
+Visualizations include:
+list::
+## strong::Waveform & Novelty (waveshow)::: Time-domain envelope peaks with detected onset markers and overlaid RMS contour.
+## strong::Spectrogram (spectrogram)::: Constant-Q (CQT) time-frequency transform on a logarithmic frequency grid (default 72 bins, 12 bins/octave) in decibels (dB), complete with frequency ticks and colorbar.
+## strong::Chromagram (chromagram)::: 12-pitch-class harmonic pitch profile (HPCP) with semitone labels (C through B) showing pitch distribution over time.
+## strong::Pitch Trajectory (pitch)::: Fundamental frequency (F0) contour plotted on a musical MIDI pitch grid (C2 through B6) with voicing confidence.
+## strong::Interactive Dashboard (dashboard)::: Synchronized multi-tier stack combining all representations with audio playback, scrubbing cursor, colormap switching, and timecode display.
+::
+
+classmethods::
+
+method:: waveshow
+Displays a standalone waveform with overlaid onset lines and RMS envelope.
+argument:: audioPath
+Path to the audio file. Basenames found in MIRa's code::sounds/:: folder are automatically resolved.
+argument:: width
+Window width in pixels (default: 840).
+argument:: height
+Window height in pixels (default: 280).
+returns:: A link::Classes/Window::.
+
+method:: spectrogram
+Displays a 2D time-frequency Constant-Q spectrogram with dB magnitude scaling, frequency ticks, and a colorbar.
+argument:: audioPath
+Path to the audio file.
+argument:: colormap
+Symbol naming the colormap: code::\magma:: (default), code::\viridis::, code::\plasma::, code::\inferno::, or code::\coolwarm::.
+argument:: width
+Window width in pixels (default: 840).
+argument:: height
+Window height in pixels (default: 360).
+returns:: A link::Classes/Window::.
+
+method:: chromagram
+Displays a 12-pitch-class harmonic chromagram (HPCP) showing semitones C through B over time.
+argument:: audioPath
+Path to the audio file.
+argument:: colormap
+Symbol naming the colormap (default: code::\viridis::).
+argument:: width
+Window width in pixels (default: 840).
+argument:: height
+Window height in pixels (default: 320).
+returns:: A link::Classes/Window::.
+
+method:: pitch
+Displays the extracted fundamental frequency trajectory (F0) on a musical MIDI note grid.
+argument:: audioPath
+Path to the audio file.
+argument:: width
+Window width in pixels (default: 840).
+argument:: height
+Window height in pixels (default: 320).
+returns:: A link::Classes/Window::.
+
+method:: dashboard
+Launches the synchronized multi-tier MIR File Inspector with audio playback, scrubbing cursor, colormap switching, and time readout.
+argument:: audioPath
+Path to the audio file.
+argument:: colormap
+Initial colormap name symbol (default: code::\magma::).
+argument:: tiers
+Array of tier symbols to display, chosen from code::[\wave, \spec, \chroma, \pitch, \dynamics]::. Defaults to displaying all tiers.
+argument:: width
+Window width in pixels (default: 960).
+argument:: height
+Window height in pixels (default: 740).
+argument:: title
+Custom window title string.
+returns:: A link::Classes/Window::.
+
+method:: makeMatrixImage
+Renders a 2D float matrix (frames x frequency bins) into a hardware-accelerated link::Classes/Image:: using a specified colormap and optional dB power scaling.
+argument:: matrix
+2D Array of floats, code::[numFrames][numBins]::.
+argument:: colormapName
+Colormap symbol.
+argument:: dbScale
+Boolean. If true, converts linear values to decibels clipped to 80 dB dynamic range.
+returns:: An link::Classes/Image::.
+
+method:: drawColorbar
+Draws a vertical colorbar legend using link::Classes/Pen::.
+argument:: rect
+A link::Classes/Rect:: specifying the bounding box.
+argument:: colormapName
+Colormap symbol.
+argument:: topLabel
+String label at top of colorbar (e.g. code::"0dB"::).
+argument:: bottomLabel
+String label at bottom of colorbar (e.g. code::"-80dB"::).
+
+examples::
+code::
+(
+// 1. Full Multi-Tier Interactive MIR File Inspector:
+// Displays waveform, CQT spectrogram, HPCP chromagram, pitch contour, and dynamics.
+// Click anywhere on the plot to scrub audio playback.
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("melody.wav");
+    MIRaPlot.dashboard(soundPath);
+});
+)
+::
+
+code::
+(
+// 2. Constant-Q Spectrogram with Perceptual Colormap:
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("piano-chords.wav");
+    MIRaPlot.spectrogram(soundPath, colormap: \magma);
+});
+)
+::
+
+code::
+(
+// 3. 12-Pitch-Class Chromagram (HPCP):
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("piano-chords.wav");
+    MIRaPlot.chromagram(soundPath, colormap: \viridis);
+});
+)
+::
+
+code::
+(
+// 4. Waveform with Detected Transient Onsets:
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("drums.wav");
+    MIRaPlot.waveshow(soundPath);
+});
+)
+::
+
+code::
+(
+// 5. Fundamental Frequency (F0) Contour on MIDI Pitch Grid:
+s.waitForBoot({
+    var soundPath = MIRaGUI.soundPath("melody.wav");
+    MIRaPlot.pitch(soundPath);
+});
+)
+::

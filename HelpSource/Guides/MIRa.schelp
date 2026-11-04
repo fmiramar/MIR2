@@ -1,7 +1,7 @@
 title:: MIRa
 summary:: Native spectral, pitch, onset, tonal, rhythm, auditory and wavelet analysis
 categories:: Libraries>MIR
-related:: Guides/MIRa-and-FluCoMa, Guides/MIRa-legacy-migration
+related:: Guides/MIRa-and-FluCoMa, Guides/MIRa-legacy-migration, Guides/MIRa-file-visualization
 
 MIRa provides 135 public classes for real-time musical analysis and analysis-driven sound. Each class page explains the technique, units, timing, limits and an audible example. Most return control-rate features; audio-input analyzers consume the full audio block internally. FFT readers preserve the shared buffer representation.
 
@@ -249,6 +249,17 @@ list::
 ## strong::MIRaGUI.tristimulus::: Barycentric ternary triangle displaying relative harmonic energy distribution (T1, T2, T3).
 ## strong::MIRaGUI.envelope::: Triggered transient envelope and attack/decay time-domain waveform scope.
 ::
+
+subsection:: Whole-audio-file visual display and inspection
+link::Classes/MIRaPlot:: and link::Classes/MIRaFileAnalyzer:: provide high-speed NRT whole-file feature extraction and visual displays matching standard MIR toolkits (librosa, Essentia, MIRtoolbox):
+list::
+## strong::MIRaPlot.waveshow::: Time-domain waveform with overlaid onset markers and RMS contour.
+## strong::MIRaPlot.spectrogram::: 2D Constant-Q (CQT) spectrogram with perceptual colormaps and decibel scale.
+## strong::MIRaPlot.chromagram::: 12-pitch-class harmonic energy profile (HPCP) with semitone labels.
+## strong::MIRaPlot.pitch::: Continuous F0 trajectory plotted on a musical MIDI note grid.
+## strong::MIRaPlot.dashboard::: Synchronized multi-tier interactive inspector with audio playback, scrubbing cursor, colormap switching, and timecode display.
+::
+See link::Guides/MIRa-file-visualization:: for detailed usage and examples.
 
 section:: Verification and test suite
 

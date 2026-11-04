@@ -40,7 +40,7 @@ if(compiled < files.size) {
 };
 
 if(ok) {
-    "MIR2_HELP_EXAMPLES_OK".postln;
+    "MIRA_HELP_EXAMPLES_OK".postln;
     0.exit
 } {
     1.exit
