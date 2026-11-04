@@ -86,6 +86,7 @@ MIRaPlot {
 
         // Run full analysis
         MIRaFileAnalyzer.analyze(audioPath, hopHz: 100, numCQT: 72, fmin: 65.4, action: { |dict|
+            var colormapListeners = List.new;
             analysisData = dict;
             mainView.removeAll; // clear loading label
             
@@ -138,7 +139,8 @@ MIRaPlot {
                     };
                     mainView.children.do { |ch| if(ch.isKindOf(UserView)) { ch.refresh } };
                 },
-                getCursorTime: { currentCursorTime }
+                getCursorTime: { currentCursorTime },
+                colormapListeners: colormapListeners
             );
 
             // Initial refresh to draw views, images, and playhead cursor immediately
@@ -179,10 +181,10 @@ MIRaPlot {
                 colormapName = pop.items[pop.value].asSymbol;
                 specImg = MIRaPlot.makeMatrixImage(dict[\cqt], colormapName, dbScale: true);
                 chromaImg = MIRaPlot.makeMatrixImage(dict[\chroma], colormapName, dbScale: false);
+                colormapListeners.do { |listener|
+                    listener.value(specImg, chromaImg, colormapName);
+                };
                 mainView.children.do { |ch|
-                    if(ch.respondsTo(\updateImages)) {
-                        ch.updateImages(specImg, chromaImg, colormapName);
-                    };
                     if(ch.isKindOf(UserView)) {
                         ch.refresh;
                     };
@@ -242,12 +244,10 @@ MIRaPlot {
         pixels = Int32Array.newClear(numFrames * numBins);
         pixelTable = MIRaColormap.pixelTable(colormapName);
 
-        if(dbScale.not) {
-            numFrames.do { |x|
-                numBins.do { |b|
-                    var v = matrix[x][b];
-                    if(v > maxVal) { maxVal = v };
-                };
+        numFrames.do { |x|
+            numBins.do { |b|
+                var v = matrix[x][b];
+                if(v > maxVal) { maxVal = v };
             };
         };
 
@@ -257,7 +257,8 @@ MIRaPlot {
                 var raw = matrix[x][b];
                 var norm;
                 if(dbScale) {
-                    var db = if(raw > 1e-6) { 20 * raw.log10 } { -100 };
+                    var ratio = (raw / maxVal).max(1e-4);
+                    var db = 20 * ratio.log10;
                     norm = ((db + 70) / 70).clip(0.0, 1.0);
                 } {
                     norm = (raw / maxVal).clip(0.0, 1.0);
@@ -270,7 +271,7 @@ MIRaPlot {
         ^img
     }
 
-    *buildTiers { |parent, data, activeTiers, tierHeights, width, height, plotLeft, plotRight, specImg, chromaImg, colormapName, onSeek, getCursorTime|
+    *buildTiers { |parent, data, activeTiers, tierHeights, width, height, plotLeft, plotRight, specImg, chromaImg, colormapName, onSeek, getCursorTime, colormapListeners|
         var currentY = 8;
         var plotWidth = width - plotLeft - plotRight;
         var totalAvailable = height - 16;
@@ -293,10 +294,10 @@ MIRaPlot {
                     this.setupWaveTier(uv, data, plotLeft, plotWidth, h, onSeek, getCursorTime);
                 },
                 \spec, {
-                    this.setupSpecTier(uv, data, plotLeft, plotWidth, h, specImg, colormapName, onSeek, getCursorTime);
+                    this.setupSpecTier(uv, data, plotLeft, plotWidth, h, specImg, colormapName, onSeek, getCursorTime, colormapListeners);
                 },
                 \chroma, {
-                    this.setupChromaTier(uv, data, plotLeft, plotWidth, h, chromaImg, colormapName, onSeek, getCursorTime);
+                    this.setupChromaTier(uv, data, plotLeft, plotWidth, h, chromaImg, colormapName, onSeek, getCursorTime, colormapListeners);
                 },
                 \pitch, {
                     this.setupPitchTier(uv, data, plotLeft, plotWidth, h, onSeek, getCursorTime);
@@ -387,22 +388,24 @@ MIRaPlot {
         };
     }
 
-    *setupSpecTier { |view, data, plotLeft, plotWidth, h, specImg, colormapName, onSeek, getCursorTime|
+    *setupSpecTier { |view, data, plotLeft, plotWidth, h, specImg, colormapName, onSeek, getCursorTime, colormapListeners|
         var duration = data[\duration];
         var img = specImg;
         var cmap = colormapName;
 
-        view.addUniqueMethod(\updateImages, { |self, newSpec, newChroma, newName|
-            img = newSpec;
-            cmap = newName;
-        });
+        if(colormapListeners.notNil) {
+            colormapListeners.add({ |newSpec, newChroma, newName|
+                img = newSpec;
+                cmap = newName;
+            });
+        };
 
         view.drawFunc = {
             var plotRect = Rect(plotLeft, 6, plotWidth, h - 20);
             var cbRect = Rect(plotRect.right + 12, plotRect.top, 14, plotRect.height);
 
             if(img.notNil) {
-                img.drawInRect(plotRect);
+                img.drawInRect(plotRect, img.bounds);
             };
 
             Pen.strokeColor = Color.gray(0.3);
@@ -431,16 +434,18 @@ MIRaPlot {
         };
     }
 
-    *setupChromaTier { |view, data, plotLeft, plotWidth, h, chromaImg, colormapName, onSeek, getCursorTime|
+    *setupChromaTier { |view, data, plotLeft, plotWidth, h, chromaImg, colormapName, onSeek, getCursorTime, colormapListeners|
         var duration = data[\duration];
         var img = chromaImg;
         var cmap = colormapName;
         var pitchNames = ["B", "A#", "A", "G#", "G", "F#", "F", "E", "D#", "D", "C#", "C"];
 
-        view.addUniqueMethod(\updateImages, { |self, newSpec, newChroma, newName|
-            img = newChroma;
-            cmap = newName;
-        });
+        if(colormapListeners.notNil) {
+            colormapListeners.add({ |newSpec, newChroma, newName|
+                img = newChroma;
+                cmap = newName;
+            });
+        };
 
         view.drawFunc = {
             var plotRect = Rect(plotLeft, 6, plotWidth, h - 20);
@@ -448,7 +453,7 @@ MIRaPlot {
             var binH = plotRect.height / 12;
 
             if(img.notNil) {
-                img.drawInRect(plotRect);
+                img.drawInRect(plotRect, img.bounds);
             };
 
             Pen.strokeColor = Color.gray(0.25);
@@ -630,6 +635,7 @@ MIRaPlot {
         if(duration.notNil and: { duration > 0 } and: { cursorTime.notNil }) {
             x = plotRect.left + ((cursorTime / duration).clip(0.0, 1.0) * plotRect.width);
 
+            Pen.push;
             // Cursor vertical bar
             Pen.strokeColor = Color(1.0, 0.25, 0.15, 0.95);
             Pen.width = 2.0;
@@ -641,17 +647,18 @@ MIRaPlot {
             Pen.beginPath;
             Pen.moveTo(Point(x - 5, plotRect.top - 2));
             Pen.lineTo(Point(x + 5, plotRect.top - 2));
-            Pen.lineTo(Point(x, plotRect.top + 5));
-            Pen.closePath;
+            Pen.lineTo(Point(x, plotRect.top + 6));
+            Pen.lineTo(Point(x - 5, plotRect.top - 2));
             Pen.fill;
 
             // Cursor bottom marker / pointer
             Pen.beginPath;
             Pen.moveTo(Point(x - 5, plotRect.bottom + 2));
             Pen.lineTo(Point(x + 5, plotRect.bottom + 2));
-            Pen.lineTo(Point(x, plotRect.bottom - 5));
-            Pen.closePath;
+            Pen.lineTo(Point(x, plotRect.bottom - 6));
+            Pen.lineTo(Point(x - 5, plotRect.bottom + 2));
             Pen.fill;
+            Pen.pop;
         };
     }
 

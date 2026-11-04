@@ -99,22 +99,22 @@ MIRaColormap {
     }
 
     *table { |name = \magma, size = 256|
-        var sym = name.asSymbol;
-        var existing = cache[sym];
-        if(existing.notNil and: { existing.size == size }) { ^existing };
+        var key = (name.asString ++ "_" ++ size).asSymbol;
+        var existing = cache[key];
+        if(existing.notNil) { ^existing };
 
-        existing = this.makeColorTable(this.nodes(sym), size);
-        cache[sym] = existing;
+        existing = this.makeColorTable(this.nodes(name.asSymbol), size);
+        cache[key] = existing;
         ^existing
     }
 
     *pixelTable { |name = \magma, size = 256|
-        var sym = name.asSymbol;
-        var existing = pixelCache[sym];
-        if(existing.notNil and: { existing.size == size }) { ^existing };
+        var key = (name.asString ++ "_" ++ size).asSymbol;
+        var existing = pixelCache[key];
+        if(existing.notNil) { ^existing };
 
-        existing = this.makePixelTable(this.nodes(sym), size);
-        pixelCache[sym] = existing;
+        existing = this.makePixelTable(this.nodes(name.asSymbol), size);
+        pixelCache[key] = existing;
         ^existing
     }
 
