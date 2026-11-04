@@ -313,9 +313,11 @@ MIRaPlot {
 
     *setupWaveTier { |view, data, plotLeft, plotWidth, h, onSeek, getCursorTime|
         var wave = data[\waveform];
-        var onsets = data[\onsets];
+        var onsets = data[\onsets] ? [];
         var rms = data[\rms];
         var duration = data[\duration];
+        var maxRms = if(rms.notNil and: { rms.notEmpty }) { rms.maxItem.max(1e-4) } { 1.0 };
+        var rmsScale = (0.44 / maxRms.max(0.35)).min(1.5);
 
         view.drawFunc = {
             var plotRect = Rect(plotLeft, 8, plotWidth, h - 22);
@@ -344,35 +346,57 @@ MIRaPlot {
                 Pen.stroke;
             };
 
-            // RMS Envelope
+            // RMS Energy Envelope (symmetric upper and lower contour lines framing waveform core)
             if(rms.notNil and: { rms.size > 1 }) {
-                Pen.strokeColor = Color(0.9, 0.8, 0.2, 0.9);
+                Pen.strokeColor = Color(0.95, 0.82, 0.15, 0.95);
                 Pen.width = 1.5;
+
+                // Upper RMS contour
                 rms.size.do { |i|
                     var x = plotRect.left + (i / (rms.size - 1) * plotRect.width);
-                    var y = plotRect.bottom - (rms[i].clip(0, 1) * plotRect.height * 0.9);
+                    var y = midY - (rms[i] * rmsScale * plotRect.height);
+                    if(i == 0) { Pen.moveTo(Point(x, y)) } { Pen.lineTo(Point(x, y)) };
+                };
+                Pen.stroke;
+
+                // Lower RMS contour
+                rms.size.do { |i|
+                    var x = plotRect.left + (i / (rms.size - 1) * plotRect.width);
+                    var y = midY + (rms[i] * rmsScale * plotRect.height);
                     if(i == 0) { Pen.moveTo(Point(x, y)) } { Pen.lineTo(Point(x, y)) };
                 };
                 Pen.stroke;
             };
 
-            // Onset dashed vertical markers
-            if(onsets.notNil) {
+            // Onset vertical markers with top pins
+            if(onsets.notNil and: { onsets.notEmpty }) {
                 Pen.strokeColor = Color(1.0, 0.35, 0.1, 0.85);
-                Pen.width = 1;
+                Pen.width = 1.2;
                 onsets.do { |t|
-                    var x = plotRect.left + (t / duration * plotRect.width);
+                    var x = plotRect.left + ((t / duration).clip(0.0, 1.0) * plotRect.width);
                     Pen.line(Point(x, plotRect.top), Point(x, plotRect.bottom));
                 };
                 Pen.stroke;
+
+                // Top triangular pins for onsets
+                Pen.fillColor = Color(1.0, 0.35, 0.1, 0.95);
+                onsets.do { |t|
+                    var x = plotRect.left + ((t / duration).clip(0.0, 1.0) * plotRect.width);
+                    Pen.beginPath;
+                    Pen.moveTo(Point(x - 3, plotRect.top));
+                    Pen.lineTo(Point(x + 3, plotRect.top));
+                    Pen.lineTo(Point(x, plotRect.top + 6));
+                    Pen.lineTo(Point(x - 3, plotRect.top));
+                    Pen.fill;
+                };
             };
 
             Pen.pop;
 
             // Labels
             Pen.stringLeftJustIn("Waveform & Onsets", Rect(8, 8, plotLeft - 10, 16), Font.sansSerif(10, true), Color.white);
-            Pen.stringLeftJustIn("RMS", Rect(8, 24, plotLeft - 10, 14), Font.sansSerif(9), Color(0.9, 0.8, 0.2));
-            Pen.stringLeftJustIn("Onsets", Rect(8, 38, plotLeft - 10, 14), Font.sansSerif(9), Color(1.0, 0.4, 0.1));
+            Pen.stringLeftJustIn("RMS", Rect(8, 24, plotLeft - 10, 14), Font.sansSerif(9), Color(0.95, 0.82, 0.15));
+            Pen.stringLeftJustIn("Onsets (" ++ onsets.size ++ ")", Rect(8, 38, plotLeft - 10, 14), Font.sansSerif(9), Color(1.0, 0.4, 0.1));
 
             this.drawTimeAxis(plotRect, duration);
             this.drawCursor(plotRect, duration, getCursorTime.value);

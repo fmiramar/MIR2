@@ -64,10 +64,11 @@ MIRaFileAnalyzer {
             var cqt = CQT.kr(mono, fmin: fmin, numBins: numCQT, binsPerOctave: 12);
             var centroid = SpecCentroid2.kr(chain, 40, 12000, 0, 2048);
             var flatness = SpecFlatness2.kr(chain, 0, 12000, 1, 1e-20, 2048);
-            var onsets = Onsets2.kr(chain, threshold: 0.3);
-            var rms = RunningSum.kr(mono.squared, 512).sqrt;
+            var onsets = Onsets2.kr(chain, threshold: 0.2, fftSize: 2048, hop: 0.5);
+            var onsetTrig = Trig1.kr(onsets[0], 0.02);
+            var rms = (RunningSum.ar(mono.squared, 1024) / 1024).sqrt;
 
-            var controlSignals = [rms, pitch[0], pitch[1], pitch[2], centroid, flatness, onsets]
+            var controlSignals = [A2K.kr(rms), pitch[0], pitch[1], pitch[2], centroid, flatness, onsetTrig]
                 ++ hpcp ++ cqt;
 
             Out.ar(0, K2A.ar(controlSignals));
@@ -100,7 +101,7 @@ MIRaFileAnalyzer {
                 var totalFrames, rawData;
                 var hopSamples, numSampled;
                 var rmsArr, pitchArr, pitchMIDIArr, voicingArr, confArr, centroidArr, flatnessArr;
-                var onsetList, chromaMat, cqtMat, timeArr;
+                var onsetList, chromaMat, cqtMat, timeArr, lastOnset = -999;
                 var waveData, resultDict;
 
                 if(resFile.isNil) {
@@ -152,7 +153,10 @@ MIRaFileAnalyzer {
                     flatnessArr[k] = rawData[offset + 5];
 
                     if(rawData[offset + 6] > 0.5) {
-                        onsetList.add(tSec);
+                        if((tSec - lastOnset) > 0.03) {
+                            onsetList.add(tSec);
+                            lastOnset = tSec;
+                        };
                     };
 
                     chromaMat[k] = rawData[(offset + 7) .. (offset + 18)].asArray;
