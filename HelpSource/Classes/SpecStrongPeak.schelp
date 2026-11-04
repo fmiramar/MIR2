@@ -1,12 +1,12 @@
 class:: SpecStrongPeak
 summary:: Fraction of spectral mass in the strongest bin
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Returns max(w) / sum(w), between 0 and 1. This explicitly defines strongest-peak dominance as a bin concentration ratio; it is not the bandwidth-based StrongPeak formula used by some MIR libraries.
 
-For these formulas w is the raw FFT magnitude or its square, and f is the bin-center frequency in Hz. Silence returns 0. The reader preserves the FFT chain. Independent maximum-to-sum concentration descriptor specified for MIR2.
+For these formulas w is the raw FFT magnitude or its square, and f is the bin-center frequency in Hz. Silence returns 0. The reader preserves the FFT chain. Independent maximum-to-sum concentration descriptor specified for MIRa.
 
 CPU cost is linear in the number of FFT bins; no memory is allocated while processing. It adds no lookahead beyond the upstream FFT. At a 1024-sample window and 48 kHz the initial analysis window is about 21.3 ms. Changing FFT size or window affects unnormalized values.
 
@@ -34,17 +34,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecStrongPeak measures the fraction of total spectral mass concentrated in the single strongest bin (between 0 and 1). Pure sinusoidal or resonant acoustic tones exhibit high concentration; broadband noise exhibits low concentration. In this example, strong peak concentration tunes the resonance Q of a tracking bandpass filter to accentuate vocal and instrumental formants. An interactive code::MIR2GUI.scope:: displays real-time strong peak concentration.
+SpecStrongPeak measures the fraction of total spectral mass concentrated in the single strongest bin (between 0 and 1). Pure sinusoidal or resonant acoustic tones exhibit high concentration; broadband noise exhibits low concentration. In this example, strong peak concentration tunes the resonance Q of a tracking bandpass filter to accentuate vocal and instrumental formants. An interactive code::MIRaGUI.scope:: displays real-time strong peak concentration.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -57,24 +57,19 @@ s.waitForBoot({
         var filtered = BPF.ar(source, 1200, resQ) * 0.4;
         var sound = (source * 0.25) + filtered;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, peakRatio.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, peakRatio.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Strong Peak Fraction", ~mir2Bus, 0.0, 0.5, "ratio");
+    ~miraGUI = MIRaGUI.scope("Strong Peak Fraction", ~miraBus, 0.0, 0.5, "ratio");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

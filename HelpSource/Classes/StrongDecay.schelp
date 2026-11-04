@@ -1,7 +1,7 @@
 class:: StrongDecay
 summary:: Energy weighted toward the start of an observation window
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
 Computes sqrt(integrated envelope energy / temporal energy centroid). Integrated energy is frameTime * sum(e[i].squared); the centroid uses the same squared RMS weights and frame-centre coordinates. The result increases with signal level and earlier energy. This rolling adaptation follows the energy/temporal-centroid idea described by Gouyon and Herrera (MOSART 2001), with a fully specified RMS-energy convention rather than claimed Essentia equivalence.
@@ -29,17 +29,17 @@ returns::
 Nonnegative amplitude-like value; not a decay time or normalized probability.
 
 examples::
-StrongDecay computes the square root of integrated envelope energy divided by the temporal energy centroid (Gouyon & Herrera). It yields higher values when strong energy is concentrated early in the observation window. In this example, StrongDecay detects rapid initial drop-offs and activates a sympathetic resonant comb filter that gently extends the acoustic pluck's decay ring-down. An interactive code::MIR2GUI.scope:: displays real-time StrongDecay.
+StrongDecay computes the square root of integrated envelope energy divided by the temporal energy centroid (Gouyon & Herrera). It yields higher values when strong energy is concentrated early in the observation window. In this example, StrongDecay detects rapid initial drop-offs and activates a sympathetic resonant comb filter that gently extends the acoustic pluck's decay ring-down. An interactive code::MIRaGUI.scope:: displays real-time StrongDecay.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -54,23 +54,19 @@ s.waitForBoot({
         var sympathetic = CombC.ar(source, 0.05, 1/330, 0.6) * ringSend;
         var sound = (source * 0.25 ! 2) + (sympathetic ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, decayLag.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, decayLag.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Strong Decay", ~mir2Bus, 0.0, 0.5, "amp");
+    ~miraGUI = MIRaGUI.scope("Strong Decay", ~miraBus, 0.0, 0.5, "amp");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

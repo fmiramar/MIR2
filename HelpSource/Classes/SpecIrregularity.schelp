@@ -1,7 +1,7 @@
 class:: SpecIrregularity
 summary:: Jensen or Krimphoff spectral irregularity
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 The Jensen mode returns sum((w[j] - w[j+1]).squared) / sum(w.squared), using adjacent pairs inside the selected range and no synthetic final zero bin. Krimphoff returns sum(abs(w[j] - (w[j-1] + w[j] + w[j+1])/3)) over interior bins. The latter is an unnormalized L1 deviation and changes with input gain. These are bin-domain versions; they do not perform harmonic tracking.
@@ -37,17 +37,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecIrregularity measures jaggedness across adjacent bins in the spectrum (Jensen or Krimphoff formulation). A smooth spectral envelope produces low irregularity; jagged harmonic peaks produce high irregularity. In this example, spectral irregularity drives the drive and fold depth of a wavefolding saturator, dynamically enriching sounds with sparse or irregular spectral peaks. An interactive code::MIR2GUI.scope:: displays real-time spectral irregularity.
+SpecIrregularity measures jaggedness across adjacent bins in the spectrum (Jensen or Krimphoff formulation). A smooth spectral envelope produces low irregularity; jagged harmonic peaks produce high irregularity. In this example, spectral irregularity drives the drive and fold depth of a wavefolding saturator, dynamically enriching sounds with sparse or irregular spectral peaks. An interactive code::MIRaGUI.scope:: displays real-time spectral irregularity.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -60,24 +60,19 @@ s.waitForBoot({
         var folded = (source * foldDrive).fold2(0.5) * 0.35;
         var sound = (source * 0.2) + folded;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, irreg.clip(0, 5)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, irreg.clip(0, 5)) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Irregularity", ~mir2Bus, 0.0, 2.0, "index");
+    ~miraGUI = MIRaGUI.scope("Spectral Irregularity", ~miraBus, 0.0, 2.0, "index");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

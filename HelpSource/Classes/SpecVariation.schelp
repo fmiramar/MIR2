@@ -1,7 +1,7 @@
 class:: SpecVariation
 summary:: Cosine distance between consecutive spectra
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Returns 1 - dot(w, previousW) / (norm(w) * norm(previousW)), clipped to 0..1. The first frame and any comparison involving an all-zero spectrum return zero. It retains one spectrum and only advances that history on new FFT frames.
@@ -34,17 +34,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecVariation computes the normalized cosine distance between consecutive FFT spectra (ranging from 0 to 1). It measures timbral change independent of absolute energy changes. In this example, sharp spectral transitions (such as sudden percussive hits or timbral shifts) trigger momentary reverse swell delays, creating dynamic rhythmic echoes. An interactive code::MIR2GUI.scope:: displays real-time spectral variation.
+SpecVariation computes the normalized cosine distance between consecutive FFT spectra (ranging from 0 to 1). It measures timbral change independent of absolute energy changes. In this example, sharp spectral transitions (such as sudden percussive hits or timbral shifts) trigger momentary reverse swell delays, creating dynamic rhythmic echoes. An interactive code::MIRaGUI.scope:: displays real-time spectral variation.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -60,24 +60,19 @@ s.waitForBoot({
         var swell = CombC.ar(source, 0.2, 0.15, 0.8) * trig * 0.4;
         var sound = (source * 0.25 ! 2) + swell;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, variation.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, variation.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Variation", ~mir2Bus, 0.0, 1.0, "dist");
+    ~miraGUI = MIRaGUI.scope("Spectral Variation", ~miraBus, 0.0, 1.0, "dist");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

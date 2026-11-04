@@ -1,7 +1,7 @@
 class:: FeatureMedian
 summary:: Trailing median of a control feature
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Median
+related:: Guides/MIRa, Classes/Median, Classes/FeatureSmooth
 
 description::
 Sorts a fixed-size trailing window and returns its middle value, or the mean of the two middle values for an even window. A median suppresses isolated spikes without assuming a Gaussian distribution. All scratch memory is allocated at construction.
@@ -27,17 +27,17 @@ returns::
 Median in the same units as the input.
 
 examples::
-FeatureMedian applies a sliding rank filter to reject transient anomalies and erratic pitch jitter from feature streams. In this example, it filters the pitch output from an acoustic saxophone solo: spurious octave jumps and unvoiced pitch glitches are stripped away, yielding a rock-solid pitch trajectory driving an expressive synthesizer lead. An interactive code::MIR2GUI.scope:: monitors the stabilized pitch contour.
+FeatureMedian applies a sliding rank filter to reject transient anomalies and erratic pitch jitter from feature streams. In this example, it filters the pitch output from an acoustic saxophone solo: spurious octave jumps and unvoiced pitch glitches are stripped away, yielding a rock-solid pitch trajectory driving an expressive synthesizer lead. An interactive code::MIRaGUI.scope:: monitors the stabilized pitch contour.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -50,24 +50,19 @@ s.waitForBoot({
         var leadSynth = Saw.ar([medianFreq.clip(40, 2000), (medianFreq * 1.005).clip(40, 2000)]).sum * 0.15 * pitch[1].lag(0.05);
         var sound = (source * 0.25) + leadSynth;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, medianFreq) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, medianFreq) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Median Filtered Pitch", ~mir2Bus, 100.0, 1000.0, "Hz");
+    ~miraGUI = MIRaGUI.scope("Median Filtered Pitch", ~miraBus, 100.0, 1000.0, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FeatureSmooth::
-link::Classes/Median::

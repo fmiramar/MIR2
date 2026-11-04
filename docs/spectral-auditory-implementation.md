@@ -6,7 +6,7 @@ This module implements the remaining mandatory scalar/subband spectral descripto
 
 The new classes are `FFTCrest2`, `FFTSpread2`, `FFTSlope2`, `FFTPower2`, `FFTPeak2`, `FFTSubbandFlatness2`, `FFTSubbandFlux2`, `FFTSubbandPower2`, `SpecEntropy`, `SpecDecrease`, `SpecComplexity`, `SpecContrast`, `SpecStrongPeak`, `SpecHFC`, `SpecBandwidth`, `SpecIrregularity`, `SpecVariation`, `SpecRMS`, `SpecEnergy`, `SpecBandEnergy`, `SpecBandRatio`, `SpecSparsity`, `BarkBands`, `ERBBands`, `GammatoneBands`, `BFCC`, `GFCC`, `LFCC`, and `Loudness2`.
 
-The installed core and extension class sources were searched before adding these names; no conflicting definitions were found. `MIR2SpectralBands` and `MIR2AuditoryAnalyzer` are abstract language-side validation helpers, not server analyzers.
+The installed core and extension class sources were searched before adding these names; no conflicting definitions were found. `MIRaSpectralBands` and `MIRaAuditoryAnalyzer` are abstract language-side validation helpers, not server analyzers.
 
 All spectral inputs are raw, one-sided FFT magnitudes. `spectrumMode=0` uses magnitude and `spectrumMode=1` uses its square. Unless a class explicitly says otherwise, there is no factor of two for interior bins, FFT-size division, or window-gain correction. Thus `FFTPower2`, `SpecEnergy`, and `SpecRMS` are descriptors of the FFT-bin vector and are not calibrated time-domain power/RMS meters. The only calibrated power-to-acoustic convention in this module is the explicitly parameterized `Loudness2` conversion.
 
@@ -60,7 +60,7 @@ Band edges are converted from the original 44.1 kHz/1024 bin grid to Hz. Fractio
 
 Each band's SPL is interpolated through the inherited table. The table is used only within its documented numerical range, with below-range contributions zero and a per-band 100-phon ceiling. Total excitation is `sum(10^(bandPhon/10)-1)`, removing the native model's silent residual. Smoothed total phons are `10*log10(1+excitation)`. Above 40 phon, sones are `2^((phon-40)/10)`; below 40 they are `(phon/40)^2.86`, continuous at 40 and zero at silence. Attack/release time constants operate on excitation and use elapsed samples between FFT frames, not an assumed hop.
 
-The source table does not document whether its contours assume a free or diffuse field. MIR2 makes no such claim and applies no acoustic-field correction; externally calibrated and equalized input plus independent validation are required for absolute acoustic uses. This model remains an informal MIR control feature, without ISO conformance or claims of modern perceptual accuracy. It is not an EBU R128 meter.
+The source table does not document whether its contours assume a free or diffuse field. MIRa makes no such claim and applies no acoustic-field correction; externally calibrated and equalized input plus independent validation are required for absolute acoustic uses. This model remains an informal MIR control feature, without ISO conformance or claims of modern perceptual accuracy. It is not an EBU R128 meter.
 
 ## PNCC reference gate
 
@@ -72,20 +72,20 @@ library; all medium-time suppression and normalization stages are present.
 
 ## Validation and cost
 
-`MIR2AdvancedSpectralTests.cpp` checks known-spectrum scalar formulas, entropy units, range behavior, cosine variation, contrast quantile means, strongest-peak selection, exact log-parabolic interpolation, silence, and nonfinite bins. `MIR2AuditoryTests.cpp` checks scale inverses, normalized filter responses, orthonormal DCT energy conservation, the independent binomial closed-form gammatone impulse response, center/off-band tones at 44.1/48/96 kHz, and 1 kHz loudness calibration across FFT sizes 1024/2048/4096.
+`MIRaAdvancedSpectralTests.cpp` checks known-spectrum scalar formulas, entropy units, range behavior, cosine variation, contrast quantile means, strongest-peak selection, exact log-parabolic interpolation, silence, and nonfinite bins. `MIRaAuditoryTests.cpp` checks scale inverses, normalized filter responses, orthonormal DCT energy conservation, the independent binomial closed-form gammatone impulse response, center/off-band tones at 44.1/48/96 kHz, and 1 kHz loudness calibration across FFT sizes 1024/2048/4096.
 
 An optimized standalone run measured approximately 80 microseconds for a group of all 16 scalar kernels on a 2048-point spectrum, and 0.055 CPU seconds for one second of 64-channel gammatone filtering at 48 kHz. These are local kernel timings, not cross-platform server guarantees; the tests print current timings when rerun. GFCC DCT and server overhead are additional. Gammatone filtering has frequency-dependent causal delay and envelope smoothing; it adds no lookahead. Spectral analyzers add no lookahead beyond their upstream FFT.
 
-Per-class help includes a playable analysis-driven example with `ExampleFiles.child`, buffer synchronization, fade-in, and cleanup. Full SC class compilation, NRT integration, installed SCDoc indexing, and rendering are centralized with the rest of MIR2 and must pass before release. These standalone checks alone do not claim that every help example has passed server execution.
+Per-class help includes a playable analysis-driven example with `ExampleFiles.child`, buffer synchronization, fade-in, and cleanup. Full SC class compilation, NRT integration, installed SCDoc indexing, and rendering are centralized with the rest of MIRa and must pass before release. These standalone checks alone do not claim that every help example has passed server execution.
 
 ## Primary sources
 
 - [Peeters (2004), A Large Set of Audio Features for Sound Description](https://recherche.ircam.fr/anasyn/peeters/ARTICLES/Peeters_2003_cuidadoaudiofeatures.pdf): descriptor taxonomy and common equations. [IRCAM-hosted copy](https://discussion.forum.ircam.fr/uploads/default/original/1X/ffa6a82f823873f864681994c271fb157e41a627.pdf).
-- [Jiang et al. (2002), Music Type Classification by Spectral Contrast Feature](https://hcsi.cs.tsinghua.edu.cn/Paper/Paper02/200218.pdf): peak/valley quantiles. MIR2 omits the paper's learned KL transform and expresses ratios in dB.
+- [Jiang et al. (2002), Music Type Classification by Spectral Contrast Feature](https://hcsi.cs.tsinghua.edu.cn/Paper/Paper02/200218.pdf): peak/valley quantiles. MIRa omits the paper's learned KL transform and expresses ratios in dB.
 - [Hoyer (2004), Non-negative Matrix Factorization with Sparseness Constraints](https://www.jmlr.org/papers/volume5/hoyer04a/hoyer04a.pdf): normalized L1/L2 sparsity.
 - [Smith, Spectral Audio Signal Processing, Quadratic Interpolation of Spectral Peaks](https://www.dsprelated.com/freebooks/sasp/Quadratic_Interpolation_Spectral_Peaks.html): interpolation geometry.
 - [Traunmuller (1990), Analytical expressions for the tonotopic sensory scale](https://doi.org/10.1121/1.399849).
 - [Glasberg and Moore (1990), Derivation of auditory filter shapes from notched-noise data](https://doi.org/10.1016/0378-5955(90)90170-T).
-- Hohmann (2002), Frequency analysis and synthesis using a Gammatone filterbank, Acta Acustica united with Acustica 88:433–442. [Author-origin AMT equations and implementation](https://amtoolbox.org/amt-1.6.0/doc/modelstages/hohmann2002_filter_code.php) were consulted for the equations; MIR2's implementation is independently written.
+- Hohmann (2002), Frequency analysis and synthesis using a Gammatone filterbank, Acta Acustica united with Acustica 88:433–442. [Author-origin AMT equations and implementation](https://amtoolbox.org/amt-1.6.0/doc/modelstages/hohmann2002_filter_code.php) were consulted for the equations; MIRa's implementation is independently written.
 - [SuperCollider 3.14.1 Loudness.cpp](https://github.com/supercollider/supercollider/blob/Version-3.14.1/server/plugins/Loudness.cpp): GPL-2.0-or-later contour table and immediate loudness model source.
 - [Kim and Stern (2016), Power-Normalized Cepstral Coefficients for Robust Speech Recognition](https://www.cs.cmu.edu/~robust/Papers/KimStern16_proof.pdf): independently implemented PNCC stages, evaluated in the PNCC report.

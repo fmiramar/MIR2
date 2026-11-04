@@ -1,7 +1,7 @@
 class:: WaveletDaub2
 summary:: Daubechies analysis, coefficient removal and audio reconstruction
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/WaveletBands
+related:: Guides/MIRa, Classes/WaveletBands, Classes/Wavelets2
 
 description::
 Transforms non-overlapping frames, clears a prefix of the coefficient vector, and reconstructs with the transpose orthonormal transform. A zero removal count reconstructs the input with exactly frameSize samples of delay. Coefficients are ordered from the coarsest approximation to the finest detail; removal starts at the low-frequency end.
@@ -31,17 +31,17 @@ argument:: boundary
 Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
-WaveletDaub2 performs discrete Daubechies wavelet analysis, clears a leading prefix of code::remove:: approximation coefficients, and reconstructs the audio signal via the inverse transform. In this example, an acoustic piano phrase is processed while a low-frequency oscillator modulates the code::remove:: parameter from 0 (exact delayed pass-through) to 256 (higher detail scales only). The dry delayed reference is panned left and the wavelet-filtered reconstruction is panned right. An interactive code::MIR2GUI.scope:: tracks the active removal count.
+WaveletDaub2 performs discrete Daubechies wavelet analysis, clears a leading prefix of code::remove:: approximation coefficients, and reconstructs the audio signal via the inverse transform. In this example, an acoustic piano phrase is processed while a low-frequency oscillator modulates the code::remove:: parameter from 0 (exact delayed pass-through) to 256 (higher detail scales only). The dry delayed reference is panned left and the wavelet-filtered reconstruction is panned right. An interactive code::MIRaGUI.scope:: tracks the active removal count.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25])) * 0.15
@@ -53,24 +53,19 @@ s.waitForBoot({
         var dry = DelayN.ar(source, 0.1, 512 / SampleRate.ir);
         var sound = [dry, wet] * 0.25;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, removeCount) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, removeCount) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Wavelet Removed Coeffs", ~mir2Bus, 0, 256, "coeffs");
+    ~miraGUI = MIRaGUI.scope("Wavelet Removed Coeffs", ~miraBus, 0, 256, "coeffs");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/WaveletBands::
-link::Classes/Wavelets2::

@@ -1,7 +1,7 @@
 class:: PNCC
 summary:: Power-normalized cepstra with medium-time noise suppression
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/GFCC, Classes/MFCC2
+related:: Guides/MIRa, Classes/GFCC, Classes/MFCC2, Classes/BFCC
 
 description::
 Computes a native online adaptation of Kim and Stern's PNCC (IEEE/ACM TASLP 2016, DOI 10.1109/TASLP.2016.2545928). The pipeline applies pre-emphasis, Hamming-windowed spectra, normalized gammatone-shaped power bands, a five-frame medium-time average, asymmetric background estimation, temporal masking, frequency smoothing, online mean-power normalization, a 1/15 power compression, and an orthonormal DCT-II. No external feature library or trained model is loaded.
@@ -40,17 +40,17 @@ returns::
 Array of numCoeffs cepstral values. These are dimensionless features; higher coefficients can be negative.
 
 examples::
-PNCC extracts Power-Normalized Cepstral Coefficients designed for noise-robust speech and audio analysis via medium-time spectral averaging, asymmetric background noise suppression, and power-law compression. In this example, 13 PNCC coefficients modulate a dual-oscillator vocal formant synth: the synthesized timbre shadows the saxophone melody with high immunity to background room noise. An interactive code::MIR2GUI.bars:: displays the 13 power-normalized cepstral coefficients in real time.
+PNCC extracts Power-Normalized Cepstral Coefficients designed for noise-robust speech and audio analysis via medium-time spectral averaging, asymmetric background noise suppression, and power-law compression. In this example, 13 PNCC coefficients modulate a dual-oscillator vocal formant synth: the synthesized timbre shadows the saxophone melody with high immunity to background room noise. An interactive code::MIRaGUI.bars:: displays the 13 power-normalized cepstral coefficients in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 13);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 13);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -67,25 +67,19 @@ s.waitForBoot({
         var synthVoice = BPF.ar(Saw.ar([110, 220]), cutoff, q).sum * 0.25;
         var sound = (source * 0.25) + synthVoice;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, pncc) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, pncc) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("PNCC Coefficients", ~mir2Bus, 13, -25.0, 25.0);
+    ~miraGUI = MIRaGUI.bars("PNCC Coefficients", ~miraBus, 13, -25.0, 25.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/MFCC2::
-link::Classes/GFCC::
-link::Classes/BFCC::

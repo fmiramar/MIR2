@@ -1,7 +1,7 @@
 class:: SpecDecrease
 summary:: Relative decrease across the spectrum
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 For the selected bins numbered j = 0 through M-1, returns sum((w[j] - w[0]) / j, j = 1..M-1) / sum(w[j], j = 1..M-1). A zero denominator returns zero. The first selected bin is the reference; this can be DC. Negative values indicate a decrease from that reference.
@@ -34,17 +34,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecDecrease measures relative spectral energy fall-off from fundamental to Nyquist bins. When high-frequency energy decreases slowly (a bright, sizzly sound), an adaptive high-frequency saturator adds gentle warm overdrive to enhance upper-register presence. An interactive code::MIR2GUI.scope:: displays real-time spectral decrease.
+SpecDecrease measures relative spectral energy fall-off from fundamental to Nyquist bins. When high-frequency energy decreases slowly (a bright, sizzly sound), an adaptive high-frequency saturator adds gentle warm overdrive to enhance upper-register presence. An interactive code::MIRaGUI.scope:: displays real-time spectral decrease.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -59,24 +59,19 @@ s.waitForBoot({
         var exciter = (HPF.ar(source, 3000) * (1 - decrease.clip(0, 1)).lag(0.05).linexp(0, 1, 1, 8)).softclip * 0.25;
         var sound = (source * 0.25 + exciter) ! 2;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, decrease.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, decrease.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Decrease", ~mir2Bus, 0.0, 1.0, "index");
+    ~miraGUI = MIRaGUI.scope("Spectral Decrease", ~miraBus, 0.0, 1.0, "index");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

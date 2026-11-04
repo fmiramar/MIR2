@@ -1,7 +1,7 @@
 class:: LFCC
 summary:: Linear frequency cepstral coefficients
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/MFCC2
+related:: Guides/MIRa, Classes/MFCC2, Classes/BFCC, Classes/GFCC
 
 description::
 The filter points are equally spaced in Hz. LFCC is the linear-frequency control case for the conventional filterbank/log/DCT cepstral pipeline.
@@ -42,17 +42,17 @@ returns::
 numCoeffs control outputs in increasing coefficient order.
 
 examples::
-LFCC calculates cepstral coefficients using linearly spaced triangular filter banks. In this example, it drives an overtone multiplier bank tracking chordal acoustics: linear cepstral shapes control resonance across an auxiliary bank of tuned comb filters, enhancing harmonic bloom on piano chords. An interactive code::MIR2GUI.bars:: displays the 13 linear cepstral coefficients in real time.
+LFCC calculates cepstral coefficients using linearly spaced triangular filter banks. In this example, it drives an overtone multiplier bank tracking chordal acoustics: linear cepstral shapes control resonance across an auxiliary bank of tuned comb filters, enhancing harmonic bloom on piano chords. An interactive code::MIRaGUI.bars:: displays the 13 linear cepstral coefficients in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 13);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 13);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -70,25 +70,19 @@ s.waitForBoot({
         var resonantBloom = CombC.ar(source, 0.05, combTuning, decayTime) * 0.3;
         var sound = (source * 0.25) + resonantBloom;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, lfcc) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, lfcc) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("LFCC Coefficients", ~mir2Bus, 13, -30.0, 30.0);
+    ~miraGUI = MIRaGUI.bars("LFCC Coefficients", ~miraBus, 13, -30.0, 30.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/MFCC2::
-link::Classes/BFCC::
-link::Classes/GFCC::

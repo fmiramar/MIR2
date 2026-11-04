@@ -1,7 +1,7 @@
 class:: StereoCorrelation
 summary:: Rolling Pearson correlation of two audio channels
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
 Subtracts each channel mean over the exact rolling sample window, then divides covariance by the square root of the product of the channel variances. Constant or silent channels return zero.
@@ -26,20 +26,20 @@ returns::
 Correlation from -1 through +1.
 
 examples::
-StereoCorrelation measures the rolling Pearson correlation coefficient between left and right audio channels (-1 for inverted/out-of-phase audio, 0 for uncorrelated stereo, +1 for identical mono). In this example, when correlation drops below zero (out-of-phase danger), an adaptive phase guard smoothly collapses low-frequency bass to mono, preventing acoustic phase cancellation on playback. An interactive code::MIR2GUI.stereo:: displays the stereo correlation readout.
+StereoCorrelation measures the rolling Pearson correlation coefficient between left and right audio channels (-1 for inverted/out-of-phase audio, 0 for uncorrelated stereo, +1 for identical mono). In this example, when correlation drops below zero (out-of-phase danger), an adaptive phase guard smoothly collapses low-frequency bass to mono, preventing acoustic phase cancellation on playback. An interactive code::MIRaGUI.stereo:: displays the stereo correlation readout.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("stereo.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 3);
+    var path = MIRaGUI.soundPath("stereo.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 3);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.isKindOf(Buffer) and: { ~mir2Buffer.numChannels >= 2 }) {
-            PlayBuf.ar(2, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.isKindOf(Buffer) and: { ~miraBuffer.numChannels >= 2 }) {
+            PlayBuf.ar(2, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
-            if(~mir2Buffer.notNil) {
-                var sig = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+            if(~miraBuffer.notNil) {
+                var sig = PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1);
                 [sig, DelayC.ar(sig, 0.02, 0.003)]
             } {
                 // Synthetic stereo fallback
@@ -58,23 +58,19 @@ s.waitForBoot({
         var outR = (source[1] * (1 - (monoCollapse * 0.6))) + (lowBassMono * monoCollapse * 0.6);
         var sound = [outL, outR] * 0.25;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, [0.0, 1.0, corrLag]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, [0.0, 1.0, corrLag]) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.stereo("Stereo Correlation", ~mir2Bus);
+    ~miraGUI = MIRaGUI.stereo("Stereo Correlation", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

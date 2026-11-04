@@ -1,7 +1,7 @@
 class:: Voicing
 summary:: Binary and continuous voiced/harmonic evidence
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2
+related:: Guides/MIRa, Classes/Pitch2, Classes/Pitch, Classes/Periodicity
 
 description::
 Estimates whether a frame contains stable voiced or harmonic excitation without requiring the caller to use its F0. code::\periodicity:: returns NSDF peak evidence directly. code::\hybrid:: combines that evidence with a silence gate and a zero-crossing plausibility factor. Version 0.1 is a deterministic model-free descriptor, not a trained speech classifier or a calibrated probability.
@@ -42,17 +42,17 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
-Voicing separates periodic, harmonic vocal or instrumental sustains from noisy consonants, transient bursts, and breath. In this example, it drives a dual-path adaptive processor: voiced sections route through a lush stereo chorus resonator, while unvoiced sibilance and breath route into a gritty, saturated distortion stage. An interactive code::MIR2GUI.scope:: plots the continuous voicing evidence in real time.
+Voicing separates periodic, harmonic vocal or instrumental sustains from noisy consonants, transient bursts, and breath. In this example, it drives a dual-path adaptive processor: voiced sections route through a lush stereo chorus resonator, while unvoiced sibilance and breath route into a gritty, saturated distortion stage. An interactive code::MIRaGUI.scope:: plots the continuous voicing evidence in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -74,26 +74,19 @@ s.waitForBoot({
 
         var sound = (source * 0.2 ! 2) + chorus + driven;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, evidence) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, evidence) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Voicing Probability", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Voicing Probability", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch::
-link::Classes/Pitch2::
-link::Classes/Periodicity::
-

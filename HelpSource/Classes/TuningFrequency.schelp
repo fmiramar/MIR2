@@ -1,10 +1,10 @@
 class:: TuningFrequency
 summary:: Circular estimate of tuning relative to A440
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
-Computes the circular mean of spectral-peak semitone residuals, weighted by squared peak magnitude. This follows the tuning-aware tonal analysis principle of Gomez and Bonada (ICMC 2005); the circular estimator is an explicit MIR2 convention. If r = 12 * log2(f/440), the angle is 2*pi*(r-round(r)). The angle of the weighted resultant gives detuning; its length divided by total weight gives concentration. Detuning is only identifiable modulo a semitone and is reported within approximately -50 through +50 cents. This measures agreement with an equal-tempered grid, not the correctness of a performance. Vibrato, inharmonic partials and non-equal-tempered music reduce its reliability.
+Computes the circular mean of spectral-peak semitone residuals, weighted by squared peak magnitude. This follows the tuning-aware tonal analysis principle of Gomez and Bonada (ICMC 2005); the circular estimator is an explicit MIRa convention. If r = 12 * log2(f/440), the angle is 2*pi*(r-round(r)). The angle of the weighted resultant gives detuning; its length divided by total weight gives concentration. Detuning is only identifiable modulo a semitone and is reported within approximately -50 through +50 cents. This measures agreement with an equal-tempered grid, not the correctness of a performance. Vibrato, inharmonic partials and non-equal-tempered music reduce its reliability.
 
 Vanilla link::Classes/Pitch:: follows a monophonic frequency. This class estimates the common fractional-semitone offset of several spectral peaks.
 
@@ -29,17 +29,17 @@ returns::
 An Array: estimated A reference in Hz, cents relative to A440, and circular concentration from 0 through 1. Silence returns zeros.
 
 examples::
-TuningFrequency calculates a circular weighted estimate of concert pitch relative to A440, returning estimated reference A (Hz), signed cents detuning, and circular concentration. In this example, it monitors acoustic piano tuning and tunes a reference test sine oscillator to demonstrate automatic calibration to non-standard concert pitch. An interactive code::MIR2GUI.scope:: displays real-time estimated concert A in Hz.
+TuningFrequency calculates a circular weighted estimate of concert pitch relative to A440, returning estimated reference A (Hz), signed cents detuning, and circular concentration. In this example, it monitors acoustic piano tuning and tunes a reference test sine oscillator to demonstrate automatic calibration to non-standard concert pitch. An interactive code::MIRaGUI.scope:: displays real-time estimated concert A in Hz.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -52,25 +52,19 @@ s.waitForBoot({
         var refTone = SinOsc.ar(estA.clip(420, 460), 0, tuning[2].lag(0.08) * 0.05);
         var sound = (source * 0.25 ! 2) + (refTone ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, estA.clip(420, 460)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, estA.clip(420, 460)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Concert A Tuning", ~mir2Bus, 430.0, 450.0, "Hz");
+    ~miraGUI = MIRaGUI.scope("Concert A Tuning", ~miraBus, 430.0, 450.0, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

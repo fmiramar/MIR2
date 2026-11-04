@@ -1,7 +1,7 @@
 class:: SpecFlatness2
 summary:: Stable spectral flatness with explicit conventions
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecFlatness
+related:: Guides/MIRa, Classes/SpecFlatness, Classes/SpecCentroid2, Classes/FFTFlux2
 
 description::
 Returns the geometric mean divided by the arithmetic mean of nonnegative spectral weights. Values approach 0 for concentrated spectra and 1 for uniform spectra. The logarithmic floor stabilizes individual bins, while an all-silent frame returns exactly 0.
@@ -36,17 +36,17 @@ A ratio from 0 through 1.
 instancemethods::
 
 examples::
-Spectral flatness measures the ratio of geometric to arithmetic mean of the spectrum. In this example, flatness dynamically crossfades between a pitched resonant drone (when the sound has tonal peaks) and a wide granular white noise diffuser (when the sound is noisy and flat). An interactive code::MIR2GUI.scope:: monitors flatness in real time.
+Spectral flatness measures the ratio of geometric to arithmetic mean of the spectrum. In this example, flatness dynamically crossfades between a pitched resonant drone (when the sound has tonal peaks) and a wide granular white noise diffuser (when the sound is noisy and flat). An interactive code::MIRaGUI.scope:: monitors flatness in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic texture fallback
             PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
@@ -63,26 +63,19 @@ s.waitForBoot({
         var diffuser = Dust2.ar(2000) * flatSmooth * 0.4;
         var sound = (source * 0.2) + (drone * 0.25) + (diffuser * 0.2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, flatness) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, flatness) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Flatness", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Spectral Flatness", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecFlatness::
-link::Classes/SpecCentroid2::
-link::Classes/FFTFlux2::
-

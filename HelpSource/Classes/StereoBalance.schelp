@@ -1,7 +1,7 @@
 class:: StereoBalance
 summary:: Relative left and right channel energy
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
 Computes (sum(R.squared) - sum(L.squared)) / (sum(R.squared) + sum(L.squared)). Negative means left, positive means right.
@@ -26,20 +26,20 @@ returns::
 Signed balance from -1 (left only) to +1 (right only).
 
 examples::
-StereoBalance measures instantaneous energy balance between left and right channels (-1 for left only, +1 for right only). In this example, it monitors a dynamic stereo mix: when one channel becomes heavily dominant, an active differential amplifier applies gentle compensating inverse gain, keeping the center image stable without flattening stereo width. An interactive code::MIR2GUI.stereo:: displays the stereo balance needle and width.
+StereoBalance measures instantaneous energy balance between left and right channels (-1 for left only, +1 for right only). In this example, it monitors a dynamic stereo mix: when one channel becomes heavily dominant, an active differential amplifier applies gentle compensating inverse gain, keeping the center image stable without flattening stereo width. An interactive code::MIRaGUI.stereo:: displays the stereo balance needle and width.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("stereo.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 3);
+    var path = MIRaGUI.soundPath("stereo.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 3);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.isKindOf(Buffer) and: { ~mir2Buffer.numChannels >= 2 }) {
-            PlayBuf.ar(2, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.isKindOf(Buffer) and: { ~miraBuffer.numChannels >= 2 }) {
+            PlayBuf.ar(2, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
-            if(~mir2Buffer.notNil) {
-                var sig = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+            if(~miraBuffer.notNil) {
+                var sig = PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1);
                 [sig, DelayC.ar(sig, 0.02, 0.003)]
             } {
                 // Synthetic stereo fallback
@@ -56,23 +56,19 @@ s.waitForBoot({
         var compR = (1 + (balLag * 0.5)).clip(0.5, 1.5);
         var centered = [source[0] * compL, source[1] * compR] * 0.25;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, [balLag, 1.0, 1.0]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, [balLag, 1.0, 1.0]) };
         centered * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.stereo("Stereo Balance", ~mir2Bus);
+    ~miraGUI = MIRaGUI.stereo("Stereo Balance", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

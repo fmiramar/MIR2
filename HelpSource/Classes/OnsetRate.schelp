@@ -1,7 +1,7 @@
 class:: OnsetRate
 summary:: Rolling onset density
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+related:: Guides/MIRa, Classes/Onsets2, Classes/BeatTrack3, Classes/OnsetStatistics2, Classes/Tempo
 
 description::
 Counts rising-edge onset events in a bounded trailing timestamp window, divided by the full window duration. Startup therefore ramps naturally as events accumulate.
@@ -23,17 +23,17 @@ returns::
 Events per second.
 
 examples::
-OnsetRate counts detected rising-edge onset triggers over a rolling timestamp window to measure activity density in events per second. In this example, it drives an adaptive tube saturation effect: sparse beats remain clean and dynamic, while intense fills and rapid snare flurries drive the processor into aggressive harmonic distortion. An interactive code::MIR2GUI.scope:: tracks the real-time onset rate in events/second.
+OnsetRate counts detected rising-edge onset triggers over a rolling timestamp window to measure activity density in events per second. In this example, it drives an adaptive tube saturation effect: sparse beats remain clean and dynamic, while intense fills and rapid snare flurries drive the processor into aggressive harmonic distortion. An interactive code::MIRaGUI.scope:: tracks the real-time onset rate in events/second.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -53,25 +53,19 @@ s.waitForBoot({
         var driven = (source * drive).tanh * 0.3;
         var sound = (source * 0.2) + driven;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, rate) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, rate) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Onset Rate", ~mir2Bus, 0.0, 15.0, "events/s");
+    ~miraGUI = MIRaGUI.scope("Onset Rate", ~miraBus, 0.0, 15.0, "events/s");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/OnsetStatistics2::
-link::Classes/Onsets2::
-link::Classes/Tempo::

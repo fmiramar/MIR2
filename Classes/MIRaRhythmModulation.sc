@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-MIR2ModulationAnalyzer : MultiOutUGen {
+MIRaModulationAnalyzer : MultiOutUGen {
     *build { |bands, numBins, minHz, maxHz, windowTime, hopTime, featureRate,
         normalization, removeMean, phase, compression, gain, fluctuation, smoothBands, smoothBins|
         var norm = [\none, \global, \band].indexOf(normalization);
@@ -19,16 +19,16 @@ MIR2ModulationAnalyzer : MultiOutUGen {
             or: { gain.isNumber.not } or: { gain < 0 } or: { gain > 1e6 }
             or: { smoothBands.isNumber.not } or: { smoothBands < 0 } or: { smoothBands > 3 }
             or: { smoothBins.isNumber.not } or: { smoothBins < 0 } or: { smoothBins > 3 }) {
-            Error("MIR2 modulation: invalid literal dimensions, timing, modes or shaping controls.").throw
+            Error("MIRa modulation: invalid literal dimensions, timing, modes or shaping controls.").throw
         };
         count = bands.size * numBins * (phase + 1);
-        if(count > 1024) { Error("MIR2 modulation: at most 1024 outputs are supported.").throw };
+        if(count > 1024) { Error("MIRa modulation: at most 1024 outputs are supported.").throw };
         ^this.multiNewList([\control, count, bands.size, numBins, minHz, maxHz,
             windowTime, hopTime, featureRate, norm, removeMean, phase, comp,
             gain, fluctuation, smoothBands, smoothBins] ++ bands)
     }
-    *kr { Error("MIR2ModulationAnalyzer is abstract.").throw }
-    *ar { Error("MIR2 modulation analyzers produce control-rate outputs only.").throw }
+    *kr { Error("MIRaModulationAnalyzer is abstract.").throw }
+    *ar { Error("MIRa modulation analyzers produce control-rate outputs only.").throw }
     *frequencies { |minHz = 0.5, maxHz = 8, numBins = 16|
         ^Array.interpolation(numBins, minHz, maxHz)
     }
@@ -36,13 +36,13 @@ MIR2ModulationAnalyzer : MultiOutUGen {
     argNamesInputsOffset { ^2 }
     checkInputs {
         if(inputs.drop(15).any({ |item| item.rate == \audio })) {
-            ^"MIR2 modulation requires an Array of control-rate or scalar band envelopes."
+            ^"MIRa modulation requires an Array of control-rate or scalar band envelopes."
         };
         ^this.checkValidInputs
     }
 }
 
-RhythmTransform : MIR2ModulationAnalyzer {
+RhythmTransform : MIRaModulationAnalyzer {
     *kr { |bands, numBins = 16, minHz = 0.5, maxHz = 8, windowTime = 4,
         hopTime = 0.1, featureRate = 100, normalization = \none,
         removeMean = 1, phase = 0|
@@ -51,7 +51,7 @@ RhythmTransform : MIR2ModulationAnalyzer {
     }
 }
 
-RhythmPattern : MIR2ModulationAnalyzer {
+RhythmPattern : MIRaModulationAnalyzer {
     *kr { |chain, numBands = 24, numBins = 16, minHz = 0.5, maxHz = 8,
         windowTime = 4, hopTime = 0.1, featureRate = 100, gain = 1,
         normalization = \global, fluctuation = 1, smoothBands = 0.5,

@@ -1,7 +1,7 @@
 class:: SilenceRate
 summary:: Fraction of recent RMS frames below an absolute threshold
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/DetectSilence
+related:: Guides/MIRa, Classes/DetectSilence
 
 description::
 Counts RMS frames at or below 10.pow(thresholdDB/20), divided by the observation frame count. Nonoverlapping frames and a complete-window warmup are used. Exact silence returns one after warmup. Thresholds may be arrays through multichannel expansion. Cost is linear in the frame count at each envelope update; memory is fixed at construction. This is an independent threshold-occupancy statistic.
@@ -27,17 +27,17 @@ returns::
 Fraction from zero through one.
 
 examples::
-SilenceRate tracks the proportion of rolling RMS envelope frames that fall below a specified decibel threshold (ranging from 0 for continuous sound to 1 for complete silence). In this example, when sparse playing leaves gaps of silence, SilenceRate automatically fades in an ethereal ambient drone pad, seamlessly filling the acoustic space. An interactive code::MIR2GUI.scope:: displays real-time silence rate.
+SilenceRate tracks the proportion of rolling RMS envelope frames that fall below a specified decibel threshold (ranging from 0 for continuous sound to 1 for complete silence). In this example, when sparse playing leaves gaps of silence, SilenceRate automatically fades in an ethereal ambient drone pad, seamlessly filling the acoustic space. An interactive code::MIRaGUI.scope:: displays real-time silence rate.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -52,23 +52,19 @@ s.waitForBoot({
         var drone = Mix.ar(SinOsc.ar([110, 164.81, 220], 0, 0.05)) * silLag;
         var sound = (source * 0.25 ! 2) + (drone ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, silLag.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, silLag.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Silence Rate", ~mir2Bus, 0.0, 1.0, "ratio");
+    ~miraGUI = MIRaGUI.scope("Silence Rate", ~miraBus, 0.0, 1.0, "ratio");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/DetectSilence::

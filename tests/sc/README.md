@@ -1,13 +1,13 @@
 # Installed server and help checks
 
-Install MIR2 into the SuperCollider Extensions directory before running these
+Install MIRa into the SuperCollider Extensions directory before running these
 scripts. `compile_check.scd` and `collision_check.scd` discover the public classes
 from the installed help catalog; `verify_scdoc.scd` forces indexing and renders
 all class pages and the guide. Any SCDoc warning or error fails verification.
 
 The generated example check constructs the actual runnable graph from every
 class help page, renders help, and optionally renders four seconds of audio per
-class. A third WAV channel monitors all native MIR2 primitive outputs before
+class. A third WAV channel monitors all native MIRa primitive outputs before
 example clipping or smoothing can conceal NaN/Inf. Audio must be finite,
 bounded and non-silent. Silent-playback mode preserves audio rate with DC.ar(0)
 and requires finite output without requiring audible sound. Some examples also
@@ -53,4 +53,4 @@ sclang -D tests/sc/research_contracts.scd /absolute/build/contracts 48000 scsynt
 
 Use 44100, 48000 or 96000 for the sample rate; their block sizes are 32, 64 and
 128. The final argument can be `supernova`. Logs must contain
-`MIR2_RESEARCH_CONTRACTS_OK` and no reported failures.
+`MIRa_RESEARCH_CONTRACTS_OK` and no reported failures.

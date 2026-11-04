@@ -1,12 +1,12 @@
 class:: MFCC2
 summary:: Configurable Mel-frequency cepstral coefficients
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/MFCC
+related:: Guides/MIRa, Classes/MFCC, Classes/SpecCentroid2
 
 description::
 Integrates an FFT spectrum through triangular Mel filters, applies a natural logarithm, then a DCT-II. The output count, band count, coefficient zero, frequency bounds, Slaney/HTK Mel mapping, magnitude/power input, DCT normalization, and liftering are explicit initialization choices. Silence deterministically produces the DCT of the configured log floor rather than NaN or Inf.
 
-The implementation follows the standard paper-defined MFCC pipeline and shares MIR2's tested filter-bank and DCT kernels. It is practically similar to link::Classes/MFCC::, but removes its fixed historical representation and undocumented output scaling; numerical identity is not expected.
+The implementation follows the standard paper-defined MFCC pipeline and shares MIRa's tested filter-bank and DCT kernels. It is practically similar to link::Classes/MFCC::, but removes its fixed historical representation and undocumented output scaling; numerical identity is not expected.
 
 classmethods::
 
@@ -54,17 +54,17 @@ An Array of code::numCoeffs:: control-rate outputs.
 instancemethods::
 
 examples::
-Thirteen Mel-frequency cepstral coefficients capture spectral envelope shape and vocalic formant contours. In this example, 13 coefficients dynamically shape a vocoder carrier bank: low coefficients steer overall spectral tilt while higher coefficients imprint detailed vowel formants onto an analog pulse synthesizer. An interactive code::MIR2GUI.bars:: displays the real-time MFCC spectrum.
+Thirteen Mel-frequency cepstral coefficients capture spectral envelope shape and vocalic formant contours. In this example, 13 coefficients dynamically shape a vocoder carrier bank: low coefficients steer overall spectral tilt while higher coefficients imprint detailed vowel formants onto an analog pulse synthesizer. An interactive code::MIRaGUI.bars:: displays the real-time MFCC spectrum.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 13);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 13);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -77,25 +77,19 @@ s.waitForBoot({
         var filtered = BPF.ar(carrier, mfcc.copyRange(1, 4).tanh.linexp(-1, 1, 300, 3200).lag(0.04), 0.15).sum;
         var sound = (source * 0.2) + (filtered * 0.25);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, mfcc) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, mfcc) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("MFCC Coefficients", ~mir2Bus, 13, -40, 40);
+    ~miraGUI = MIRaGUI.bars("MFCC Coefficients", ~miraBus, 13, -40, 40);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/MFCC::
-link::Classes/SpecCentroid2::
-

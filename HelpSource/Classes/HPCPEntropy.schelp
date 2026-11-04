@@ -1,7 +1,7 @@
 class:: HPCPEntropy
 summary:: Normalized pitch-class distribution entropy
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
 Computes Shannon entropy -sum(p*log(p))/log(N), after normalizing the nonnegative input to sum 1. Silence returns zero. A single occupied class gives zero; a uniform vector gives one. This is a general distribution statistic applied to tonal evidence, not a measure of musical sophistication or correctness.
@@ -20,17 +20,17 @@ returns::
 Normalized entropy from 0 through 1.
 
 examples::
-HPCPEntropy computes the normalized Shannon entropy of pitch-class distribution (0 for a single isolated pitch class, 1 for equal uniform distribution across all 12 classes). Consonant simple triads have low entropy; dense cluster chords or atonal passages have high entropy. In this example, pitch-class entropy controls a diffuse granular delay scatter: simple triads remain clean and dry, while dissonant chords dissolve into an atmospheric cloud. An interactive code::MIR2GUI.scope:: displays real-time HPCP entropy.
+HPCPEntropy computes the normalized Shannon entropy of pitch-class distribution (0 for a single isolated pitch class, 1 for equal uniform distribution across all 12 classes). Consonant simple triads have low entropy; dense cluster chords or atonal passages have high entropy. In this example, pitch-class entropy controls a diffuse granular delay scatter: simple triads remain clean and dry, while dissonant chords dissolve into an atmospheric cloud. An interactive code::MIRaGUI.scope:: displays real-time HPCP entropy.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -45,25 +45,19 @@ s.waitForBoot({
         var direct = source * (1 - (entLag * 0.4));
         var sound = (direct ! 2 * 0.25) + scatter;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, entLag.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, entLag.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("HPCP Entropy", ~mir2Bus, 0.0, 1.0, "norm");
+    ~miraGUI = MIRaGUI.scope("HPCP Entropy", ~miraBus, 0.0, 1.0, "norm");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

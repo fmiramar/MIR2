@@ -1,12 +1,12 @@
 class:: KeyClarity2
 summary:: Tonal key clarity
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
 Uses tuning-aware HPCP with exponential time averaging, followed by Pearson correlation against all 24 rotated major/minor profiles. Krumhansl-Kessler data are reported by Temperley (1999); Temperley's 1999 profiles and Faraldo et al.'s EDMA ECIR 2016 measured profiles are also available. The key is the strongest correlation, subject to threshold. This independent implementation uses a twelve-bin HPCP and does not reproduce any external implementation's full preprocessing. Mode 0 means major, 1 minor; root 0 is C through 11 B. Silence or insufficient correlation gives root/mode -1. A local chord, speech or short excerpt may not establish a musical key.
 
-Vanilla link::Classes/KeyTrack:: also estimates tonality. MIR2 accepts configurable FFT sizes and tuning, exposes separate root/mode/strength, and uses selectable profiles.
+Vanilla link::Classes/KeyTrack:: also estimates tonality. MIRa accepts configurable FFT sizes and tuning, exposes separate root/mode/strength, and uses selectable profiles.
 
 classmethods::
 method:: kr
@@ -41,17 +41,17 @@ returns::
 Positive Pearson correlation from 0 through 1 of the strongest key profile. This is not a calibrated probability.
 
 examples::
-KeyClarity2 reports the Pearson correlation coefficient (from 0 to 1) of the strongest key profile. When a chord progression establishes a clear, unambivalent tonal center, key clarity is high; during dissonant, modulating, or ambiguous passages, clarity drops. In this example, key clarity opens the cutoff of an ambient pad filter: clear tonality produces bright pad chords, while ambiguous passages dim gracefully into the background. An interactive code::MIR2GUI.scope:: displays real-time key clarity.
+KeyClarity2 reports the Pearson correlation coefficient (from 0 to 1) of the strongest key profile. When a chord progression establishes a clear, unambivalent tonal center, key clarity is high; during dissonant, modulating, or ambiguous passages, clarity drops. In this example, key clarity opens the cutoff of an ambient pad filter: clear tonality produces bright pad chords, while ambiguous passages dim gracefully into the background. An interactive code::MIRaGUI.scope:: displays real-time key clarity.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -64,25 +64,19 @@ s.waitForBoot({
         var padFilter = RLPF.ar(source, clarLag.linexp(0.1, 0.8, 400, 5000), 0.3) * 0.3;
         var sound = (source * 0.2 ! 2) + (padFilter ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, clarLag.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, clarLag.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Key Clarity", ~mir2Bus, 0.0, 1.0, "corr");
+    ~miraGUI = MIRaGUI.scope("Key Clarity", ~miraBus, 0.0, 1.0, "corr");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

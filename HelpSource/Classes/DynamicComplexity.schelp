@@ -1,10 +1,10 @@
 class:: DynamicComplexity
 summary:: Variation in RMS frame levels around average power
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
-Computes the root mean square dB distance of nonsilent RMS frames from the power-mean level of the entire window. Frames at or below floorDB are excluded from the variation average. This explicitly defined MIR2 dynamic-variation statistic is independently implemented and does not claim numerical equivalence with Essentia DynamicComplexity.
+Computes the root mean square dB distance of nonsilent RMS frames from the power-mean level of the entire window. Frames at or below floorDB are excluded from the variation average. This explicitly defined MIRa dynamic-variation statistic is independently implemented and does not claim numerical equivalence with Essentia DynamicComplexity.
 
 Frames contain nonoverlapping RMS measurements. Output stays zero until a complete observation window is available, then updates once per RMS frame. Silence returns zero. Runtime cost is linear in windowTime/frameTime per update; there is no callback allocation. These descriptors are rolling summaries and do not segment individual events. Formulas are independently implemented from standard weighted moments and linear regression.
 
@@ -29,17 +29,17 @@ returns::
 Nonnegative level variation in dB.
 
 examples::
-DynamicComplexity computes the root-mean-square dB variation of non-silent RMS frames around the power-mean level of the rolling observation window. Steady continuous sounds produce low dynamic complexity (< 4 dB), while dynamic rhythmic grooves and articulated percussion produce high complexity (> 10 dB). In this example, dynamic complexity introduces a subtle granular delay scatter layer during highly dynamic passages. An interactive code::MIR2GUI.scope:: displays real-time dynamic complexity in dB.
+DynamicComplexity computes the root-mean-square dB variation of non-silent RMS frames around the power-mean level of the rolling observation window. Steady continuous sounds produce low dynamic complexity (< 4 dB), while dynamic rhythmic grooves and articulated percussion produce high complexity (> 10 dB). In this example, dynamic complexity introduces a subtle granular delay scatter layer during highly dynamic passages. An interactive code::MIRaGUI.scope:: displays real-time dynamic complexity in dB.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -55,23 +55,19 @@ s.waitForBoot({
         var scatter = CombC.ar(source, 0.1, SinOsc.kr([0.4, 0.5]).range(0.02, 0.06), 0.5) * scatterSend;
         var sound = (source * 0.25 ! 2) + scatter;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, compLag.clip(0, 24)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, compLag.clip(0, 24)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Dynamic Complexity", ~mir2Bus, 0.0, 20.0, "dB");
+    ~miraGUI = MIRaGUI.scope("Dynamic Complexity", ~miraBus, 0.0, 20.0, "dB");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

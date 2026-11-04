@@ -1,7 +1,7 @@
 class:: WaveletFlux
 summary:: Positive change in normalized wavelet scale energies
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/WaveletBands
+related:: Guides/MIRa, Classes/WaveletBands, Classes/Wavelets2, Classes/WaveletEntropy, Classes/WaveletCentroid
 
 description::
 Computes the Euclidean norm of positive changes in normalized scale energy fractions. The first non-silent comparison and comparisons following silence return zero.
@@ -31,17 +31,17 @@ argument:: boundary
 Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
-WaveletFlux detects positive changes across normalized wavelet scale energy fractions, making it a multiscale onset and transient tracker. In this example, sharp wavelet flux peaks extracted from an acoustic drum groove trigger tuned resonant modal pings that accentuate percussive strikes in stereo. An interactive code::MIR2GUI.scope:: plots real-time wavelet flux.
+WaveletFlux detects positive changes across normalized wavelet scale energy fractions, making it a multiscale onset and transient tracker. In this example, sharp wavelet flux peaks extracted from an acoustic drum groove trigger tuned resonant modal pings that accentuate percussive strikes in stereo. An interactive code::MIRaGUI.scope:: plots real-time wavelet flux.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic percussion fallback
             var trig = Impulse.ar(2);
@@ -57,25 +57,19 @@ s.waitForBoot({
         var ping = Ringz.ar(strike, [1200, 1760], 0.12) * 0.25;
         var sound = (source * 0.25 ! 2) + ping;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, flux.clip(0, 2)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, flux.clip(0, 2)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Wavelet Flux", ~mir2Bus, 0.0, 2.0, "flux");
+    ~miraGUI = MIRaGUI.scope("Wavelet Flux", ~miraBus, 0.0, 2.0, "flux");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Wavelets2::
-link::Classes/WaveletEntropy::
-link::Classes/WaveletCentroid::

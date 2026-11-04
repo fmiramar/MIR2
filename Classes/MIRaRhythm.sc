@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-MIR2RhythmAnalyzer : MultiOutUGen {
+MIRaRhythmAnalyzer : MultiOutUGen {
     *validate { |minBPM, maxBPM, numBins, windowTime, hopTime, featureRate, warmup = 0|
         if(minBPM.isNumber.not or: { maxBPM.isNumber.not }
             or: { minBPM < 20 } or: { maxBPM > 600 } or: { maxBPM <= minBPM }
@@ -8,7 +8,7 @@ MIR2RhythmAnalyzer : MultiOutUGen {
             or: { hopTime.isNumber.not } or: { hopTime < 0.02 } or: { hopTime > 2 }
             or: { featureRate.isNumber.not } or: { featureRate < 20 } or: { featureRate > 200 }
             or: { warmup.isNumber.not } or: { warmup < 0 } or: { warmup > windowTime }) {
-            Error("MIR2 rhythm: invalid literal BPM range, dimensions, feature rate, or window/hop/warmup times.").throw
+            Error("MIRa rhythm: invalid literal BPM range, dimensions, feature rate, or window/hop/warmup times.").throw
         }
     }
     *build { |outputs, in, minBPM, maxBPM, numBins, windowTime, hopTime, featureRate,
@@ -19,17 +19,17 @@ MIR2RhythmAnalyzer : MultiOutUGen {
             hopTime, featureRate, normalize, priorBPM, continuity, tempoSmooth,
             phaseSmooth, lock, warmup, decay])
     }
-    *kr { Error("MIR2RhythmAnalyzer is abstract.").throw }
-    *ar { Error("MIR2 rhythm analyzers produce control-rate outputs only.").throw }
+    *kr { Error("MIRaRhythmAnalyzer is abstract.").throw }
+    *ar { Error("MIRa rhythm analyzers produce control-rate outputs only.").throw }
     init { |numOutputs ... theInputs| inputs = theInputs; ^this.initOutputs(numOutputs, \control) }
     argNamesInputsOffset { ^2 }
     checkInputs {
-        if(inputs[0].rate == \audio) { ^"MIR2 rhythm strength inputs must be control-rate or scalar." };
+        if(inputs[0].rate == \audio) { ^"MIRa rhythm strength inputs must be control-rate or scalar." };
         ^this.checkValidInputs
     }
 }
 
-Tempogram : MIR2RhythmAnalyzer {
+Tempogram : MIRaRhythmAnalyzer {
     *kr { |in, minBPM = 30, maxBPM = 300, numBins = 128, windowTime = 6,
         hopTime = 0.1, featureRate = 100, normalize = 1|
         ^this.build(numBins, in, minBPM, maxBPM, numBins, windowTime, hopTime,
@@ -40,7 +40,7 @@ Tempogram : MIR2RhythmAnalyzer {
     }
 }
 
-FourierTempogram : MIR2RhythmAnalyzer {
+FourierTempogram : MIRaRhythmAnalyzer {
     *kr { |in, minBPM = 30, maxBPM = 300, numBins = 128, windowTime = 6,
         hopTime = 0.1, featureRate = 100, normalize = 1|
         ^this.build(numBins, in, minBPM, maxBPM, numBins, windowTime, hopTime,
@@ -51,7 +51,7 @@ FourierTempogram : MIR2RhythmAnalyzer {
     }
 }
 
-BeatHistogram : MIR2RhythmAnalyzer {
+BeatHistogram : MIRaRhythmAnalyzer {
     *kr { |in, minBPM = 30, maxBPM = 300, numBins = 128, windowTime = 6,
         hopTime = 0.1, featureRate = 100, normalize = 1, decay = 2|
         ^this.build(numBins, in, minBPM, maxBPM, numBins, windowTime, hopTime,
@@ -62,7 +62,7 @@ BeatHistogram : MIR2RhythmAnalyzer {
     }
 }
 
-Tempo : MIR2RhythmAnalyzer {
+Tempo : MIRaRhythmAnalyzer {
     *kr { |in, minBPM = 30, maxBPM = 300, windowTime = 6, hopTime = 0.1,
         priorBPM = 120, continuity = 3, tempoSmooth = 0.4, warmup = 2,
         featureRate = 100, numBins = 271|
@@ -72,7 +72,7 @@ Tempo : MIR2RhythmAnalyzer {
     }
 }
 
-BeatStatistics2 : MIR2RhythmAnalyzer {
+BeatStatistics2 : MIRaRhythmAnalyzer {
     *kr { |in, minBPM = 30, maxBPM = 300, windowTime = 6, hopTime = 0.1,
         priorBPM = 120, continuity = 3, tempoSmooth = 0.4, warmup = 2,
         featureRate = 100, numBins = 271|
@@ -82,7 +82,7 @@ BeatStatistics2 : MIR2RhythmAnalyzer {
     }
 }
 
-PulseClarity : MIR2RhythmAnalyzer {
+PulseClarity : MIRaRhythmAnalyzer {
     *kr { |in, minBPM = 30, maxBPM = 300, windowTime = 6, hopTime = 0.1,
         priorBPM = 120, continuity = 3, tempoSmooth = 0.4, warmup = 2,
         featureRate = 100, numBins = 271|
@@ -92,7 +92,7 @@ PulseClarity : MIR2RhythmAnalyzer {
     }
 }
 
-BeatTrack3 : MIR2RhythmAnalyzer {
+BeatTrack3 : MIRaRhythmAnalyzer {
     *kr { |chain, minBPM = 30, maxBPM = 300, tempoSmooth = 0.4, phaseSmooth = 0.35,
         lock = 0, windowTime = 6, hopTime = 0.1, warmup = 2, priorBPM = 120,
         continuity = 3, fftSize = 2048, hop = 0.25, method = \superflux,
@@ -183,7 +183,7 @@ BeatLoudness : MultiOutUGen {
 BeatBandRatio : MultiOutUGen {
     *kr { |chain, beat, boundaries = #[0, 200, 800, 3200, 20000], fftSize = 1024, maxInterval = 10|
         var numBands = boundaries.size - 1;
-        MIR2SpectralBands.validate(boundaries, fftSize, 1);
+        MIRaSpectralBands.validate(boundaries, fftSize, 1);
         ^this.multiNewList([\control, numBands, chain, beat, numBands, fftSize, maxInterval] ++ boundaries)
     }
     *ar { Error("BeatBandRatio produces control-rate outputs.").throw }

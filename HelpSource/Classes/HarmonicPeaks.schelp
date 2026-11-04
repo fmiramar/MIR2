@@ -1,10 +1,10 @@
 class:: HarmonicPeaks
 summary:: Frequencies and magnitudes of associated harmonic partials
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Inharmonicity, Classes/Tristimulus, Classes/Pitch2
 
 description::
-Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIR2 conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Returns one frequency and raw FFT peak magnitude per harmonic index. Slot zero represents the fundamental even if it is absent.
+Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIRa conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Returns one frequency and raw FFT peak magnitude per harmonic index. Slot zero represents the fundamental even if it is absent.
 
 Vanilla link::Classes/Pitch:: reports one fundamental. HarmonicPeaks exposes the measured partials associated with a supplied fundamental.
 
@@ -35,17 +35,17 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-HarmonicPeaks extracts the exact frequencies and amplitudes of up to code::maxHarmonics:: spectral partials associated with a fundamental frequency. In this example, it drives an additive sine bank spatializer: detected harmonic partials are synthesized as individual sinusoidal voices and spread across the stereo field from low order (left) to high order (right). An interactive code::MIR2GUI.bars:: displays the real-time energy distribution across all 16 harmonic partials.
+HarmonicPeaks extracts the exact frequencies and amplitudes of up to code::maxHarmonics:: spectral partials associated with a fundamental frequency. In this example, it drives an additive sine bank spatializer: detected harmonic partials are synthesized as individual sinusoidal voices and spread across the stereo field from low order (left) to high order (right). An interactive code::MIRaGUI.bars:: displays the real-time energy distribution across all 16 harmonic partials.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 16);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 16);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -63,25 +63,19 @@ s.waitForBoot({
         });
         var sound = (source * 0.2 ! 2) + tones;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, norm) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, norm) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("Harmonic Partials", ~mir2Bus, 16, 0.0, 0.6);
+    ~miraGUI = MIRaGUI.bars("Harmonic Partials", ~miraBus, 16, 0.0, 0.6);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Inharmonicity::
-link::Classes/Tristimulus::
-link::Classes/Pitch2::

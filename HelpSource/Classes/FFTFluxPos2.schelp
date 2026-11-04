@@ -1,7 +1,7 @@
 class:: FFTFluxPos2
 summary:: Positive spectral flux convenience wrapper
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/Onsets2, Classes/FFTFlux2
+related:: Guides/MIRa, Classes/Onsets2, Classes/FFTFlux2, Classes/FFTComplexDev2
 
 description::
 Delegates to FFTFlux2 with positive differences enabled. Uses the Euclidean norm of increases in the selected magnitude or power spectrum. This preserves FFTFlux2 conventions; it differs from the L1 novelty used within Onsets2.
@@ -26,17 +26,17 @@ returns::
 One nonnegative control-rate evidence value.
 
 examples::
-FFTFluxPos2 computes half-wave rectified spectral flux, summing only positive bin energy increases while discarding negative decays. In this example, it gates an ambient reverb burst exclusively on attack onsets of a drum loop: the steady tail remains completely dry, while each new drum strike injects an expansive bloom of reverberation. An interactive code::MIR2GUI.scope:: plots positive flux in real time.
+FFTFluxPos2 computes half-wave rectified spectral flux, summing only positive bin energy increases while discarding negative decays. In this example, it gates an ambient reverb burst exclusively on attack onsets of a drum loop: the steady tail remains completely dry, while each new drum strike injects an expansive bloom of reverberation. An interactive code::MIRaGUI.scope:: plots positive flux in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -52,26 +52,19 @@ s.waitForBoot({
         var reverb = FreeVerb.ar(source * gate, 0.8, 0.85, 0.2) * 0.35;
         var sound = (source * 0.25) + reverb;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, posFlux) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, posFlux) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Positive Spectral Flux", ~mir2Bus, 0.0, 10.0);
+    ~miraGUI = MIRaGUI.scope("Positive Spectral Flux", ~miraBus, 0.0, 10.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FFTFlux2::
-link::Classes/Onsets2::
-link::Classes/FFTComplexDev2::
-link::Classes/FFTFlux2::

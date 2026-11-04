@@ -1,6 +1,6 @@
 # Third-party notices
 
-The base MIR2 plugin uses independently implemented DSP equations except for the loudness
+The base MIRa plugin uses independently implemented DSP equations except for the loudness
 coefficient data identified below. It does not link Essentia, librosa,
 FluCoMa, sc3-plugins, or a neural runtime, and contains no model weights or
 datasets. SuperCollider and sc3-plugins were consulted for interfaces,

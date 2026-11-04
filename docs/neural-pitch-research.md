@@ -2,8 +2,8 @@
 
 Audit date: 2026-10-24. This records the source and deployment feasibility audit
 before implementation. On 2026-10-25, the selected PESTO prototype progressed to
-the separate optional MIR2Neural extension; see the [implementation and measured
-verification](neural-pitch-implementation.md). The base MIR2 plugin remains
+the separate optional MIRaNeural extension; see the [implementation and measured
+verification](neural-pitch-implementation.md). The base MIRa plugin remains
 independent, and no model weights are committed or bundled.
 
 ## Initial audit decision (2026-10-24)
@@ -80,7 +80,7 @@ uses cached convolutions for streaming; its context depends on VQT gamma,
 lowest frequency, sample rate, hop and mirror/refill setting. Arbitrary input
 sample rates are supported by rebuilding kernels. The paper's sub-10-ms claim
 uses a particular streaming/refill configuration; it must not be assigned to
-every checkpoint and frontend configuration. MIR2's existing VQT is not an
+every checkpoint and frontend configuration. MIRa's existing VQT is not an
 established numerically equivalent frontend.
 
 **RMVPE.** The [original paper](https://arxiv.org/html/2306.15412v2) specifies

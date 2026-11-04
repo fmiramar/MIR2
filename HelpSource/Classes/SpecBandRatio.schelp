@@ -1,7 +1,7 @@
 class:: SpecBandRatio
 summary:: Fraction of energy within a frequency band
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Returns sum(w in selected range) / sum(w over the complete one-sided spectrum), in 0..1. Uniform level scaling cancels.
@@ -34,17 +34,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecBandRatio calculates the ratio of energy in a specified frequency band to total spectral energy (between 0 and 1). In this example, it measures the proportion of energy in the 40 to 300 Hz low band. When low bass energy dominates (e.g. heavy kicks), an active mix tilt filter gently boosts high frequencies to maintain crisp clarity. An interactive code::MIR2GUI.scope:: displays real-time low-band energy ratio.
+SpecBandRatio calculates the ratio of energy in a specified frequency band to total spectral energy (between 0 and 1). In this example, it measures the proportion of energy in the 40 to 300 Hz low band. When low bass energy dominates (e.g. heavy kicks), an active mix tilt filter gently boosts high frequencies to maintain crisp clarity. An interactive code::MIRaGUI.scope:: displays real-time low-band energy ratio.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -60,24 +60,19 @@ s.waitForBoot({
         var eq = BHiShelf.ar(source, 4000, 1.0, highBoost);
         var sound = eq * 0.25 ! 2;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, ratio.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, ratio.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Low Band Energy Ratio", ~mir2Bus, 0.0, 1.0, "ratio");
+    ~miraGUI = MIRaGUI.scope("Low Band Energy Ratio", ~miraBus, 0.0, 1.0, "ratio");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

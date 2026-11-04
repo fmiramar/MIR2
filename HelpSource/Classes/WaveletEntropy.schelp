@@ -1,7 +1,7 @@
 class:: WaveletEntropy
 summary:: Normalized entropy of wavelet scale energies
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/WaveletBands
+related:: Guides/MIRa, Classes/WaveletBands, Classes/Wavelets2, Classes/WaveletFlux, Classes/WaveletSpread
 
 description::
 Computes -sum(p*log2(p))/log2(levels+1), using the energy fraction p in each scale. Zero denotes concentration in one scale; silence is zero.
@@ -31,17 +31,17 @@ argument:: boundary
 Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
-WaveletEntropy measures the disorder of energy distribution across dyadic wavelet scales (0 = concentrated in a single scale, 1 = uniform distribution across all multiscale bands). In this example, wavelet entropy extracted from an acoustic sound texture dynamically regulates the feedback decay and diffusion damping of a stereo comb delay network: low entropy keeps reflections focused, while high entropy opens into an expansive ambient cloud. An interactive code::MIR2GUI.scope:: plots real-time wavelet entropy.
+WaveletEntropy measures the disorder of energy distribution across dyadic wavelet scales (0 = concentrated in a single scale, 1 = uniform distribution across all multiscale bands). In this example, wavelet entropy extracted from an acoustic sound texture dynamically regulates the feedback decay and diffusion damping of a stereo comb delay network: low entropy keeps reflections focused, while high entropy opens into an expansive ambient cloud. An interactive code::MIRaGUI.scope:: plots real-time wavelet entropy.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic evolving texture fallback
             var lfo = SinOsc.kr(0.15);
@@ -54,25 +54,19 @@ s.waitForBoot({
         var wet = CombC.ar(source ! 2, 0.2, [0.043, 0.057], decay) * 0.4;
         var sound = (source * 0.25 ! 2) + wet;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, entropy.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, entropy.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Wavelet Entropy", ~mir2Bus, 0.0, 1.0, "norm");
+    ~miraGUI = MIRaGUI.scope("Wavelet Entropy", ~miraBus, 0.0, 1.0, "norm");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Wavelets2::
-link::Classes/WaveletFlux::
-link::Classes/WaveletSpread::

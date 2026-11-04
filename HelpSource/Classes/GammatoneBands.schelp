@@ -1,7 +1,7 @@
 class:: GammatoneBands
 summary:: Smoothed gammatone band power
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/ERBBands
+related:: Guides/MIRa, Classes/ERBBands, Classes/MFCC2
 
 description::
 Hohmann (2002), Frequency analysis and synthesis using a Gammatone filterbank. The pole radius is exp(-2*pi*b/sampleRate), where b = (24.7 + centerHz/9.265) / (pi*720/(64*36)); its angle is 2*pi*centerHz/sampleRate. Four complex one-pole stages share this pole, with overall analytic gain 2*(1-radius).pow(4). The envelope power is half the squared complex-output magnitude. This directly implements the gammatone cascade, with one ERB bandwidth per filter. Equations are also documented in the author-origin AMT implementation: link::https://amtoolbox.org/amt-1.6.0/doc/modelstages/hohmann2002_filter_code.php::.
@@ -30,17 +30,17 @@ returns::
 One power output per ascending filter center.
 
 examples::
-GammatoneBands implements an auditory gammatone filterbank tracking instantaneous envelope power in psychoacoustic cochlear bands. In this example, it drives an additive resynthesizer tracking delicate acoustic plucks: 16 sinusoidal partials follow the instantaneous decay envelope of each critical band, synthesizing a glassy spectral shadow. An interactive code::MIR2GUI.bars:: displays real-time power across all 16 gammatone bands.
+GammatoneBands implements an auditory gammatone filterbank tracking instantaneous envelope power in psychoacoustic cochlear bands. In this example, it drives an additive resynthesizer tracking delicate acoustic plucks: 16 sinusoidal partials follow the instantaneous decay envelope of each critical band, synthesizing a glassy spectral shadow. An interactive code::MIRaGUI.bars:: displays real-time power across all 16 gammatone bands.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 16);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 16);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -60,24 +60,19 @@ s.waitForBoot({
         });
         var sound = (source * 0.25) + (resynth * 0.25);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, normBands) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, normBands) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("Gammatone Bands", ~mir2Bus, 16, 0.0, 0.5);
+    ~miraGUI = MIRaGUI.bars("Gammatone Bands", ~miraBus, 16, 0.0, 0.5);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/ERBBands::
-link::Classes/MFCC2::

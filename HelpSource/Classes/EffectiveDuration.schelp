@@ -1,7 +1,7 @@
 class:: EffectiveDuration
 summary:: Fraction of the window occupied by significant envelope energy
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
 Counts RMS frames at least 10 percent of the largest RMS value in the window, corresponding to a relative -20 dB amplitude threshold, and divides by the number of frames. Exact silence returns zero. This is a rolling duration ratio rather than an event duration in seconds.
@@ -29,17 +29,17 @@ returns::
 Active fraction from zero through one.
 
 examples::
-EffectiveDuration counts the fraction of rolling RMS frames at or above 10% (-20 dB) of the maximum peak in the window (between 0 and 1). Short staccato plucks have low effective duration (~0.15), while ringing notes occupy a large fraction of the window. In this example, effective duration dynamically controls the decay time of an algorithmic stereo reverb: staccato notes get short snappy ambiences, while sustaining notes get lush lingering tails. An interactive code::MIR2GUI.scope:: displays real-time effective duration.
+EffectiveDuration counts the fraction of rolling RMS frames at or above 10% (-20 dB) of the maximum peak in the window (between 0 and 1). Short staccato plucks have low effective duration (~0.15), while ringing notes occupy a large fraction of the window. In this example, effective duration dynamically controls the decay time of an algorithmic stereo reverb: staccato notes get short snappy ambiences, while sustaining notes get lush lingering tails. An interactive code::MIRaGUI.scope:: displays real-time effective duration.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -54,23 +54,19 @@ s.waitForBoot({
         var wet = CombC.ar(source, 0.5, [0.03, 0.045], revDecay) * 0.35;
         var sound = (source * 0.25 ! 2) + wet;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, durLag.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, durLag.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Effective Duration", ~mir2Bus, 0.0, 1.0, "ratio");
+    ~miraGUI = MIRaGUI.scope("Effective Duration", ~miraBus, 0.0, 1.0, "ratio");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

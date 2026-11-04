@@ -1,7 +1,7 @@
 class:: Onsets2
 summary:: Classical and SuperFlux onset detection with causal peak picking
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/Onsets, Classes/FFTComplexDev2
+related:: Guides/MIRa, Classes/Onsets, Classes/FFTComplexDev2, Classes/FFTFluxPos2, Classes/FFTPhaseDev2, Classes/FFTMKL2
 
 description::
 Returns a one-control-block trigger and normalized onset novelty. Independently implements the detection functions described by Dixon (DAFx 2006), adaptive spectral whitening after Stowell and Plumbley (ICMC 2007), and the logarithmic filter-bank and frequency maximum-filter principle of Böck and Widmer's SuperFlux (DAFx 2013).
@@ -10,9 +10,9 @@ SuperFlux maps the FFT magnitudes into triangular quarter-tone bands, computes c
 
 All methods subtract a causal running median and normalize by a decaying peak reference with a minimum scale. A local maximum of the raw detection function is confirmed one FFT hop later, provided its normalized novelty exceeds the threshold; another detection requires novelty to fall below half the threshold first. This limits repeated detections on a plateau. SuperFlux also rejects frames whose window RMS falls faster than the exponential time constant releaseTime, reducing detections caused by abrupt releases. Set releaseTime to zero to disable this heuristic. This heuristic can suppress an attack masked by a much louder simultaneous release.
 
-The earliest SuperFlux trigger needs max(3, diffFrames + 2) frames, using the automatically selected lag when diffFrames is zero. Classical phase-history methods first permit detection after four frames. Analysis latency includes the FFT window and one-hop peak confirmation. The declared FFT hop must match the chain. Onsets2 applies the same server-block rounding as FFT when calculating its actual frame interval. Use a full-window FFT; a smaller explicit FFT winSize is not supported. Novelty holds between FFT frames, while the trigger resets every control block. The peak picker, amplitude normalization, release guard, and minimum novelty scale are MIR2 adaptations; this is not a numerically identical implementation of the authors' offline program. Continuous vibrato, soft overlapping attacks, and musical mixtures still require listening and parameter tuning. See the onset evaluation report distributed with MIR2 for measured synthetic cases and their limits.
+The earliest SuperFlux trigger needs max(3, diffFrames + 2) frames, using the automatically selected lag when diffFrames is zero. Classical phase-history methods first permit detection after four frames. Analysis latency includes the FFT window and one-hop peak confirmation. The declared FFT hop must match the chain. Onsets2 applies the same server-block rounding as FFT when calculating its actual frame interval. Use a full-window FFT; a smaller explicit FFT winSize is not supported. Novelty holds between FFT frames, while the trigger resets every control block. The peak picker, amplitude normalization, release guard, and minimum novelty scale are MIRa adaptations; this is not a numerically identical implementation of the authors' offline program. Continuous vibrato, soft overlapping attacks, and musical mixtures still require listening and parameter tuning. See the onset evaluation report distributed with MIRa for measured synthetic cases and their limits.
 
-Like vanilla link::Classes/Onsets::, this detects changes in an FFT chain and offers all seven classical methods. It additionally provides SuperFlux and continuous novelty, explicit FFT/hop timing, and corrected independent phase/complex formulas. Thresholds and numeric method identifiers are not interchangeable with vanilla Onsets or MIR2 0.1.
+Like vanilla link::Classes/Onsets::, this detects changes in an FFT chain and offers all seven classical methods. It additionally provides SuperFlux and continuous novelty, explicit FFT/hop timing, and corrected independent phase/complex formulas. Thresholds and numeric method identifiers are not interchangeable with vanilla Onsets or MIRa 0.1.
 
 classmethods::
 method:: kr
@@ -21,7 +21,7 @@ FFT chain matching the declared FFT size and hop.
 argument:: threshold
 Novelty threshold from 0 to 1. Larger values reject weaker events. Tune per method and material.
 argument:: method
-Literal symbol: code::\flux:: (absolute magnitude difference), code::\fluxPos:: (positive difference), code::\superflux::, code::\power::, code::\magsum::, code::\complex::, code::\rcomplex::, code::\phase::, code::\wphase:: (alias code::\weightedPhase::), code::\mkl::, or code::\hfc::. Numeric identifiers 0 through 10 follow this order; the first three retain the MIR2 0.1 ordering.
+Literal symbol: code::\flux:: (absolute magnitude difference), code::\fluxPos:: (positive difference), code::\superflux::, code::\power::, code::\magsum::, code::\complex::, code::\rcomplex::, code::\phase::, code::\wphase:: (alias code::\weightedPhase::), code::\mkl::, or code::\hfc::. Numeric identifiers 0 through 10 follow this order; the first three retain the MIRa 0.1 ordering.
 argument:: relaxTime
 Seconds for the whitening spectral reference and novelty peak reference to decay by 20 dB. Positive; minimum one frame.
 argument:: minGap
@@ -29,7 +29,7 @@ Minimum seconds between detections. Nonnegative.
 argument:: medianTime
 Literal causal median history in seconds, 0 through 10, rounded up to frames with a minimum of three frames. Histories exceeding 65536 frames are rejected, not shortened. An exact indexed-heap median updates in logarithmic time without callback allocation.
 argument:: maxFilterBins
-Literal SuperFlux band-neighborhood width, 0 through 25. Three means the band and one neighbor on either side; even widths use code::2 * floor(width / 2) + 1::. Zero or one disables neighbor suppression. MIR2 0.1 interpreted this as a radius in raw FFT bins.
+Literal SuperFlux band-neighborhood width, 0 through 25. Three means the band and one neighbor on either side; even widths use code::2 * floor(width / 2) + 1::. Zero or one disables neighbor suppression. MIRa 0.1 interpreted this as a radius in raw FFT bins.
 argument:: floor
 Positive whitening floor and weak-bin/epsilon parameter. Classical methods use amplitude magnitudes after normalization/whitening; MKL uses the normalized unwhitened magnitude.
 argument:: fftSize
@@ -52,17 +52,17 @@ returns::
 Array: trigger and novelty in 0 through 1. Novelty describes the current frame; a trigger confirms the preceding frame's peak.
 
 examples::
-Onsets2 provides causal onset detection with SuperFlux and classical spectral methods. In this example, detected drum transients fire a tuned physical woodblock resonator that tracks performance accents. An interactive code::MIR2GUI.envelope:: visualizes onset triggers and transient novelty.
+Onsets2 provides causal onset detection with SuperFlux and classical spectral methods. In this example, detected drum transients fire a tuned physical woodblock resonator that tracks performance accents. An interactive code::MIRaGUI.envelope:: visualizes onset triggers and transient novelty.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 2);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 2);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -78,27 +78,19 @@ s.waitForBoot({
         var woodblock = Ringz.ar(trig, 880, 0.08) * 0.3;
         var sound = (source * 0.25) + woodblock;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, onset) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, onset) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.envelope("Onset Detection", ~mir2Bus);
+    ~miraGUI = MIRaGUI.envelope("Onset Detection", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Onsets::
-link::Classes/FFTFluxPos2::
-link::Classes/FFTComplexDev2::
-link::Classes/FFTPhaseDev2::
-link::Classes/FFTMKL2::

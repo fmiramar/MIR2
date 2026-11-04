@@ -1,7 +1,7 @@
 class:: PredominantPitch
 summary:: Causal predominant melodic-contour estimate
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/MultiPitch, Classes/PitchContour
 
 description::
 A causal contour adaptation inspired by Salamon and Gomez, “Melody Extraction from Polyphonic Music Signals using Pitch Contour Characteristics”, IEEE TASLP 20(6), 2012, DOI 10.1109/TASL.2012.2188515. Harmonic-salience peaks are linked into up to 16 contours with exclusive nearest-frequency assignment. Each track accumulates duration, mean log pitch, variance, mean salience and continuity. Selection combines salience, duration maturity, continuity and a 15% incumbent preference; gaps are retained for 80 ms but emit zero frequency. A spectral-flatness gate rejects broadband noise. This is an experimental online adaptation: it does not reproduce MELODIA's whole-recording statistics, contour filtering or offline octave corrections. It can follow a salient accompaniment instead of the intended melody. Restrict the search range to the desired register.
@@ -35,17 +35,17 @@ returns::
 An Array: frequency in Hz, selected contour score divided by eligible contour score sum, voiced flag.
 
 examples::
-PredominantPitch extracts the dominant melodic contour from complex polyphonic mixtures via causal contour continuity linking and salience accumulation inspired by Salamon & Gomez (2012). In this example, it isolates the singing treble melody from a dense walking-bass mixture, synthesizing a Moog-style lead that locks onto the melodic line while rejecting lower accompaniment. An interactive code::MIR2GUI.pianoRoll:: plots the extracted predominant pitch.
+PredominantPitch extracts the dominant melodic contour from complex polyphonic mixtures via causal contour continuity linking and salience accumulation inspired by Salamon & Gomez (2012). In this example, it isolates the singing treble melody from a dense walking-bass mixture, synthesizing a Moog-style lead that locks onto the melodic line while rejecting lower accompaniment. An interactive code::MIRaGUI.pianoRoll:: plots the extracted predominant pitch.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("bass-melody-mix.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("bass-melody-mix.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic bass + melody fallback
             var bass = SinOsc.ar(Select.kr(LFNoise0.kr(1).range(0, 4), [55, 65.4, 73.4, 82.4]), 0, 0.3);
@@ -62,25 +62,19 @@ s.waitForBoot({
         var leadSynth = Saw.ar(freq.clip(100, 2500).lag(0.02)) * (score * voiced).lag(0.03) * 0.18;
         var sound = (source * 0.25) + leadSynth;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, freq) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("Predominant Pitch", ~mir2Bus, 36, 84);
+    ~miraGUI = MIRaGUI.pianoRoll("Predominant Pitch", ~miraBus, 36, 84);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/MultiPitch::
-link::Classes/PitchContour::
-link::Classes/Pitch2::

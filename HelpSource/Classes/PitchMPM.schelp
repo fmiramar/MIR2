@@ -1,14 +1,14 @@
 class:: PitchMPM
 summary:: McLeod Pitch Method with NSDF clarity
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch, Classes/Pitch2
+related:: Guides/MIRa, Classes/Pitch, Classes/Pitch2, Classes/Tartini, Classes/PitchYIN
 
 description::
 Implements the McLeod Pitch Method from McLeod and Wyvill (2005). The normalized square difference function (NSDF) is derived from FFT autocorrelation and prefix energies; local maxima above code::cutoff:: times the strongest peak are considered, and the earliest qualifying peak is refined parabolically. Clarity is the selected NSDF peak height from 0 through 1, not a calibrated probability.
 
 The analyzer uses a trailing causal frame and updates every code::hop * frameSize:: samples. Approximate first-result latency is one frame. The effective minimum frequency cannot fall below code::2 * sampleRate / frameSize::. Silence and failed voicing return three zeros.
 
-It is practically similar to sc3-plugins link::Classes/Tartini::, which is historically MPM-based, and core link::Classes/Pitch::. MIR2 is an independent paper-based implementation with explicit frame, hop, silence, and clarity semantics rather than behavioral or numerical compatibility.
+It is practically similar to sc3-plugins link::Classes/Tartini::, which is historically MPM-based, and core link::Classes/Pitch::. MIRa is an independent paper-based implementation with explicit frame, hop, silence, and clarity semantics rather than behavioral or numerical compatibility.
 
 classmethods::
 
@@ -41,17 +41,17 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
-PitchMPM estimates fundamental frequency and NSDF clarity using the McLeod Pitch Method. In this example, it drives an analog sub-bass synthesizer with dynamic wavefolding: sustained notes synthesize a rich octave-below bassline, with clarity modulating wavefolding warmth. An interactive code::MIR2GUI.pianoRoll:: tracks the fundamental pitch.
+PitchMPM estimates fundamental frequency and NSDF clarity using the McLeod Pitch Method. In this example, it drives an analog sub-bass synthesizer with dynamic wavefolding: sustained notes synthesize a rich octave-below bassline, with clarity modulating wavefolding warmth. An interactive code::MIRaGUI.pianoRoll:: tracks the fundamental pitch.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -66,27 +66,19 @@ s.waitForBoot({
         var folded = (subOsc * 1.5).fold2(0.8) * 0.3;
         var sound = (source * 0.25) + folded;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, freq) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("MPM Pitch Tracker", ~mir2Bus, 36, 84);
+    ~miraGUI = MIRaGUI.pianoRoll("MPM Pitch Tracker", ~miraBus, 36, 84);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Tartini::
-link::Classes/Pitch::
-link::Classes/Pitch2::
-link::Classes/PitchYIN::
-

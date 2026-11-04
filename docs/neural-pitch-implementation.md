@@ -1,7 +1,7 @@
 # Optional native PESTO implementation
 
-Verified 2026-10-26. `neural/` builds the separate **MIR2Neural** extension and
-its **PitchPESTO** class. The base MIR2 build and its 135 classes require no
+Verified 2026-10-26. `neural/` builds the separate **MIRaNeural** extension and
+its **PitchPESTO** class. The base MIRa build and its 135 classes require no
 neural dependencies. This is a usable local experimental implementation, not a
 claim of production qualification or general recognition accuracy.
 
@@ -167,7 +167,7 @@ reported separately from the numerical pass flag.
   Both original and pitch-controlled synthesized voices are audible; outputs
   remain finite. The raw analysis channels are monitored before smoothing.
 - Forced `SCDoc.indexAllDocuments(true)` and rendering of `PitchPESTO` plus the
-  shared MIR2 guide complete without warnings or errors.
+  shared MIRa guide complete without warnings or errors.
 
 The local extension and explicitly generated models are installed for immediate
 use after class-library recompilation. The CI definition adds model-free native

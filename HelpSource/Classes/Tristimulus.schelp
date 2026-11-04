@@ -1,10 +1,10 @@
 class:: Tristimulus
 summary:: Relative amplitude in three harmonic groups
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/OddEvenRatio, Classes/HarmonicCentroid
 
 description::
-Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIR2 conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Groups are the first harmonic, harmonics 2 through 4, and harmonics 5 upward. Each amplitude sum is divided by total associated amplitude; this is amplitude weighting, not power weighting.
+Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIRa conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Groups are the first harmonic, harmonics 2 through 4, and harmonics 5 upward. Each amplitude sum is divided by total associated amplitude; this is amplitude weighting, not power weighting.
 
 
 
@@ -35,17 +35,17 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-Tristimulus partitions harmonic partial energy into three psychoacoustic bands: fundamental ($T_1$), low harmonics 2--4 ($T_2$), and high harmonics 5+ ($T_3$). In this example, these three energy proportions continuously morph between three auxiliary synth layers: fundamental depth (sub sine), mid-range warmth (resonant triangle), and upper spectral shimmer (sparkling high partials). An interactive code::MIR2GUI.tristimulus:: plots the coordinates on a barycentric ternary triangle.
+Tristimulus partitions harmonic partial energy into three psychoacoustic bands: fundamental ($T_1$), low harmonics 2--4 ($T_2$), and high harmonics 5+ ($T_3$). In this example, these three energy proportions continuously morph between three auxiliary synth layers: fundamental depth (sub sine), mid-range warmth (resonant triangle), and upper spectral shimmer (sparkling high partials). An interactive code::MIRaGUI.tristimulus:: plots the coordinates on a barycentric ternary triangle.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 3);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 3);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -67,25 +67,19 @@ s.waitForBoot({
         var synthLayer = (sub + mid + high) * pitch[1].lag(0.05);
         var sound = (source * 0.25) + synthLayer;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, tri) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, tri) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.tristimulus("Harmonic Tristimulus", ~mir2Bus);
+    ~miraGUI = MIRaGUI.tristimulus("Harmonic Tristimulus", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HarmonicPeaks::
-link::Classes/OddEvenRatio::
-link::Classes/HarmonicCentroid::

@@ -1,7 +1,7 @@
 class:: DecayTime
 summary:: Event decay duration after the largest RMS peak
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Slope
+related:: Guides/MIRa, Classes/Slope
 
 description::
 A positive trigger edge begins a fixed maxTime capture of nonoverlapping RMS envelope frames. A new trigger restarts an unfinished capture. After capture, the largest RMS peak defines relative lowRatio and highRatio thresholds. The attack runs from the first upward low crossing to the first upward high crossing before the peak; decay runs from the first downward high crossing after the peak to the first downward low crossing. Linear interpolation refines crossing times between envelope frames. These are independent, externally segmented event measurements: onset detection is supplied by the caller. The output holds the last completed result while a new capture runs. The first result arrives after maxTime, resolution is limited by frameTime, and events crossing the capture boundaries can be truncated. An already-high first frame has no observable rise. CPU is O(maxTime/frameTime) once per completed capture and memory is fixed at construction. The convention follows relative-threshold envelope attack descriptors, with explicit segmentation and crossing definitions.
@@ -33,17 +33,17 @@ returns::
 Decay duration in seconds; zero if the observation ends before both falling crossings.
 
 examples::
-DecayTime measures the event decay duration in seconds from the 90% peak down to the 10% floor within a captured time window. In this example, measured decay time automatically sets the feedback decay time of a tempo-synced digital delay, allowing repeats to fade synchronously with the natural acoustic decay of each pluck. An interactive code::MIR2GUI.envelope:: displays the measured transient profile.
+DecayTime measures the event decay duration in seconds from the 90% peak down to the 10% floor within a captured time window. In this example, measured decay time automatically sets the feedback decay time of a tempo-synced digital delay, allowing repeats to fade synchronously with the natural acoustic decay of each pluck. An interactive code::MIRaGUI.envelope:: displays the measured transient profile.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 2);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 2);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -58,23 +58,19 @@ s.waitForBoot({
         var delay = CombC.ar(source, 0.5, 0.2, decLag * 4) * 0.3;
         var sound = (source * 0.25 ! 2) + (delay ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, [0.02, decLag]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, [0.02, decLag]) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.envelope("Decay Profile", ~mir2Bus);
+    ~miraGUI = MIRaGUI.envelope("Decay Profile", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Slope::

@@ -1,7 +1,7 @@
 class:: FFTMKL2
 summary:: Modified Kullback-Leibler spectral deviation
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/Onsets2, Classes/FFTFlux2
+related:: Guides/MIRa, Classes/Onsets2, Classes/FFTFlux2, Classes/FFTComplexDev2
 
 description::
 Sum of log(1 + currentMagnitude / (previousMagnitude + epsilon)). This is the modified spectral divergence used by OnsetsDS, independently implemented. Stationary nonzero bins contribute approximately log(2), so this is an evidence function with a baseline, not a trigger or a zero-at-stationarity distance. No adaptive whitening is applied.
@@ -22,17 +22,17 @@ returns::
 One nonnegative control-rate evidence value.
 
 examples::
-FFTMKL2 calculates information-theoretic Modified Kullback-Leibler spectral divergence, emphasizing unexpected new frequency appearances over steady background noise. In this example, it drives an aggressive transient exciter: sudden spectral bursts in acoustic drums spawn high-frequency resonant pings that cleanly accentuate stick clicks and snare snaps. An interactive code::MIR2GUI.scope:: plots the real-time MKL divergence metric.
+FFTMKL2 calculates information-theoretic Modified Kullback-Leibler spectral divergence, emphasizing unexpected new frequency appearances over steady background noise. In this example, it drives an aggressive transient exciter: sudden spectral bursts in acoustic drums spawn high-frequency resonant pings that cleanly accentuate stick clicks and snare snaps. An interactive code::MIRaGUI.scope:: plots the real-time MKL divergence metric.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -48,25 +48,19 @@ s.waitForBoot({
         var ping = HPF.ar(source, 3000) * (surge * 0.1).clip(0, 3);
         var sound = (source * 0.25) + (ping * 0.2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, mkl) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, mkl) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Modified KL Divergence", ~mir2Bus, 0.0, 350.0);
+    ~miraGUI = MIRaGUI.scope("Modified KL Divergence", ~miraBus, 0.0, 350.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FFTComplexDev2::
-link::Classes/FFTFlux2::
-link::Classes/Onsets2::

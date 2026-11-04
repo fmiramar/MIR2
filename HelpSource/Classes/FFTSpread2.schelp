@@ -1,7 +1,7 @@
 class:: FFTSpread2
 summary:: Spectral standard deviation in Hz
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Returns sqrt(sum(w * (f - centroid).squared) / sum(w)), in Hz. The centroid uses the same weights and range.
@@ -34,17 +34,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-Spectral spread measures the second central moment of the spectrum (the frequency standard deviation around the spectral centroid). Narrow harmonic sounds have low spread; wide noisy textures have high spread. In this example, spectral spread controls a stereo decorrelation delay network, widening broadband noisy components while focusing narrow sinusoidal partials in the center. An interactive code::MIR2GUI.scope:: displays real-time spectral spread in Hz.
+Spectral spread measures the second central moment of the spectrum (the frequency standard deviation around the spectral centroid). Narrow harmonic sounds have low spread; wide noisy textures have high spread. In this example, spectral spread controls a stereo decorrelation delay network, widening broadband noisy components while focusing narrow sinusoidal partials in the center. An interactive code::MIRaGUI.scope:: displays real-time spectral spread in Hz.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic texture fallback
             PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
@@ -61,24 +61,19 @@ s.waitForBoot({
             source * (1 - (spreadNorm * 0.3)) + (delayR * spreadNorm * 0.4)
         ] * 0.25;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, spread.clip(0, 8000)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, spread.clip(0, 8000)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Spread", ~mir2Bus, 0.0, 5000.0, "Hz");
+    ~miraGUI = MIRaGUI.scope("Spectral Spread", ~miraBus, 0.0, 5000.0, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

@@ -1,7 +1,7 @@
 class:: PitchDeviation
 summary:: Signed cents deviation from a reference or tuning grid
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PitchStability, Classes/TuningFrequency
 
 description::
 Uses the logarithmic frequency-ratio definition of musical cents. The previous mode compares consecutive control blocks and resets its reference on an unvoiced block. Reference mode accepts a changing frequency, so a custom tuning system can supply its selected reference externally. There is no internal pitch estimation or smoothing.
@@ -23,17 +23,17 @@ returns::
 Signed deviation in cents. Positive is sharp; negative is flat. Exact half-semitone ties use round-away-from-zero in the grid index.
 
 examples::
-PitchDeviation measures signed microtonal pitch deviation in cents against an equal-tempered 12-TET grid or an arbitrary tuning reference. In this example, it drives an adaptive pitch-correction synthesizer: detected cents deviation quantizes a parallel tracking voice into exact 12-TET intonation beside the expressive acoustic source. An interactive code::MIR2GUI.scope:: plots the real-time cents deviation ($-50 \dots +50$ cents).
+PitchDeviation measures signed microtonal pitch deviation in cents against an equal-tempered 12-TET grid or an arbitrary tuning reference. In this example, it drives an adaptive pitch-correction synthesizer: detected cents deviation quantizes a parallel tracking voice into exact 12-TET intonation beside the expressive acoustic source. An interactive code::MIRaGUI.scope:: plots the real-time cents deviation ($-50 \dots +50$ cents).
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -46,25 +46,19 @@ s.waitForBoot({
         var tunedVoice = SinOsc.ar(snappedFreq.clip(50, 2000).lag(0.02), 0, pitch[1].lag(0.04) * 0.15 * (pitch[0] > 50));
         var sound = (source * 0.25) + tunedVoice;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, cents) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, cents) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Cents Deviation", ~mir2Bus, -50.0, 50.0, "cents");
+    ~miraGUI = MIRaGUI.scope("Cents Deviation", ~miraBus, -50.0, 50.0, "cents");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/PitchStability::
-link::Classes/TuningFrequency::
-link::Classes/Pitch2::

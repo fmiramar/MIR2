@@ -1,10 +1,10 @@
 class:: BarkBands
 summary:: Bark spaced triangular spectral bands
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/MFCC2
+related:: Guides/MIRa, Classes/MFCC2, Classes/GammatoneBands
 
 description::
-Traunmuller (1990) Bark mapping: z(f) = 26.81 * f / (1960 + f) - 0.53, with f in Hz. MIR2 uses the uncorrected rational mapping over the selected range; no low/high Bark correction is silently applied. Source: link::https://doi.org/10.1121/1.399849::.
+Traunmuller (1990) Bark mapping: z(f) = 26.81 * f / (1960 + f) - 0.53, with f in Hz. MIRa uses the uncorrected rational mapping over the selected range; no low/high Bark correction is silently applied. Source: link::https://doi.org/10.1121/1.399849::.
 
 The bank places numBands+2 equally spaced points on that named scale, converts them to Hz, and builds piecewise-linear triangular filters in Hz. Each output is sum(weight * spectrum). Normalized mode divides each filter by the sum of its sampled FFT-bin weights. Filters with no sampled support return zero; increase fftSize or reduce numBands if low-frequency filters are narrower than the FFT resolution. Power mode squares the raw FFT magnitude before filtering. Silence returns zero.
 
@@ -32,17 +32,17 @@ returns::
 One control per band in ascending center-frequency order.
 
 examples::
-BarkBands separates spectrum into psychoacoustic critical bands based on the Traunmuller Bark scale. In this example, it drives an adaptive multiband transient exciter: low critical bands receive warm saturation while high bands trigger crisp harmonic distortion, enhancing punch across dynamic drum grooves. An interactive code::MIR2GUI.bars:: displays the real-time energy distribution across all 16 critical bands.
+BarkBands separates spectrum into psychoacoustic critical bands based on the Traunmuller Bark scale. In this example, it drives an adaptive multiband transient exciter: low critical bands receive warm saturation while high bands trigger crisp harmonic distortion, enhancing punch across dynamic drum grooves. An interactive code::MIRaGUI.bars:: displays the real-time energy distribution across all 16 critical bands.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 16);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 16);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -62,24 +62,19 @@ s.waitForBoot({
         var highDrive = HPF.ar(source, 3000) * (normBands[10..15].sum * 12).clip(0, 4);
         var sound = (source * 0.25) + lowDrive + (highDrive * 0.15);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, normBands) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, normBands) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("Bark Critical Bands", ~mir2Bus, 16, 0.0, 0.5);
+    ~miraGUI = MIRaGUI.bars("Bark Critical Bands", ~miraBus, 16, 0.0, 0.5);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/MFCC2::
-link::Classes/GammatoneBands::

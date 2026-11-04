@@ -1,7 +1,7 @@
 class:: FFTComplexDev2
 summary:: Complex spectral prediction error
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/Onsets2, Classes/FFTFlux2
+related:: Guides/MIRa, Classes/Onsets2, Classes/FFTFlux2, Classes/FFTPhaseDev2
 
 description::
 Sum of Euclidean distances between current complex bins and the previous magnitude with linearly extrapolated phase. The rectified variant skips bins whose magnitude decreased. Uses the factor two in the cross term of the squared complex distance. Independently implemented from Dixon, Onset Detection Revisited (DAFx 2006).
@@ -24,17 +24,17 @@ returns::
 One nonnegative control-rate evidence value.
 
 examples::
-FFTComplexDev2 measures complex-domain spectral deviation by predicting current bin coordinates from previous amplitude and phase trajectories. In this example, it drives a transient stutter processor: sharp complex prediction errors triggered by acoustic drum hits open a rhythmic micro-glitch comb filter. An interactive code::MIR2GUI.scope:: tracks the real-time complex deviation evidence.
+FFTComplexDev2 measures complex-domain spectral deviation by predicting current bin coordinates from previous amplitude and phase trajectories. In this example, it drives a transient stutter processor: sharp complex prediction errors triggered by acoustic drum hits open a rhythmic micro-glitch comb filter. An interactive code::MIRaGUI.scope:: tracks the real-time complex deviation evidence.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -50,25 +50,19 @@ s.waitForBoot({
         var glitch = CombN.ar(source * trig.lag(0.01), 0.2, 0.04, 0.25);
         var sound = (source * 0.25) + (glitch * 0.3);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, dev) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, dev) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Complex Deviation", ~mir2Bus, 0.0, 5.0);
+    ~miraGUI = MIRaGUI.scope("Complex Deviation", ~miraBus, 0.0, 5.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FFTPhaseDev2::
-link::Classes/FFTFlux2::
-link::Classes/Onsets2::

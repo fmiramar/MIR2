@@ -1,10 +1,10 @@
 class:: Tonnetz
 summary:: Six-dimensional tonal centroid
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
-Implements the tonal-centroid projection of Harte, Sandler and Gasser (2006), DOI 10.1145/1178723.1178727. The L1-normalized chroma weights three sine/cosine circles: angular steps 7*pi/6, 3*pi/2 and 2*pi/3, with radii 1, 1 and 0.5. MIR2 returns the sine component before cosine in each pair. C-first chroma is required; using an A-first vector rotates the geometry. Silence maps to the origin.
+Implements the tonal-centroid projection of Harte, Sandler and Gasser (2006), DOI 10.1145/1178723.1178727. The L1-normalized chroma weights three sine/cosine circles: angular steps 7*pi/6, 3*pi/2 and 2*pi/3, with radii 1, 1 and 0.5. MIRa returns the sine component before cosine in each pair. C-first chroma is required; using an A-first vector rotates the geometry. Silence maps to the origin.
 
 
 
@@ -20,17 +20,17 @@ returns::
 An Array: fifth sine/cosine, minor-third sine/cosine, major-third sine/cosine coordinates.
 
 examples::
-Tonnetz implements the 6D tonal-centroid projection of Harte, Sandler & Gasser (2006), projecting pitch classes onto 3 harmonic circles (Fifths, Minor Thirds, Major Thirds). In this example, the 6D coordinates steer spatial panning and filter resonant cutoffs of a secondary ambient texture. An interactive code::MIR2GUI.tonnetz:: displays the 2D planar projection of harmonic motion.
+Tonnetz implements the 6D tonal-centroid projection of Harte, Sandler & Gasser (2006), projecting pitch classes onto 3 harmonic circles (Fifths, Minor Thirds, Major Thirds). In this example, the 6D coordinates steer spatial panning and filter resonant cutoffs of a secondary ambient texture. An interactive code::MIRaGUI.tonnetz:: displays the 2D planar projection of harmonic motion.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 6);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 6);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -44,25 +44,19 @@ s.waitForBoot({
         var tone = SinOsc.ar(220 * (position[2].lag(0.08) * 7).midiratio, 0, 0.05);
         var sound = Pan2.ar(tone, pan) + (source * 0.25 ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, position) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, position) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.tonnetz("Tonnetz Trajectory", ~mir2Bus);
+    ~miraGUI = MIRaGUI.tonnetz("Tonnetz Trajectory", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

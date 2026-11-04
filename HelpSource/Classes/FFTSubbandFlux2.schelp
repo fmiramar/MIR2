@@ -1,7 +1,7 @@
 class:: FFTSubbandFlux2
 summary:: Spectral flux in independently bounded bands
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Each band returns sqrt(sum((w - previousW).squared)). Positive mode clips each difference at zero first. Normalized mode divides by sqrt(sum(w.squared)), with a zero norm giving zero. The first FFT frame returns zero and establishes the history. In these equations w is magnitude or squared magnitude. Adjacent bands include their lower boundary and exclude their upper boundary, except for the final band, which includes its upper boundary. Bands outside Nyquist or without any bin centers return 0.
@@ -30,17 +30,17 @@ returns::
 One value per band, with the optional SpecContrast valley vector appended.
 
 examples::
-FFTSubbandFlux2 measures spectral flux independently across specified frequency subbands. In this example, 4 subbands (`#[0, 250, 1500, 6000, 20000]`) monitor per-band transient activity. Sharp low-frequency flux (kick drum attack) triggers a sub-bass thump; high-frequency flux (hi-hat attack) triggers an airy stereo delay tap. An interactive code::MIR2GUI.bars:: displays real-time 4-subband flux.
+FFTSubbandFlux2 measures spectral flux independently across specified frequency subbands. In this example, 4 subbands (`#[0, 250, 1500, 6000, 20000]`) monitor per-band transient activity. Sharp low-frequency flux (kick drum attack) triggers a sub-bass thump; high-frequency flux (hi-hat attack) triggers an airy stereo delay tap. An interactive code::MIRaGUI.bars:: displays real-time 4-subband flux.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 4);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 4);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -56,24 +56,19 @@ s.waitForBoot({
         var echo = DelayC.ar(source, 0.1, 0.08) * highTrig * 0.3;
         var sound = (source * 0.25 ! 2) + (echo ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, flux.clip(0, 5)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, flux.clip(0, 5)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("Subband Flux", ~mir2Bus, 4, 0.0, 2.0);
+    ~miraGUI = MIRaGUI.bars("Subband Flux", ~miraBus, 4, 0.0, 2.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

@@ -1,10 +1,10 @@
 class:: TemporalDecrease
 summary:: Relative downward slope of a rolling RMS envelope
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
-Fits a straight line to RMS amplitude versus seconds, negates the slope, and divides by mean RMS amplitude. Positive output means overall decay and negative output means growth. This MIR2 definition is a dimensionless relative change per second, not spectral decrease.
+Fits a straight line to RMS amplitude versus seconds, negates the slope, and divides by mean RMS amplitude. Positive output means overall decay and negative output means growth. This MIRa definition is a dimensionless relative change per second, not spectral decrease.
 
 Frames contain nonoverlapping RMS measurements. Output stays zero until a complete observation window is available, then updates once per RMS frame. Silence returns zero. Runtime cost is linear in windowTime/frameTime per update; there is no callback allocation. These descriptors are rolling summaries and do not segment individual events. Formulas are independently implemented from standard weighted moments and linear regression.
 
@@ -29,17 +29,17 @@ returns::
 Signed relative decrease per second.
 
 examples::
-TemporalDecrease fits a linear regression line to RMS envelope values versus time, negating the slope and normalizing by mean RMS amplitude. Positive values signify natural decay over the observation window; negative values signify envelope growth. In this example, temporal decrease controls an upward dynamic expander to smoothly linearize and sustain natural instrument note ring-downs. An interactive code::MIR2GUI.scope:: displays real-time temporal decrease slope.
+TemporalDecrease fits a linear regression line to RMS envelope values versus time, negating the slope and normalizing by mean RMS amplitude. Positive values signify natural decay over the observation window; negative values signify envelope growth. In this example, temporal decrease controls an upward dynamic expander to smoothly linearize and sustain natural instrument note ring-downs. An interactive code::MIRaGUI.scope:: displays real-time temporal decrease slope.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -53,23 +53,19 @@ s.waitForBoot({
         var sustainBoost = decLag.linlin(0, 6, 1.0, 2.5).clip(1.0, 3.0);
         var expanded = (source * sustainBoost).softclip * 0.25;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, decLag.clip(-5, 10)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, decLag.clip(-5, 10)) };
         expanded * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Temporal Decrease", ~mir2Bus, -2.0, 8.0, "slope");
+    ~miraGUI = MIRaGUI.scope("Temporal Decrease", ~miraBus, -2.0, 8.0, "slope");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

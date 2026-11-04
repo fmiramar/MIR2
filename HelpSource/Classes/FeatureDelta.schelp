@@ -1,7 +1,7 @@
 class:: FeatureDelta
 summary:: Regression derivative of a control feature
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Slope
+related:: Guides/MIRa, Classes/Slope, Classes/FeatureDeltaDelta, Classes/FeatureSmooth
 
 description::
 For a symmetric radius N, computes sum(n*(x[t+n]-x[t-n])) / (2*sum(n.squared)*frameTime). The window is evaluated causally with N updates of delay. This is the regression delta from the HTK Book, with an explicit seconds scale.
@@ -27,17 +27,17 @@ returns::
 Derivative in input units per second.
 
 examples::
-FeatureDelta calculates the causal regression first derivative of any control-rate feature stream. In this example, the velocity of spectral centroid changes is tracked on a drum groove: rapid upward spectral surges trigger a resonant micro-glitch stutter delay, accentuating transient attacks. An interactive code::MIR2GUI.scope:: plots the real-time feature derivative.
+FeatureDelta calculates the causal regression first derivative of any control-rate feature stream. In this example, the velocity of spectral centroid changes is tracked on a drum groove: rapid upward spectral surges trigger a resonant micro-glitch stutter delay, accentuating transient attacks. An interactive code::MIRaGUI.scope:: plots the real-time feature derivative.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -54,25 +54,19 @@ s.waitForBoot({
         var glitchDelay = CombN.ar(source * surge.lag(0.005), 0.2, 0.04, 0.3);
         var sound = (source * 0.25) + (glitchDelay * 0.35);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, delta) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, delta) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Centroid Delta", ~mir2Bus, -4000.0, 4000.0, "Hz/s");
+    ~miraGUI = MIRaGUI.scope("Spectral Centroid Delta", ~miraBus, -4000.0, 4000.0, "Hz/s");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FeatureDeltaDelta::
-link::Classes/FeatureSmooth::
-link::Classes/Slope::

@@ -1,7 +1,7 @@
 class:: BeatLoudness
 summary:: Beat-synchronous RMS and peak amplitude
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+related:: Guides/MIRa, Classes/Onsets2, Classes/BeatTrack3, Classes/BeatBandRatio, Classes/Loudness2
 
 description::
 Accumulates squared samples and absolute peaks from one beat edge to the next. Reports the completed interval at the next edge; this is linear signal level, not psychoacoustic loudness or LUFS.
@@ -23,17 +23,17 @@ returns::
 [linearRMS, linearPeak], initially zero until a complete beat interval.
 
 examples::
-BeatLoudness measures interval-synchronous RMS and peak signal amplitude accumulated between successive beat triggers. In this example, it drives an aggressive sidechain compressor: heavy accented downbeats duck an auxiliary harmonic synth pad, while ghost notes and light hi-hat hits allow the pad to sustain smoothly. An interactive code::MIR2GUI.scope:: tracks the interval-synchronous RMS level.
+BeatLoudness measures interval-synchronous RMS and peak signal amplitude accumulated between successive beat triggers. In this example, it drives an aggressive sidechain compressor: heavy accented downbeats duck an auxiliary harmonic synth pad, while ghost notes and light hi-hat hits allow the pad to sustain smoothly. An interactive code::MIRaGUI.scope:: tracks the interval-synchronous RMS level.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -53,25 +53,19 @@ s.waitForBoot({
         var duckedPad = pad * (1.0 - (rms * 3.0)).clip(0.05, 1.0);
         var sound = (source * 0.25 ! 2) + duckedPad;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, level[0]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, level[0]) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Beat RMS Level", ~mir2Bus, 0.0, 0.5);
+    ~miraGUI = MIRaGUI.scope("Beat RMS Level", ~miraBus, 0.0, 0.5);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/BeatBandRatio::
-link::Classes/BeatTrack3::
-link::Classes/Loudness2::

@@ -1,4 +1,4 @@
-# MIR2 implementation audit
+# MIRa implementation audit
 
 Date: 2026-08-20
 
@@ -9,9 +9,9 @@ loudness contour table; the baseline no-table statement below is historical.
 
 ## Unified project decision
 
-The MIR2 and Modern Pitch Analysis plans overlap directly at `Pitch2`, common
+The MIRa and Modern Pitch Analysis plans overlap directly at `Pitch2`, common
 frame/autocorrelation infrastructure, real-time policy, tests, and later tonal
-features. They are therefore one separately releasable `MIR2` family. Modern
+features. They are therefore one separately releasable `MIRa` family. Modern
 Pitch Analysis is a first-class subsystem, not a second repository that would
 duplicate class names and kernels.
 
@@ -25,10 +25,10 @@ The audit covered:
   namespaces available to the development installation.
 
 The eleven version-0.1 public names were unoccupied at audit time. Abstract
-language helpers use project-prefixed names: `MIR2FFTAnalyzer` and
-`MIR2PitchAnalyzer`.
+language helpers use project-prefixed names: `MIRaFFTAnalyzer` and
+`MIRaPitchAnalyzer`.
 
-Core `Pitch` holds the last frequency when detection fails, whereas MIR2
+Core `Pitch` holds the last frequency when detection fails, whereas MIRa
 defaults to zero plus zero confidence/voicing. Core `MFCC` has a historical
 fixed representation; `MFCC2` exposes coefficient zero, band count, frequency
 bounds, Mel mapping, spectrum convention, DCT normalization, and liftering.

@@ -1,7 +1,7 @@
 class:: Vibrato2
 summary:: Measure vibrato rate and extent from a supplied pitch contour
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PitchStability, Classes/PitchDeviation
 
 description::
 An original least-squares descriptor, operating on a supplied pitch contour without duplicating F0 estimation. It samples the cents trajectory at approximately 100 Hz, removes a confidence-weighted straight-line trend, and fits sine/cosine pairs on a 0.05 Hz rate grid. The best fit defines rate and twice its amplitude defines extent. Presence requires confidence at least 0.6, sufficient extent and two cycles of the slowest allowed rate. Sampling is intended for smooth pitch contours; modulation above the contour Nyquist rate can alias. Missing data and very short notes inhibit detection. This sinusoid model handles regular vibrato; irregular modulation may have low confidence.
@@ -32,17 +32,17 @@ returns::
 An Array: presence flag, modulation rate in Hz, peak-to-peak extent in cents, explained residual-variance fraction times weighted coverage.
 
 examples::
-Vibrato2 measures the instantaneous modulation rate (Hz) and peak-to-peak extent (cents) of pitch vibrato extracted from a continuous pitch contour. In this example, detected vibrato parameters synchronize an amplitude tremolo effect: whenever the performer introduces vibrato, the sound tremolos synchronously with the acoustic rate. An interactive code::MIR2GUI.scope:: tracks the detected vibrato rate in Hz.
+Vibrato2 measures the instantaneous modulation rate (Hz) and peak-to-peak extent (cents) of pitch vibrato extracted from a continuous pitch contour. In this example, detected vibrato parameters synchronize an amplitude tremolo effect: whenever the performer introduces vibrato, the sound tremolos synchronously with the acoustic rate. An interactive code::MIRaGUI.scope:: tracks the detected vibrato rate in Hz.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -59,25 +59,19 @@ s.waitForBoot({
         var tremoloLFO = SinOsc.kr(rate.clip(2, 10)).range(1.0 - (presence.lag(0.05) * 0.6), 1.0);
         var sound = (source * tremoloLFO * 0.3) ! 2;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, rate) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, rate) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Vibrato Rate", ~mir2Bus, 0.0, 10.0, "Hz");
+    ~miraGUI = MIRaGUI.scope("Vibrato Rate", ~miraBus, 0.0, 10.0, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/PitchStability::
-link::Classes/PitchDeviation::
-link::Classes/Pitch2::

@@ -1,7 +1,7 @@
 class:: FeatureDeltaDelta
 summary:: Regression acceleration of a control feature
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Slope
+related:: Guides/MIRa, Classes/Slope, Classes/FeatureDelta, Classes/FeatureSmooth
 
 description::
 Applies the same HTK symmetric regression delta twice, once to feature values and once to the resulting deltas. The effective support is 4*N+1 updates and the group delay is 2*N updates.
@@ -27,17 +27,17 @@ returns::
 Second derivative in input units per second squared.
 
 examples::
-FeatureDeltaDelta computes the second regression derivative (acceleration) of a feature stream. In this example, energy acceleration isolates sudden strike transients in a drum loop: sharp bursts of acceleration spawn micro-granular dust resonance clusters, creating a percussive shadow. An interactive code::MIR2GUI.scope:: plots feature acceleration in real time.
+FeatureDeltaDelta computes the second regression derivative (acceleration) of a feature stream. In this example, energy acceleration isolates sudden strike transients in a drum loop: sharp bursts of acceleration spawn micro-granular dust resonance clusters, creating a percussive shadow. An interactive code::MIRaGUI.scope:: plots feature acceleration in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -53,25 +53,19 @@ s.waitForBoot({
         var grain = Ringz.ar(Dust2.ar(200 * burstTrig.lag(0.05)), 1200 + (accel.clip(0, 500) * 4), 0.02) * 0.2;
         var sound = (source * 0.25) + grain;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, accel) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, accel) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Energy Acceleration", ~mir2Bus, -200.0, 200.0, "1/s²");
+    ~miraGUI = MIRaGUI.scope("Energy Acceleration", ~miraBus, -200.0, 200.0, "1/s²");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FeatureDelta::
-link::Classes/FeatureSmooth::
-link::Classes/Slope::

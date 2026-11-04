@@ -1,7 +1,7 @@
 class:: HarmonicChange
 summary:: Causal tonal-centroid change magnitude
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
 Applies the Harte, Sandler and Gasser (2006) tonal-centroid transform and computes Euclidean distance between the current centroid and the centroid two accepted observations earlier. This is the centred harmonic-change difference reported one observation late, after optional causal exponential smoothing. The first two observations output zero. Values occur on accepted trigger blocks; other blocks output zero. Tonal-centroid distance detects changes in pitch-class geometry and can also respond to changing timbre or noise.
@@ -23,17 +23,17 @@ returns::
 Nonnegative six-dimensional Euclidean distance, delayed by one observation relative to the centred difference.
 
 examples::
-HarmonicChange detects harmonic transitions by calculating 6D Euclidean distance in Tonnetz space between consecutive observations. Harmonic chord progressions produce prominent distance spikes upon new chord arrivals. In this example, detected harmonic transitions trigger a delicate bell chime on chord changes. An interactive code::MIR2GUI.scope:: displays real-time harmonic change distance.
+HarmonicChange detects harmonic transitions by calculating 6D Euclidean distance in Tonnetz space between consecutive observations. Harmonic chord progressions produce prominent distance spikes upon new chord arrivals. In this example, detected harmonic transitions trigger a delicate bell chime on chord changes. An interactive code::MIRaGUI.scope:: displays real-time harmonic change distance.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -47,25 +47,19 @@ s.waitForBoot({
         var chime = Ringz.ar(Decay2.ar(K2A.ar(chgTrig), 0.002, 0.05) * 0.05, 2200, 0.3) * 0.3;
         var sound = (source * 0.25 ! 2) + (chime ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, change.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, change.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Harmonic Change", ~mir2Bus, 0.0, 1.0, "dist");
+    ~miraGUI = MIRaGUI.scope("Harmonic Change", ~miraBus, 0.0, 1.0, "dist");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

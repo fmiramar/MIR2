@@ -1,7 +1,7 @@
 class:: InterchannelPhase
 summary:: Circular mean of interchannel spectral phase
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/FFT
+related:: Guides/MIRa, Classes/FFT
 
 description::
 Averages L*conj(R) for each FFT bin over time, then sums cross spectra in the selected band. The phase is atan2(imaginary, real), and concentration is the magnitude of that vector divided by the sum of individual cross-spectrum magnitudes. Positive phase means the left channel leads the right. Low concentration indicates contradictory frequency-bin phases; silence returns zero for both outputs. This is a band phase statistic, not a time-delay estimate.
@@ -38,20 +38,20 @@ returns::
 Array [phaseRadians, phaseConcentration], with phase in -pi..pi and concentration in 0..1.
 
 examples::
-InterchannelPhase computes the circular mean of the interchannel spectral phase in radians (-pi to +pi) and its phase concentration (0 to 1). In this example, measured phase difference controls an allpass phase-correction delay line, dynamically aligning phase differences between stereo channels. An interactive code::MIR2GUI.scope:: displays real-time interchannel phase in radians.
+InterchannelPhase computes the circular mean of the interchannel spectral phase in radians (-pi to +pi) and its phase concentration (0 to 1). In this example, measured phase difference controls an allpass phase-correction delay line, dynamically aligning phase differences between stereo channels. An interactive code::MIRaGUI.scope:: displays real-time interchannel phase in radians.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("stereo.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("stereo.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.isKindOf(Buffer) and: { ~mir2Buffer.numChannels >= 2 }) {
-            PlayBuf.ar(2, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.isKindOf(Buffer) and: { ~miraBuffer.numChannels >= 2 }) {
+            PlayBuf.ar(2, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
-            if(~mir2Buffer.notNil) {
-                var sig = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+            if(~miraBuffer.notNil) {
+                var sig = PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1);
                 [sig, DelayC.ar(sig, 0.02, 0.003)]
             } {
                 // Synthetic stereo fallback
@@ -68,23 +68,19 @@ s.waitForBoot({
         var correctedR = AllpassC.ar(source[1], 0.01, phaseDelay, 0.05);
         var sound = [source[0], correctedR] * 0.25;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, phaseRad) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, phaseRad) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Interchannel Phase", ~mir2Bus, -pi, pi, "rad");
+    ~miraGUI = MIRaGUI.scope("Interchannel Phase", ~miraBus, -pi, pi, "rad");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FFT::

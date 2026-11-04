@@ -1,7 +1,7 @@
 class:: ERBBands
 summary:: ERB spaced triangular spectral bands
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/MFCC2
+related:: Guides/MIRa, Classes/MFCC2, Classes/GammatoneBands
 
 description::
 Glasberg and Moore (1990) ERB-rate mapping: E(f) = 21.4 * log10(1 + 0.00437 * f), with f in Hz. Source: link::https://doi.org/10.1016/0378-5955(90)90170-T::.
@@ -32,17 +32,17 @@ returns::
 One control per band in ascending center-frequency order.
 
 examples::
-ERBBands decomposes spectrum into auditory filter bands spaced according to the Glasberg & Moore Equivalent Rectangular Bandwidth (ERB) scale. In this example, it drives a psychoacoustic noise mask shaper: 16 ERB band energies sculpt parallel resonant bandpass filters excited by PinkNoise, creating an evocative spectral ghost that shadows complex textures. An interactive code::MIR2GUI.bars:: displays the real-time energy across the 16 ERB filters.
+ERBBands decomposes spectrum into auditory filter bands spaced according to the Glasberg & Moore Equivalent Rectangular Bandwidth (ERB) scale. In this example, it drives a psychoacoustic noise mask shaper: 16 ERB band energies sculpt parallel resonant bandpass filters excited by PinkNoise, creating an evocative spectral ghost that shadows complex textures. An interactive code::MIRaGUI.bars:: displays the real-time energy across the 16 ERB filters.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 16);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 16);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic texture fallback
             PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
@@ -61,24 +61,19 @@ s.waitForBoot({
         });
         var sound = (source * 0.25) + (mask * 0.25);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, normBands) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, normBands) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("ERB Bands (16)", ~mir2Bus, 16, 0.0, 0.5);
+    ~miraGUI = MIRaGUI.bars("ERB Bands (16)", ~miraBus, 16, 0.0, 0.5);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/MFCC2::
-link::Classes/GammatoneBands::

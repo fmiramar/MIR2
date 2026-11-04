@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-MIR2Tonal : MultiOutUGen {
+MIRaTonal : MultiOutUGen {
     *validateSize { |size|
-        if([12,24,36,120].includes(size).not) { Error("MIR2 tonal: size must be 12, 24, 36, or 120.").throw }
+        if([12,24,36,120].includes(size).not) { Error("MIRa tonal: size must be 12, 24, 36, or 120.").throw }
     }
     *build { |count, chain, size, tuning, minFreq, maxFreq, harmonics, normalize, weighting, window,
         peakThreshold, fftSize, decay=0, profile=0, threshold=0|
         var norm, weight;
-        this.validateSize(size); MIR2FFTAnalyzer.validateFFTSize(fftSize);
+        this.validateSize(size); MIRaFFTAnalyzer.validateFFTSize(fftSize);
         norm = [\none, \max, \sum, \l2].indexOf(normalize);
         weight = [\none, \cosine, \squaredCosine].indexOf(weighting);
-        if(norm.isNil or: { weight.isNil }) { Error("MIR2 tonal: invalid normalization or weighting.").throw };
+        if(norm.isNil or: { weight.isNil }) { Error("MIRa tonal: invalid normalization or weighting.").throw };
         ^this.multiNewList([\control, count, chain, size, tuning, minFreq, maxFreq, harmonics,
             norm, weight, window, peakThreshold, fftSize, decay, profile, threshold])
     }
-    *ar { Error("MIR2 tonal features produce control-rate outputs.").throw }
+    *ar { Error("MIRa tonal features produce control-rate outputs.").throw }
     init { |numOutputs ... theInputs| inputs=theInputs; ^this.initOutputs(numOutputs, \control) }
     argNamesInputsOffset { ^2 }
     checkInputs { ^this.checkValidInputs }
 }
-HPCP : MIR2Tonal {
+HPCP : MIRaTonal {
     *kr { |chain, size=12, tuning=440, minFreq=40, maxFreq=5000, harmonics=8,
         normalize=\max, weighting=\squaredCosine, window=1.3333333333, peakThreshold=0.01, fftSize=4096|
         ^this.build(size,chain,size,tuning,minFreq,maxFreq,harmonics,normalize,weighting,window,peakThreshold,fftSize)
     }
 }
-Chromagram2 : MIR2Tonal {
+Chromagram2 : MIRaTonal {
     *kr { |chain, size=12, tuning=440, minFreq=40, maxFreq=5000, method=\fft,
         harmonics=8, normalize=\max, peakThreshold=0.01, fftSize=4096|
         if([\fft,\hpcp].includes(method).not) { Error("Chromagram2: method must be fft or hpcp.").throw };
@@ -32,12 +32,12 @@ Chromagram2 : MIR2Tonal {
             normalize,\squaredCosine,1.3333333333,peakThreshold,fftSize)
     }
 }
-TuningFrequency : MIR2Tonal {
+TuningFrequency : MIRaTonal {
     *kr { |chain, minFreq=80, maxFreq=5000, peakThreshold=0.05, fftSize=4096|
         ^this.build(3,chain,12,440,minFreq,maxFreq,1,\max,\none,1,peakThreshold,fftSize)
     }
 }
-KeyTrack2 : MIR2Tonal {
+KeyTrack2 : MIRaTonal {
     *outputs { ^3 }
     *kr { |chain, tuning=440, profile=\temperley, decay=2, minFreq=40, maxFreq=5000,
         threshold=0.3, peakThreshold=0.01, fftSize=4096|
@@ -49,29 +49,29 @@ KeyTrack2 : MIR2Tonal {
 }
 KeyClarity2 : KeyTrack2 { *outputs { ^1 } }
 KeyMode2 : KeyTrack2 { *outputs { ^1 } }
-MIR2ChromaVector : MultiOutUGen {
+MIRaChromaVector : MultiOutUGen {
     *build { |outputs, chroma, trig=1, smooth=0, transitionPenalty=0, threshold=0,
         windowSize=1, downsample=1|
         var vector=chroma.asArray;
-        MIR2Tonal.validateSize(vector.size);
+        MIRaTonal.validateSize(vector.size);
         ^this.multiNewList([\control,outputs,vector.size,trig,smooth,transitionPenalty,
             threshold,windowSize,downsample]++vector)
     }
-    *ar { Error("MIR2 chroma features produce control-rate outputs.").throw }
+    *ar { Error("MIRa chroma features produce control-rate outputs.").throw }
     init { |numOutputs ... theInputs| inputs=theInputs; ^this.initOutputs(numOutputs, \control) }
     argNamesInputsOffset { ^2 }
     checkInputs { ^this.checkValidInputs }
 }
-Tonnetz : MIR2ChromaVector {
+Tonnetz : MIRaChromaVector {
     *kr { |chroma, trig=1| ^this.build(6,chroma,trig) }
 }
-HPCPEntropy : MIR2ChromaVector {
+HPCPEntropy : MIRaChromaVector {
     *kr { |chroma, trig=1| ^this.build(1,chroma,trig) }
 }
-HPCPCrest : MIR2ChromaVector {
+HPCPCrest : MIRaChromaVector {
     *kr { |chroma, trig=1| ^this.build(1,chroma,trig) }
 }
-ChromaCENS : MIR2ChromaVector {
+ChromaCENS : MIRaChromaVector {
     *kr { |chroma, windowSize=21, downsample=1, trig=1|
         if(windowSize.isInteger.not or: { windowSize<1 } or: { windowSize>301 }
             or: { downsample.isInteger.not } or: { downsample<1 } or: { downsample>64 }) {
@@ -80,7 +80,7 @@ ChromaCENS : MIR2ChromaVector {
         ^this.build(12,chroma,trig,0,0,0,windowSize,downsample)
     }
 }
-ChordTrack : MIR2ChromaVector {
+ChordTrack : MIRaChromaVector {
     *outputs { ^4 }
     *vocabularyIndex { |vocabulary|
         var index=[\triads,\extended].indexOf(vocabulary);
@@ -103,7 +103,7 @@ ChordTrack : MIR2ChromaVector {
     }
 }
 ChordStrength : ChordTrack { *outputs { ^1 } }
-HarmonicChange : MIR2ChromaVector {
+HarmonicChange : MIRaChromaVector {
     *kr { |chroma, smooth=0.1, trig=1| ^this.build(1,chroma,trig,smooth) }
 }
 ChordStats : MultiOutUGen {

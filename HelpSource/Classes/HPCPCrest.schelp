@@ -1,7 +1,7 @@
 class:: HPCPCrest
 summary:: Peak-to-average pitch-class strength
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
 Computes N*max(chroma)/sum(chroma). This general crest statistic distinguishes concentrated from diffuse pitch-class evidence. Silence returns zero, a uniform nonzero vector gives one, and one occupied class gives N. It is gain invariant and does not infer a key.
@@ -20,17 +20,17 @@ returns::
 Crest factor from 1 through N on nonzero input; zero for silence.
 
 examples::
-HPCPCrest calculates the peak-to-average crest factor of pitch-class distribution (from 1 for uniform equal distribution up to 12 for energy concentrated in a single pitch class). In this example, pitch-class crest factor controls an audio-rate resonant feedback comb filter, cleanly sustaining pure single notes while relaxing during complex chords. An interactive code::MIR2GUI.scope:: displays real-time HPCP crest factor.
+HPCPCrest calculates the peak-to-average crest factor of pitch-class distribution (from 1 for uniform equal distribution up to 12 for energy concentrated in a single pitch class). In this example, pitch-class crest factor controls an audio-rate resonant feedback comb filter, cleanly sustaining pure single notes while relaxing during complex chords. An interactive code::MIRaGUI.scope:: displays real-time HPCP crest factor.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -45,25 +45,19 @@ s.waitForBoot({
         var filtered = RLPF.ar(source, 200 + (crestLag * 400), 1 - resQ) * 0.3;
         var sound = (source * 0.25 ! 2) + (filtered ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, crestLag.clip(1, 12)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, crestLag.clip(1, 12)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("HPCP Crest Factor", ~mir2Bus, 1.0, 12.0, "crest");
+    ~miraGUI = MIRaGUI.scope("HPCP Crest Factor", ~miraBus, 1.0, 12.0, "crest");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

@@ -1,10 +1,10 @@
 class:: HPCP
 summary:: Tuning-aware harmonic pitch-class profile
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
-Implements peak-based harmonic pitch-class accumulation after Gomez (2006), DOI 10.1287/ijoc.1040.0126, and Serra et al. (2008). Spectral peaks use log-parabolic interpolation. Squared magnitudes contribute to their pitch class and the classes of their subharmonics, with exponentially falling harmonic weights. Circular cosine weighting spreads each contribution around the tuned pitch grid. MIR2 deliberately uses C-first ordering, fixed peak capacity and no spectral whitening or split-band normalization; these differ from some published HPCP pipelines. Input gain is removed when normalization is enabled. It is a pitch-class descriptor, not a note transcription.
+Implements peak-based harmonic pitch-class accumulation after Gomez (2006), DOI 10.1287/ijoc.1040.0126, and Serra et al. (2008). Spectral peaks use log-parabolic interpolation. Squared magnitudes contribute to their pitch class and the classes of their subharmonics, with exponentially falling harmonic weights. Circular cosine weighting spreads each contribution around the tuned pitch grid. MIRa deliberately uses C-first ordering, fixed peak capacity and no spectral whitening or split-band normalization; these differ from some published HPCP pipelines. Input gain is removed when normalization is enabled. It is a pitch-class descriptor, not a note transcription.
 
 Vanilla link::Classes/SpecCentroid:: collapses the spectrum into one brightness value. This class instead retains octave-folded pitch-class structure.
 
@@ -47,17 +47,17 @@ returns::
 An Array of size values, ordered C upward through one octave.
 
 examples::
-HPCP extracts a tuning-aware Harmonic Pitch Class Profile with exponential subharmonic summation. In this example, 12 pitch classes synthesize an ethereal octave-4 sine shadow tracing the chordal motion of acoustic piano chords. An interactive code::MIR2GUI.chroma:: displays the real-time circular chroma wheel.
+HPCP extracts a tuning-aware Harmonic Pitch Class Profile with exponential subharmonic summation. In this example, 12 pitch classes synthesize an ethereal octave-4 sine shadow tracing the chordal motion of acoustic piano chords. An interactive code::MIRaGUI.chroma:: displays the real-time circular chroma wheel.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 12);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 12);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -69,25 +69,19 @@ s.waitForBoot({
         var voices = SinOsc.ar((60 + (0..11)).midicps, 0, chroma.lag(0.05) * 0.025);
         var sound = (source * 0.25 ! 2) + Splay.ar(voices);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, chroma.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, chroma.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.chroma("HPCP Pitch Classes", ~mir2Bus);
+    ~miraGUI = MIRaGUI.chroma("HPCP Pitch Classes", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

@@ -1,10 +1,10 @@
 class:: MultiPitch
 summary:: Estimate several simultaneous harmonic fundamentals
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PredominantPitch
 
 description::
-An independent Klapuri-style iterative estimator based on “Multiple Fundamental Frequency Estimation by Summing Harmonic Amplitudes” (ISMIR 2006, DOI 10.5281/zenodo.1416740). Hann frames are zero-padded to twice their length. Thirty critical-band triangles estimate whitening gains with exponent -0.67. Harmonic weights are (f0 + 52) / (harmonicFrequency + 320); candidates are selected, their Hann main-lobe neighbourhoods are suppressed, and extraction stops when sum(selectedSaliences) / count**0.7 decreases. MIR2 uses a bounded log-frequency grid, at most 80 partials, 0.9 cancellation, and a spectral-flatness gate; this changes the paper's continuous period search and reconstructed partial cancellation. Close notes, octave-related sources, dense chords, percussion and inharmonic sounds remain difficult. The first implementation is experimental and does not identify separate instruments.
+An independent Klapuri-style iterative estimator based on “Multiple Fundamental Frequency Estimation by Summing Harmonic Amplitudes” (ISMIR 2006, DOI 10.5281/zenodo.1416740). Hann frames are zero-padded to twice their length. Thirty critical-band triangles estimate whitening gains with exponent -0.67. Harmonic weights are (f0 + 52) / (harmonicFrequency + 320); candidates are selected, their Hann main-lobe neighbourhoods are suppressed, and extraction stops when sum(selectedSaliences) / count**0.7 decreases. MIRa uses a bounded log-frequency grid, at most 80 partials, 0.9 cancellation, and a spectral-flatness gate; this changes the paper's continuous period search and reconstructed partial cancellation. Close notes, octave-related sources, dense chords, percussion and inharmonic sounds remain difficult. The first implementation is experimental and does not identify separate instruments.
 
 Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
 
@@ -41,17 +41,17 @@ returns::
 An Array containing frequency Array, relative-strength Array, and detected count. Strength is residual salience relative to the first selected source, not probability.
 
 examples::
-MultiPitch implements an iterative spectral subtraction harmonic summation algorithm adapted from Klapuri (ISMIR 2006) to estimate multiple concurrent fundamental frequencies. In this example, it analyzes a polyphonic mixture of walking bass and treble melody: the two detected F0 streams independently synthesize an analog-style resonant bass voice and a sparkling treble lead. An interactive code::MIR2GUI.pianoRoll:: plots the primary tracked melody line.
+MultiPitch implements an iterative spectral subtraction harmonic summation algorithm adapted from Klapuri (ISMIR 2006) to estimate multiple concurrent fundamental frequencies. In this example, it analyzes a polyphonic mixture of walking bass and treble melody: the two detected F0 streams independently synthesize an analog-style resonant bass voice and a sparkling treble lead. An interactive code::MIRaGUI.pianoRoll:: plots the primary tracked melody line.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("bass-melody-mix.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("bass-melody-mix.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic bass + melody fallback
             var bass = SinOsc.ar(Select.kr(LFNoise0.kr(1).range(0, 4), [55, 65.4, 73.4, 82.4]), 0, 0.3);
@@ -69,25 +69,19 @@ s.waitForBoot({
         var melody = Saw.ar(freqs[1].clip(150, 2000).lag(0.03)) * strengths[1].lag(0.04) * 0.12 * (freqs[1] > 100);
         var sound = (source * 0.2) + bass + melody;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freqs[0]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, freqs[0]) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("MultiPitch Tracker", ~mir2Bus, 36, 84);
+    ~miraGUI = MIRaGUI.pianoRoll("MultiPitch Tracker", ~miraBus, 36, 84);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/PredominantPitch::
-link::Classes/FundamentalCandidates::
-link::Classes/Pitch2::

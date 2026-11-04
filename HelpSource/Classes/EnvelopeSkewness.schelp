@@ -1,7 +1,7 @@
 class:: EnvelopeSkewness
 summary:: Asymmetry of the envelope energy distribution over time
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
 The third energy-weighted central time moment divided by the temporal variance to the power 1.5. Positive values indicate a tail toward newer frames; negative values indicate a tail toward older frames. Degenerate variance returns zero.
@@ -29,17 +29,17 @@ returns::
 Dimensionless signed skewness.
 
 examples::
-EnvelopeSkewness calculates the third energy-weighted temporal moment divided by variance^1.5, measuring temporal asymmetry between attack and decay. A sharp percussive onset with long exponential decay produces positive skewness; backwards swells produce negative skewness. In this example, envelope skewness controls the drive of an analog wavefolder, enriching transient harmonics during sharp asymmetric plucked attacks. An interactive code::MIR2GUI.scope:: displays real-time envelope skewness.
+EnvelopeSkewness calculates the third energy-weighted temporal moment divided by variance^1.5, measuring temporal asymmetry between attack and decay. A sharp percussive onset with long exponential decay produces positive skewness; backwards swells produce negative skewness. In this example, envelope skewness controls the drive of an analog wavefolder, enriching transient harmonics during sharp asymmetric plucked attacks. An interactive code::MIRaGUI.scope:: displays real-time envelope skewness.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -54,23 +54,19 @@ s.waitForBoot({
         var folded = (source * foldDrive).fold2(0.5) * 0.3;
         var sound = (source * 0.2) + folded;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, skewLag.clip(-2, 4)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, skewLag.clip(-2, 4)) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Envelope Skewness", ~mir2Bus, -2.0, 4.0, "skew");
+    ~miraGUI = MIRaGUI.scope("Envelope Skewness", ~miraBus, -2.0, 4.0, "skew");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

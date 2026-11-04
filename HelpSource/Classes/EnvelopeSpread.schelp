@@ -1,7 +1,7 @@
 class:: EnvelopeSpread
 summary:: Temporal spread of envelope energy
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
 The square root of the energy-weighted second central moment of time measures how widely energy is distributed in the window. It is a duration, rather than the variance of envelope amplitudes.
@@ -29,17 +29,17 @@ returns::
 Seconds; zero for a single occupied envelope frame.
 
 examples::
-EnvelopeSpread computes the energy-weighted temporal standard deviation (spread) in seconds within a rolling observation window. Staccato plucks produce a compact, narrow temporal spread (~0.05 s), while ringing sustains produce a broad spread. In this example, envelope spread controls feedback on a stereo echo line: tight staccato plucks receive rhythmic multi-tap repeats, while sustained notes receive a single gentle echo. An interactive code::MIR2GUI.scope:: displays real-time envelope spread in seconds.
+EnvelopeSpread computes the energy-weighted temporal standard deviation (spread) in seconds within a rolling observation window. Staccato plucks produce a compact, narrow temporal spread (~0.05 s), while ringing sustains produce a broad spread. In this example, envelope spread controls feedback on a stereo echo line: tight staccato plucks receive rhythmic multi-tap repeats, while sustained notes receive a single gentle echo. An interactive code::MIRaGUI.scope:: displays real-time envelope spread in seconds.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -54,23 +54,19 @@ s.waitForBoot({
         var echo = CombC.ar(source, 0.3, [0.15, 0.22], echoFb * 2) * 0.35;
         var sound = (source * 0.25 ! 2) + echo;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, spreadLag.clip(0, 0.5)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, spreadLag.clip(0, 0.5)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Envelope Spread", ~mir2Bus, 0.0, 0.3, "s");
+    ~miraGUI = MIRaGUI.scope("Envelope Spread", ~miraBus, 0.0, 0.3, "s");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

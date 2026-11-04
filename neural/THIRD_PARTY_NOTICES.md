@@ -11,7 +11,7 @@ implementation by Alain Riou / Sony CSL Paris at revision
 - [Pitch decoder](https://github.com/SonyCSLParis/pesto/blob/62bc0c9702558f19af4593752947fb9db1eadac9/pesto/utils/reduce_activations.py).
 - [Upstream license](https://github.com/SonyCSLParis/pesto/blob/62bc0c9702558f19af4593752947fb9db1eadac9/LICENSE.md): GNU Lesser General Public License, version 3.
 
-The upstream license is retained verbatim in `licenses/LGPL-3.0.md`. The MIR2
+The upstream license is retained verbatim in `licenses/LGPL-3.0.md`. The MIRa
 adaptation is distributed under the parent project's GNU GPL license. Native
 changes include fixed-shape C++ inference, explicit model-buffer validation,
 compact frontend kernels, allocation-free inference state and work distributed
@@ -43,7 +43,7 @@ pinned PESTO revision, with SHA-256:
 
 The pinned package metadata labels PESTO LGPLv3 and explicitly includes
 `weights/*.ckpt`. No separate checkpoint-specific terms were found in that
-revision. MIR2 Neural does not bundle or redistribute checkpoint bytes, exported
+revision. MIRa Neural does not bundle or redistribute checkpoint bytes, exported
 models, training recordings or datasets. The user supplies the pinned upstream
 checkout and explicitly exports local assets. The MIR-1K training-data provenance
 is not substituted for model-specific licensing evidence.
@@ -58,4 +58,4 @@ extension. Their own distributions provide their applicable license notices.
 The optional server plugin builds against SuperCollider's GPL-licensed plugin
 API. This software is provided without warranty, including implied warranties
 of merchantability or fitness for a particular purpose. See the parent `LICENSE`
-for the MIR2 license.
+for the MIRa license.

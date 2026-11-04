@@ -1,10 +1,10 @@
 class:: FundamentalCandidates
 summary:: Expose competing fundamental frequencies and their weights
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PitchProb, Classes/MultiPitch
 
 description::
-Retains multiple local extrema instead of discarding alternatives after one F0 decision. The YIN and MPM modes use the existing MIR2 CMNDF and NSDF kernels. The probabilistic mode integrates a Beta(2,18) prior over discrete thresholds following Mauch and Dixon, pYIN (ICASSP 2014, DOI 10.1109/ICASSP.2014.6853678). Harmonic and SWIPE modes use the spectral engines described in link::Classes/MultiPitch:: and link::Classes/PitchSWIPE::. A fixed 16-slot internal list bounds work and memory; truncation does not redistribute discarded probabilistic mass.
+Retains multiple local extrema instead of discarding alternatives after one F0 decision. The YIN and MPM modes use the existing MIRa CMNDF and NSDF kernels. The probabilistic mode integrates a Beta(2,18) prior over discrete thresholds following Mauch and Dixon, pYIN (ICASSP 2014, DOI 10.1109/ICASSP.2014.6853678). Harmonic and SWIPE modes use the spectral engines described in link::Classes/MultiPitch:: and link::Classes/PitchSWIPE::. A fixed 16-slot internal list bounds work and memory; truncation does not redistribute discarded probabilistic mass.
 
 Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes several candidate interpretations rather than only one frequency and a hasFreq flag.
 
@@ -38,17 +38,17 @@ returns::
 An Array containing two Arrays: frequencies in Hz, and corresponding probabilities or evidence weights. Candidates are sorted strongest first; this represents alternative interpretations of a frame, not simultaneous notes.
 
 examples::
-FundamentalCandidates extracts multiple competing F0 candidates and their corresponding evidence weights instead of collapsing analysis to a single winner. In this example, 4 simultaneous pitch candidates are tracked across a polyphonic bass and melody mix, driving 4 independent sinusoidal resynthesis voices weighted by candidate likelihood. An interactive code::MIR2GUI.pianoRoll:: displays the primary tracked pitch contour.
+FundamentalCandidates extracts multiple competing F0 candidates and their corresponding evidence weights instead of collapsing analysis to a single winner. In this example, 4 simultaneous pitch candidates are tracked across a polyphonic bass and melody mix, driving 4 independent sinusoidal resynthesis voices weighted by candidate likelihood. An interactive code::MIRaGUI.pianoRoll:: displays the primary tracked pitch contour.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("bass-melody-mix.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("bass-melody-mix.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic bass + melody fallback
             var bass = SinOsc.ar(Select.kr(LFNoise0.kr(1).range(0, 4), [55, 65.4, 73.4, 82.4]), 0, 0.3);
@@ -66,25 +66,19 @@ s.waitForBoot({
         });
         var sound = (source * 0.2 ! 2) + voices;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freqs[0]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, freqs[0]) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("Candidate Pitch", ~mir2Bus, 36, 84);
+    ~miraGUI = MIRaGUI.pianoRoll("Candidate Pitch", ~miraBus, 36, 84);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch2::
-link::Classes/PitchProb::
-link::Classes/MultiPitch::

@@ -1,12 +1,12 @@
 class:: PitchPESTO
 summary:: Native PESTO neural pitch estimation with explicit model loading
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch, Classes/Pitch2, Classes/PitchYIN
+related:: Guides/MIRa, Classes/Pitch, Classes/Pitch2, Classes/PitchYIN, Classes/PitchConsensus
 
 description::
-An optional MIR2 Neural analyzer for monophonic audio, adapted from Alain Riou and colleagues' PESTO v2. A 251-bin variable-Q transform feeds a residual convolutional network. The network produces a 384-bin pitch distribution; a fixed learned offset and argmax-local weighted average decode its fundamental frequency. A separate learned classifier estimates voicing confidence from spectral energy and flatness. The selected checkpoint is code::mir-1k_g7::, trained on MIR-1K.
+An optional MIRa Neural analyzer for monophonic audio, adapted from Alain Riou and colleagues' PESTO v2. A 251-bin variable-Q transform feeds a residual convolutional network. The network produces a 384-bin pitch distribution; a fixed learned offset and argmax-local weighted average decode its fundamental frequency. A separate learned classifier estimates voicing confidence from spectral energy and flatness. The selected checkpoint is code::mir-1k_g7::, trained on MIR-1K.
 
-The runtime is native CPU code. It uses neither Python nor an external inference framework, and never downloads a model. The offline exporter in code::MIR2/neural/tools/export_pesto.py:: produces a sample-rate-specific float32 WAV containing weights and frontend kernels. Load that data explicitly before starting the Synth. The installed extension's README explains the export procedure; the example below expects a local model in its code::models:: directory.
+The runtime is native CPU code. It uses neither Python nor an external inference framework, and never downloads a model. The offline exporter in code::MIRa/neural/tools/export_pesto.py:: produces a sample-rate-specific float32 WAV containing weights and frontend kernels. Load that data explicitly before starting the Synth. The installed extension's README explains the export procedure; the example below expects a local model in its code::models:: directory.
 
 Updates occur every 10 ms. A trailing analysis window is frozen, and its inference work is distributed over the following 10 ms hop. Windows contain 4096 samples at 16 kHz, 8192 at 44.1 or 48 kHz, and 16384 at 96 kHz. Nominal window-center lag, including the extra hop, is approximately 138 ms at 16 kHz, 102.88 ms at 44.1 kHz, and 95.33 ms at 48 or 96 kHz. Control-block scheduling adds up to one block. Startup waits for a full history and its inference: about 270, 200, 190 and 190 ms respectively. Outputs are held between updates and are zero during startup. This trailing mode does not use the paper's optional refill method or claim its sub-10-ms latency.
 
@@ -33,20 +33,20 @@ returns::
 An Array of four control-rate values: frequency in Hz (zero when unvoiced), learned confidence from 0 through 1, voiced flag 0 or 1, and the sum of the 251 VQT energy bins. The last value depends on input level and frontend normalization; it is neither waveform RMS nor calibrated loudness.
 
 examples::
-PitchPESTO estimates fundamental frequency and voicing confidence using a deep residual convolutional neural network. In this example, an acoustic vocal/instrumental melody is analyzed in real time. The detected pitch and confidence steer a two-partial synthesized tracking voice panned right while the acoustic phrase plays on the left. An interactive code::MIR2GUI.pianoRoll:: displays the estimated pitch in real time. Export a model for the server's actual sample rate first, using the extension README.
+PitchPESTO estimates fundamental frequency and voicing confidence using a deep residual convolutional neural network. In this example, an acoustic vocal/instrumental melody is analyzed in real time. The detected pitch and confidence steer a two-partial synthesized tracking voice panned right while the acoustic phrase plays on the left. An interactive code::MIRaGUI.pianoRoll:: displays the estimated pitch in real time. Export a model for the server's actual sample rate first, using the extension README.
 code::
 (
 s.waitForBoot({
     var rate = s.sampleRate.asInteger;
     var modelPath = PitchPESTO.filenameSymbol.asString.dirname.dirname
         +/+ "models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
-    var audioPath = MIR2GUI.soundPath("melody.wav");
+    var audioPath = MIRaGUI.soundPath("melody.wav");
 
     if(File.exists(modelPath).not) {
-        modelPath = Platform.userExtensionDir +/+ "MIR2Neural/models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
+        modelPath = Platform.userExtensionDir +/+ "MIRaNeural/models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
     };
     if(File.exists(modelPath).not) {
-        modelPath = Platform.userExtensionDir +/+ "MIR2/models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
+        modelPath = Platform.userExtensionDir +/+ "MIRa/models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
     };
     if(File.exists(modelPath).not) {
         modelPath = Platform.userAppSupportDir +/+ "models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
@@ -55,18 +55,18 @@ s.waitForBoot({
         Error("PitchPESTO: model file mir-1k_g7-" ++ rate ++ ".wav not found at " ++ modelPath).throw;
     };
 
-    ~mir2PESTOModel = Buffer.read(s, modelPath);
-    ~mir2Buffer = if(audioPath.notNil) {
+    ~miraPESTOModel = Buffer.read(s, modelPath);
+    ~miraBuffer = if(audioPath.notNil) {
         Buffer.read(s, audioPath)
     } {
         if(\ExampleFiles.asClass.notNil) { Buffer.read(s, ExampleFiles.child) } { nil }
     };
-    ~mir2Bus = Bus.control(s, 1);
+    ~miraBus = Bus.control(s, 1);
     s.sync;
 
-    ~mir2PESTOExample = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraPESTOExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic voice fallback
             var f0 = SinOsc.kr(0.4).range(220, 440);
@@ -74,7 +74,7 @@ s.waitForBoot({
         };
         // For live input instead: source = SoundIn.ar(0);
 
-        var result = PitchPESTO.kr(source, ~mir2PESTOModel, 0.8);
+        var result = PitchPESTO.kr(source, ~miraPESTOModel, 0.8);
         var frequency = Gate.kr(result[0], result[2]).clip(40, 2000).lag(0.03);
         var envelope = Amplitude.kr(source, 0.01, 0.12).clip(0, 0.3);
         var voice = SinOsc.ar(frequency) + (SinOsc.ar(frequency * 2) * 0.3);
@@ -82,11 +82,11 @@ s.waitForBoot({
         voice = voice * envelope * result[2].lag(0.02) * 0.4;
         sound = [source * 0.2, voice] * Line.kr(0, 1, 0.4);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, frequency) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, frequency) };
         sound
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("PESTO Neural Pitch", ~mir2Bus, minMIDI: 48, maxMIDI: 84);
+    ~miraGUI = MIRaGUI.pianoRoll("PESTO Neural Pitch", ~miraBus, minMIDI: 48, maxMIDI: 84);
 });
 )
 ::
@@ -94,12 +94,12 @@ Stop the Synth before releasing its model:
 code::
 (
 s.waitForBoot({
-    ~mir2PESTOExample.free;
-    if(~mir2GUI.notNil) { ~mir2GUI.close };
-    if(~mir2Bus.notNil) { ~mir2Bus.free };
+    ~miraPESTOExample.free;
+    if(~miraGUI.notNil) { ~miraGUI.close };
+    if(~miraBus.notNil) { ~miraBus.free };
     s.sync;
-    if(~mir2Buffer.notNil) { ~mir2Buffer.free };
-    if(~mir2PESTOModel.notNil) { ~mir2PESTOModel.free };
+    if(~miraBuffer.notNil) { ~miraBuffer.free };
+    if(~miraPESTOModel.notNil) { ~miraPESTOModel.free };
 });
 )
 ::
@@ -107,10 +107,3 @@ s.waitForBoot({
 subsection:: Sources
 link::https://arxiv.org/html/2508.01488v1::
 link::https://github.com/SonyCSLParis/pesto/tree/62bc0c9702558f19af4593752947fb9db1eadac9::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch::
-link::Classes/Pitch2::
-link::Classes/PitchYIN::
-link::Classes/PitchConsensus::

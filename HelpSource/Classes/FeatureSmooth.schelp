@@ -1,7 +1,7 @@
 class:: FeatureSmooth
 summary:: One-pole smoothing at feature update instants
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Lag
+related:: Guides/MIRa, Classes/Lag, Classes/FeatureMedian, Classes/FeatureDelta
 
 description::
 Updates y = exp(-frameTime/time)*previous + (1-exp(-frameTime/time))*input at accepted update instants. The first accepted value initializes the state directly. time is the 1/e settling constant, unlike the 60 dB lag-time convention used by vanilla Lag.
@@ -27,17 +27,17 @@ returns::
 Smoothed input value.
 
 examples::
-FeatureSmooth performs causal one-pole exponential smoothing calibrated in physical seconds. In this example, it processes spectral flux extracted from a bowing friction texture: fast fluctuations are integrated into a slow, organic swell parameter that smoothly breathes open the wet space of an algorithmic reverb. An interactive code::MIR2GUI.scope:: plots the smoothed feature trajectory.
+FeatureSmooth performs causal one-pole exponential smoothing calibrated in physical seconds. In this example, it processes spectral flux extracted from a bowing friction texture: fast fluctuations are integrated into a slow, organic swell parameter that smoothly breathes open the wet space of an algorithmic reverb. An interactive code::MIRaGUI.scope:: plots the smoothed feature trajectory.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic texture fallback
             PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
@@ -51,25 +51,19 @@ s.waitForBoot({
         var verb = FreeVerb.ar(source, 0.7, revSize, 0.5) * 0.4;
         var sound = (source * 0.2) + verb;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, smoothedFlux) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, smoothedFlux) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Smoothed Feature", ~mir2Bus, 0.0, 0.5);
+    ~miraGUI = MIRaGUI.scope("Smoothed Feature", ~miraBus, 0.0, 0.5);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FeatureMedian::
-link::Classes/FeatureDelta::
-link::Classes/Lag::

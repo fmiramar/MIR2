@@ -1,14 +1,15 @@
-title:: MIR2
+title:: MIRa
 summary:: Native spectral, pitch, onset, tonal, rhythm, auditory and wavelet analysis
 categories:: Libraries>MIR
+related:: Guides/MIRa-and-FluCoMa, Guides/MIRa-legacy-migration
 
-MIR2 provides 135 public classes for real-time musical analysis and analysis-driven sound. Each class page explains the technique, units, timing, limits and an audible example. Most return control-rate features; audio-input analyzers consume the full audio block internally. FFT readers preserve the shared buffer representation.
+MIRa provides 135 public classes for real-time musical analysis and analysis-driven sound. Each class page explains the technique, units, timing, limits and an audible example. Most return control-rate features; audio-input analyzers consume the full audio block internally. FFT readers preserve the shared buffer representation.
 
 Pitch confidence, periodicity and voicing describe different evidence. Neither confidence nor tonal/rhythm labels imply calibrated recognition accuracy. Use matching FFT sizes and hops, allow analysis warmup, and increase server real-time memory for large filter banks or CQT kernels.
 
 section:: Optional neural extension
 
-The separately built MIR2Neural extension provides code::PitchPESTO::, a monophonic pitch estimator using PESTO v2's variable-Q frontend and learned convolutional network. It uses a native CPU implementation with an explicitly loaded, sample-rate-specific model buffer; no Python runtime or automatic download is involved. Its 10 ms update hop is distinct from its approximately 95–103 ms frame-center delay at 44.1/48/96 kHz. See its installed class help after adding MIR2Neural. Model export, supported configurations and current verification are documented in the extension README.
+The separately built MIRaNeural extension provides code::PitchPESTO::, a monophonic pitch estimator using PESTO v2's variable-Q frontend and learned convolutional network. It uses a native CPU implementation with an explicitly loaded, sample-rate-specific model buffer; no Python runtime or automatic download is involved. Its 10 ms update hop is distinct from its approximately 95–103 ms frame-center delay at 44.1/48/96 kHz. See its installed class help after adding MIRaNeural. Model export, supported configurations and current verification are documented in the extension README.
 
 section:: Core
 
@@ -219,10 +220,10 @@ definitionlist::
 
 section:: Examples and visualization
 
-Class help files feature musically meaningful, individually designed sound processes and live MIR visualization GUIs via the code::MIR2GUI:: toolkit.
+Class help files feature musically meaningful, individually designed sound processes and live MIR visualization GUIs via the code::MIRaGUI:: toolkit.
 
 subsection:: Audio corpus
-Examples load dedicated CC0 1.0 audio material bundled in the extension's code::sounds/:: folder via code::MIR2GUI.soundPath::, with graceful fallbacks to self-contained synthetic source graphs:
+Examples load dedicated CC0 1.0 audio material bundled in the extension's code::sounds/:: folder via code::MIRaGUI.soundPath::, with graceful fallbacks to self-contained synthetic source graphs:
 list::
 ## strong::drums.wav::: Acoustic drum groove with crisp transients, kick, snare, and hi-hats (ideal for onsets, rhythm, flux, and tempo).
 ## strong::piano-chords.wav::: Polyphonic grand piano progressions (ideal for chromagram, key, chord, and harmonic analysis).
@@ -234,19 +235,19 @@ list::
 ::
 Each example can also take live microphone or line input by uncommenting the code::SoundIn.ar(0):: alternative.
 
-subsection:: Live MIR2GUI visualizers
+subsection:: Live MIRaGUI visualizers
 The extension provides 10 real-time GUI visualizers designed according to standard MIR practice:
 list::
-## strong::MIR2GUI.scope::: Real-time scrolling time-series oscilloscope with feature range bounds and engineering units.
-## strong::MIR2GUI.bars::: Multi-band spectrum, filter bank, and cepstral bar monitor with peak hold decay and custom subband labels.
-## strong::MIR2GUI.heatmap::: 2D scrolling waterfall spectrogram and tempogram display.
-## strong::MIR2GUI.chroma::: 12-pitch-class circular polar radar wheel.
-## strong::MIR2GUI.tonnetz::: 2D planar projection of 6-dimensional Tonnetz harmonic space (fifth, minor third, and major third axes).
-## strong::MIR2GUI.stereo::: Polar goniometer (Lissajous X/Y phase scope) and stereo correlation meter.
-## strong::MIR2GUI.pianoRoll::: Scrolling fundamental frequency tracker plotted on a musical MIDI note grid.
-## strong::MIR2GUI.rhythm::: Circular tempo and beat phase dial.
-## strong::MIR2GUI.tristimulus::: Barycentric ternary triangle displaying relative harmonic energy distribution (T1, T2, T3).
-## strong::MIR2GUI.envelope::: Triggered transient envelope and attack/decay time-domain waveform scope.
+## strong::MIRaGUI.scope::: Real-time scrolling time-series oscilloscope with feature range bounds and engineering units.
+## strong::MIRaGUI.bars::: Multi-band spectrum, filter bank, and cepstral bar monitor with peak hold decay and custom subband labels.
+## strong::MIRaGUI.heatmap::: 2D scrolling waterfall spectrogram and tempogram display.
+## strong::MIRaGUI.chroma::: 12-pitch-class circular polar radar wheel.
+## strong::MIRaGUI.tonnetz::: 2D planar projection of 6-dimensional Tonnetz harmonic space (fifth, minor third, and major third axes).
+## strong::MIRaGUI.stereo::: Polar goniometer (Lissajous X/Y phase scope) and stereo correlation meter.
+## strong::MIRaGUI.pianoRoll::: Scrolling fundamental frequency tracker plotted on a musical MIDI note grid.
+## strong::MIRaGUI.rhythm::: Circular tempo and beat phase dial.
+## strong::MIRaGUI.tristimulus::: Barycentric ternary triangle displaying relative harmonic energy distribution (T1, T2, T3).
+## strong::MIRaGUI.envelope::: Triggered transient envelope and attack/decay time-domain waveform scope.
 ::
 
 section:: Verification and test suite

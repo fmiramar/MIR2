@@ -1,10 +1,10 @@
 class:: Loudness2
 summary:: Calibrated revision of the informal SuperCollider loudness model
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/Loudness
+related:: Guides/MIRa, Classes/Loudness, Classes/Amplitude
 
 description::
-Returns [sones, phons] using a modernization of Nick Collins's 2007 SuperCollider loudness model and its 42-band equal-loudness contour table. Source: link::https://github.com/supercollider/supercollider/blob/Version-3.14.1/server/plugins/Loudness.cpp::. This is an informal perceptual feature, not an ISO-compliant or EBU R128 meter. The original contour table does not document its acoustic-field provenance; MIR2 applies no diffuse-field or free-field correction. Absolute acoustic claims require externally calibrated and equalized input and independent validation.
+Returns [sones, phons] using a modernization of Nick Collins's 2007 SuperCollider loudness model and its 42-band equal-loudness contour table. Source: link::https://github.com/supercollider/supercollider/blob/Version-3.14.1/server/plugins/Loudness.cpp::. This is an informal perceptual feature, not an ISO-compliant or EBU R128 meter. The original contour table does not document its acoustic-field provenance; MIRa applies no diffuse-field or free-field correction. Absolute acoustic claims require externally calibrated and equalized input and independent validation.
 
 Band boundaries are stored in Hz from the original 44.1 kHz/1024 grid; each FFT bin contributes according to its overlap with a band. One-sided spectral power is converted to mean-square input power with Parseval scaling and the specified windowPower. A unit-peak sine corresponds to calibration dB SPL. Per-band SPL is interpolated through the inherited contour table, whose per-band range is 2..100 phon; lower levels contribute nothing and higher ones saturate at 100 phon. Intensities 10.pow(phon/10)-1 are summed, giving total phons = 10*log10(1+sum). The subtraction removes the legacy model's residual silence.
 
@@ -32,17 +32,17 @@ returns::
 Two control outputs: sones, then phons. Their accuracy is limited by the inherited informal model.
 
 examples::
-Loudness2 models human perceptual loudness in sones using equal-loudness contours. In this example, it drives an opto-style feedback compressor: perceptual sones regulate smooth, non-linear gain attenuation, naturally avoiding the pumping artifacts typical of simple peak or RMS compressors on bass-heavy drums. An interactive code::MIR2GUI.scope:: displays real-time perceived loudness in sones.
+Loudness2 models human perceptual loudness in sones using equal-loudness contours. In this example, it drives an opto-style feedback compressor: perceptual sones regulate smooth, non-linear gain attenuation, naturally avoiding the pumping artifacts typical of simple peak or RMS compressors on bass-heavy drums. An interactive code::MIRaGUI.scope:: displays real-time perceived loudness in sones.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -63,25 +63,19 @@ s.waitForBoot({
         var compressed = source * gainReduction;
         var sound = compressed * 0.35;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, sones) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, sones) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Perceived Loudness", ~mir2Bus, 0.0, 50.0, "sones");
+    ~miraGUI = MIRaGUI.scope("Perceived Loudness", ~miraBus, 0.0, 50.0, "sones");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Loudness::
-link::Classes/Amplitude::
-link::Classes/Amplitude::

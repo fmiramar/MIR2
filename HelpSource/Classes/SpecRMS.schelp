@@ -1,7 +1,7 @@
 class:: SpecRMS
 summary:: Root mean square of FFT magnitudes
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Returns sqrt(mean(magnitude.squared)) over the selected bins. This is spectral-bin RMS and is proportional to FFT size and analysis-window gain; it is not calibrated time-domain RMS.
@@ -31,17 +31,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecRMS calculates the root-mean-square amplitude in the frequency domain across selected bins. In this example, spectral RMS drives an optical-style mastering compressor with smooth program-dependent attack and decay, leveling dynamic drum grooves cleanly. An interactive code::MIR2GUI.scope:: displays real-time spectral RMS.
+SpecRMS calculates the root-mean-square amplitude in the frequency domain across selected bins. In this example, spectral RMS drives an optical-style mastering compressor with smooth program-dependent attack and decay, leveling dynamic drum grooves cleanly. An interactive code::MIRaGUI.scope:: displays real-time spectral RMS.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -58,24 +58,19 @@ s.waitForBoot({
         var compressed = source * (gainReduction.neg.dbamp.lag(0.01, 0.1));
         var sound = compressed * 0.3 ! 2;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, rms.clip(0, 2)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, rms.clip(0, 2)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral RMS", ~mir2Bus, 0.0, 1.0, "amp");
+    ~miraGUI = MIRaGUI.scope("Spectral RMS", ~miraBus, 0.0, 1.0, "amp");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

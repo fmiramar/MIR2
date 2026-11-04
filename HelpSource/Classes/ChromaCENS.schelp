@@ -1,10 +1,10 @@
 class:: ChromaCENS
 summary:: Quantized and smoothed chroma-energy statistics
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
-Follows Muller and Ewert's Chroma Toolbox (ISMIR 2011): L1 normalize, add 0.25 at each crossed threshold 0.05/0.1/0.2/0.4, smooth with a Hann window, decimate updates and L2 normalize. MIR2 uses a trailing causal window with nonzero-endpoint Hann weights and normalizes the available prefix during startup; this shifts timing relative to centred offline CENS. Silence decays as it leaves the smoothing window. The chroma frontend is supplied explicitly, so these are CENS statistics over that representation rather than a hidden CQT implementation.
+Follows Muller and Ewert's Chroma Toolbox (ISMIR 2011): L1 normalize, add 0.25 at each crossed threshold 0.05/0.1/0.2/0.4, smooth with a Hann window, decimate updates and L2 normalize. MIRa uses a trailing causal window with nonzero-endpoint Hann weights and normalizes the available prefix during startup; this shifts timing relative to centred offline CENS. Silence decays as it leaves the smoothing window. The chroma frontend is supplied explicitly, so these are CENS statistics over that representation rather than a hidden CQT implementation.
 
 
 
@@ -26,17 +26,17 @@ returns::
 Twelve L2-normalized chroma values. Output updates once per downsample accepted triggers.
 
 examples::
-ChromaCENS calculates Chroma Energy Normalized Statistics (Muller & Ewert 2011) by quantizing pitch classes to logarithmic threshold levels, smoothing across time with a Hann window, and L2-normalizing. This produces highly stable chroma contours immune to local arpeggiation or ornamentation. In this example, CENS chroma drives 12 pure sine oscillators to generate a stable harmonic shadow layer. An interactive code::MIR2GUI.chroma:: displays real-time CENS chroma.
+ChromaCENS calculates Chroma Energy Normalized Statistics (Muller & Ewert 2011) by quantizing pitch classes to logarithmic threshold levels, smoothing across time with a Hann window, and L2-normalizing. This produces highly stable chroma contours immune to local arpeggiation or ornamentation. In this example, CENS chroma drives 12 pure sine oscillators to generate a stable harmonic shadow layer. An interactive code::MIRaGUI.chroma:: displays real-time CENS chroma.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 12);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 12);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -49,25 +49,19 @@ s.waitForBoot({
         var voices = SinOsc.ar((60 + (0..11)).midicps, 0, cens.lag(0.05) * 0.035);
         var sound = (source * 0.25 ! 2) + Splay.ar(voices);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, cens.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, cens.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.chroma("Chroma CENS", ~mir2Bus);
+    ~miraGUI = MIRaGUI.chroma("Chroma CENS", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

@@ -1,12 +1,12 @@
 class:: BeatStatistics2
 summary:: Tempo alternatives and distribution statistics
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+related:: Guides/MIRa, Classes/Onsets2, Classes/BeatTrack3, Classes/Tempo, Classes/PulseClarity
 
 description::
 Uses the shared causal tempo estimator and returns the strongest supported alternative outside a narrow neighborhood, evidence dominance, and normalized evidence entropy. These describe competing pulse levels rather than a guaranteed musical meter.
 
-The periodicity-analysis source is Grosche, Müller and Kurth (2010), link::https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf::. MIR2 uses trailing absolute-BPM windows and an original causal tracker; it does not implement cyclic tempo folding or claim equivalence with the paper. Output begins after the requested warmup and sufficient periods, and is held between analyses. Silence clears evidence as it leaves the trailing window. Tempo ambiguities, syncopation, sparse events and changing meter remain limitations. Vanilla BeatTrack also estimates pulse timing; MIR2 exposes the evidence distribution, alternative tempi and explicit continuity controls.
+The periodicity-analysis source is Grosche, Müller and Kurth (2010), link::https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf::. MIRa uses trailing absolute-BPM windows and an original causal tracker; it does not implement cyclic tempo folding or claim equivalence with the paper. Output begins after the requested warmup and sufficient periods, and is held between analyses. Silence clears evidence as it leaves the trailing window. Tempo ambiguities, syncopation, sparse events and changing meter remain limitations. Vanilla BeatTrack also estimates pulse timing; MIRa exposes the evidence distribution, alternative tempi and explicit continuity controls.
 
 classmethods::
 method:: kr
@@ -47,17 +47,17 @@ returns::
 [BPM, confidence, secondaryBPM, dominance, entropy].
 
 examples::
-BeatStatistics2 analyzes metric pulse hierarchy, extracting primary and secondary tempo candidates, evidence dominance, and distribution entropy. In this example, it drives an adaptive groove accompaniment: evidence dominance adjusts the swing feel of a synthetic hi-hat oscillator, creating a looser, swung ride when secondary pulse competition is high. An interactive code::MIR2GUI.scope:: tracks the real-time dominance metric.
+BeatStatistics2 analyzes metric pulse hierarchy, extracting primary and secondary tempo candidates, evidence dominance, and distribution entropy. In this example, it drives an adaptive groove accompaniment: evidence dominance adjusts the swing feel of a synthetic hi-hat oscillator, creating a looser, swung ride when secondary pulse competition is high. An interactive code::MIRaGUI.scope:: tracks the real-time dominance metric.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -78,25 +78,19 @@ s.waitForBoot({
         var hat = HPF.ar(WhiteNoise.ar(0.1), 7000) * Decay2.kr(hatTrig, 0.001, 0.04) * dominance;
         var sound = (source * 0.25 ! 2) + Pan2.ar(hat, 0.5);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, stats[3]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, stats[3]) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Tempo Dominance", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Tempo Dominance", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Tempo::
-link::Classes/PulseClarity::
-link::Classes/BeatTrack3::

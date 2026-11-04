@@ -1,10 +1,10 @@
 class:: PitchAmbiguity
 summary:: Candidate entropy and octave competition
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PitchConsensus
 
 description::
-Uses the same fixed candidate engine as link::Classes/FundamentalCandidates::. For K nonzero candidates with weights p, entropy is -sum(q * log(q)) / log(K), with q = p / sum(p). Fewer than two candidates gives zero entropy. Octave ambiguity is the strongest octave competitor weight divided by the leading weight, clipped to 0 through 1; competitors within 80 cents of a half, double, quarter, or quadruple frequency count. This is MIR2's descriptive statistic, not a new pitch estimator or calibrated error probability. The probabilistic candidate model is inspired by Mauch and Dixon (ICASSP 2014).
+Uses the same fixed candidate engine as link::Classes/FundamentalCandidates::. For K nonzero candidates with weights p, entropy is -sum(q * log(q)) / log(K), with q = p / sum(p). Fewer than two candidates gives zero entropy. Octave ambiguity is the strongest octave competitor weight divided by the leading weight, clipped to 0 through 1; competitors within 80 cents of a half, double, quarter, or quadruple frequency count. This is MIRa's descriptive statistic, not a new pitch estimator or calibrated error probability. The probabilistic candidate model is inspired by Mauch and Dixon (ICASSP 2014).
 
 Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
 
@@ -35,17 +35,17 @@ returns::
 An Array: normalized candidate entropy, octave ambiguity, strongest octave-related competitor in Hz.
 
 examples::
-PitchAmbiguity computes candidate entropy and octave competition across competing fundamental frequencies. In this example, candidate entropy regulates the wet mix of a complex ring modulator: stable, unequivocal pitches remain pure and unmodulated, while ambiguous transitions and multiphonics inject aggressive ring modulation sidebands. An interactive code::MIR2GUI.scope:: tracks the real-time entropy metric.
+PitchAmbiguity computes candidate entropy and octave competition across competing fundamental frequencies. In this example, candidate entropy regulates the wet mix of a complex ring modulator: stable, unequivocal pitches remain pure and unmodulated, while ambiguous transitions and multiphonics inject aggressive ring modulation sidebands. An interactive code::MIRaGUI.scope:: tracks the real-time entropy metric.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -60,25 +60,19 @@ s.waitForBoot({
         var ringMod = (source * SinOsc.ar(competitor * 1.5) * 2.0).tanh;
         var sound = (source * 0.25) + (ringMod * (entropy * 0.4));
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, result[0]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, result[0]) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Candidate Entropy", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Candidate Entropy", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch2::
-link::Classes/FundamentalCandidates::
-link::Classes/PitchConsensus::

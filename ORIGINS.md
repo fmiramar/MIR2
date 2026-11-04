@@ -1,6 +1,6 @@
 # Algorithm origins
 
-The base MIR2 plugin implements published equations independently, with the inherited loudness
+The base MIRa plugin implements published equations independently, with the inherited loudness
 coefficient table identified in `THIRD_PARTY_NOTICES.md`. Papers and upstream projects
 are algorithmic, interface, or behavioral references; their implementations
 are not runtime dependencies.
@@ -18,15 +18,15 @@ server.
 
 - Alain de Cheveigné and Hideki Kawahara, “YIN, a fundamental frequency
   estimator for speech and music,” *JASA* 111(4), 2002,
-  DOI `10.1121/1.1458024`. MIR2 implements the difference function, cumulative
+  DOI `10.1121/1.1458024`. MIRa implements the difference function, cumulative
   mean normalized difference, threshold search, and parabolic refinement from
   the published algorithm.
 - Philip McLeod and Geoff Wyvill, “A Smarter Way to Find Pitch,” *ICMC*, 2005.
-  MIR2 implements normalized square difference, peak selection, clarity, and
+  MIRa implements normalized square difference, peak selection, clarity, and
   parabolic refinement from the paper.
 - SuperCollider `Pitch`, sc3-plugins `Tartini`, and sc3-plugins `Qitch` were
   inspected for public interface, behavior, and class-name history. No source
-  from those implementations is copied into MIR2.
+  from those implementations is copied into MIRa.
 
 ## Onsets
 
@@ -52,7 +52,7 @@ server.
 ## External comparison policy
 
 FluCoMa, librosa, and Essentia may be used externally for development
-comparisons. MIR2 does not link or embed them. Essentia source is not copied or
+comparisons. MIRa does not link or embed them. Essentia source is not copied or
 translated because it is distributed under AGPL terms; librosa is likewise not
 a runtime dependency.
 
@@ -77,10 +77,10 @@ a runtime dependency.
   Harte/Sandler/Gasser tonal centroids, named numeric key profiles, triad
   templates, harmonic descriptors and Sethares-style roughness.
 - `docs/rhythm-implementation.md`: Grosche/Müller/Kurth periodicity analysis
-  and explicitly documented MIR2 causal tracking/statistical conventions.
+  and explicitly documented MIRa causal tracking/statistical conventions.
 - `docs/rhythm-modulation-implementation.md`: Lidy/Rauber per-band modulation
   patterns, with explicit differences from their psychoacoustic frontend.
 - `docs/chroma-cqt-evaluation.md`: standard pitch-class folding over the
-  Brown/Puckette engine and reproducible comparison with MIR2 FFT routes.
+  Brown/Puckette engine and reproducible comparison with MIRa FFT routes.
 - `docs/neural-pitch-research.md`: pinned source and model references for the
   optional neural audit; no audited neural code or weights are embedded.

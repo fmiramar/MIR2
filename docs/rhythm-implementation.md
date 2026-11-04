@@ -5,7 +5,7 @@ The fourteen public classes share independent, bounded native kernels.
 `FourierTempogram` uses a mean-centered Hann-windowed Fourier projection at each
 linear BPM grid point. The periodicity-analysis reference is
 [Grosche, Müller and Kurth (2010)](https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf).
-These are trailing absolute-tempo representations; MIR2 does not implement the
+These are trailing absolute-tempo representations; MIRa does not implement the
 paper's octave-folded cyclic representation or copy its software.
 
 ## Evidence and clock
@@ -61,7 +61,7 @@ spectral frames are assigned on arrival and retain their analysis latency.
 
 ## Verification and cost
 
-`MIR2RhythmTests.cpp` checks correlation and Fourier values against independent
+`MIRaRhythmTests.cpp` checks correlation and Fourier values against independent
 direct sums; pulse trains at 30/45/60/90/120/180/240/300 BPM; missing pulses;
 weak subdivisions; a 110-to-140 BPM change; silence expiry; timing within 65 ms
 on the deterministic clock fixture; onset interval, tempo and beat-energy

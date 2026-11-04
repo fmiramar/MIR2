@@ -8,7 +8,7 @@ intermediate CQT outputs and language-side folding arithmetic.
 
 ## Reproducible comparison
 
-`benchmarks/chroma_gate.cpp` compares production MIR2 CQT, HPCP and FFT-chromagram
+`benchmarks/chroma_gate.cpp` compares production MIRa CQT, HPCP and FFT-chromagram
 kernels. Build from the project directory with:
 
 ```sh
@@ -31,7 +31,7 @@ register and must not be interpreted as an isolated density experiment**.
 
 CQT powers are assigned to the nearest semitone (ties upward) and L1 normalized.
 Both FFT routes use periodic Hann windows, the same frequency range and tuning,
-and 4096 or 8192 samples; 8192 is the actual public MIR2 FFT limit. HPCP uses one
+and 4096 or 8192 samples; 8192 is the actual public MIRa FFT limit. HPCP uses one
 harmonic hypothesis, squared-cosine weighting, a 4/3-semitone window and relative
 peak threshold 0.01. This avoids injecting speculative subharmonics into the
 known pure-tone fixtures. These are transparent comparison settings, not tuned
@@ -88,7 +88,7 @@ The existing sparse-kernel memory cap, 32768-sample frame bound and Nyquist
 margin apply. Callbacks allocate no memory. Startup is one common frame, and
 results refer to its centre, then hold between hops.
 
-`MIR2ChromaCQTTests.cpp` independently tests semitone assignment with integer
+`MIRaChromaCQTTests.cpp` independently tests semitone assignment with integer
 arithmetic for all four supported densities and three tunings, octave summation,
 threshold/normalization behavior, exact silence, and direct time-domain complex
 correlation followed by folding at three sample rates. The broader CQT oracle

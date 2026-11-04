@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-MIR2FFTAnalyzer : MultiOutUGen {
+MIRaFFTAnalyzer : MultiOutUGen {
     *validateFFTSize { |fftSize|
         if(fftSize.isInteger.not
             or: { [256, 512, 1024, 2048, 4096, 8192].includes(fftSize).not }) {
-            Error("MIR2: fftSize must be a literal power of two from 256 through 8192.").throw
+            Error("MIRa: fftSize must be a literal power of two from 256 through 8192.").throw
         }
     }
 
     *validateSpectrumMode { |spectrumMode|
         if(spectrumMode.isInteger.not or: { [0, 1].includes(spectrumMode).not }) {
-            Error("MIR2: spectrumMode must be the literal integer 0 (magnitude) or 1 (power).").throw
+            Error("MIRa: spectrumMode must be the literal integer 0 (magnitude) or 1 (power).").throw
         }
     }
 
-    *kr { Error("MIR2FFTAnalyzer is abstract.").throw }
-    *ar { Error("MIR2 analyzers produce control-rate outputs only.").throw }
+    *kr { Error("MIRaFFTAnalyzer is abstract.").throw }
+    *ar { Error("MIRa analyzers produce control-rate outputs only.").throw }
 }
 
 SpecCentroid2 : UGen {
     *kr { |chain, minFreq = 0, maxFreq = 0, spectrumMode = 0, fftSize = 1024|
-        MIR2FFTAnalyzer.validateFFTSize(fftSize);
-        MIR2FFTAnalyzer.validateSpectrumMode(spectrumMode);
+        MIRaFFTAnalyzer.validateFFTSize(fftSize);
+        MIRaFFTAnalyzer.validateSpectrumMode(spectrumMode);
         ^this.multiNew(\control, chain, minFreq, maxFreq, spectrumMode, fftSize)
     }
     *ar { Error("SpecCentroid2 is control-rate only.").throw }
@@ -32,8 +32,8 @@ SpecFlatness2 : UGen {
     *kr {
         |chain, minFreq = 0, maxFreq = 0, spectrumMode = 1,
         floor = 1e-20, fftSize = 1024|
-        MIR2FFTAnalyzer.validateFFTSize(fftSize);
-        MIR2FFTAnalyzer.validateSpectrumMode(spectrumMode);
+        MIRaFFTAnalyzer.validateFFTSize(fftSize);
+        MIRaFFTAnalyzer.validateSpectrumMode(spectrumMode);
         ^this.multiNew(
             \control, chain, minFreq, maxFreq, spectrumMode, floor, fftSize
         )
@@ -46,8 +46,8 @@ SpecPcile2 : UGen {
     *kr {
         |chain, fraction = 0.85, minFreq = 0, maxFreq = 0,
         interpolate = 1, spectrumMode = 1, fftSize = 1024|
-        MIR2FFTAnalyzer.validateFFTSize(fftSize);
-        MIR2FFTAnalyzer.validateSpectrumMode(spectrumMode);
+        MIRaFFTAnalyzer.validateFFTSize(fftSize);
+        MIRaFFTAnalyzer.validateSpectrumMode(spectrumMode);
         ^this.multiNew(
             \control, chain, fraction, minFreq, maxFreq,
             interpolate, spectrumMode, fftSize
@@ -64,8 +64,8 @@ MFCC2 : MultiOutUGen {
         spectrumMode = 1, logFloor = 1e-10, dctNorm = 1,
         lifter = 0, fftSize = 1024|
         var melIndex;
-        MIR2FFTAnalyzer.validateFFTSize(fftSize);
-        MIR2FFTAnalyzer.validateSpectrumMode(spectrumMode);
+        MIRaFFTAnalyzer.validateFFTSize(fftSize);
+        MIRaFFTAnalyzer.validateSpectrumMode(spectrumMode);
         if(numCoeffs.isInteger.not or: { numCoeffs < 1 } or: { numCoeffs > 64 }
             or: { numBands.isInteger.not } or: { numBands < 4 } or: { numBands > 128 }
             or: { numCoeffs + (include0 <= 0).asInteger > numBands }) {
@@ -96,8 +96,8 @@ FFTFlux2 : UGen {
     *kr {
         |chain, normalize = 1, positive = 0, spectrumMode = 0,
         minFreq = 0, maxFreq = 0, fftSize = 1024|
-        MIR2FFTAnalyzer.validateFFTSize(fftSize);
-        MIR2FFTAnalyzer.validateSpectrumMode(spectrumMode);
+        MIRaFFTAnalyzer.validateFFTSize(fftSize);
+        MIRaFFTAnalyzer.validateSpectrumMode(spectrumMode);
         ^this.multiNew(
             \control, chain, normalize, positive, spectrumMode,
             minFreq, maxFreq, fftSize
@@ -117,7 +117,7 @@ Onsets2 : MultiOutUGen {
         var methodIndex;
         var methods = #[flux, fluxPos, superflux, power, magsum, complex,
             rcomplex, phase, wphase, mkl, hfc];
-        MIR2FFTAnalyzer.validateFFTSize(fftSize);
+        MIRaFFTAnalyzer.validateFFTSize(fftSize);
         if(method == \weightedPhase) { method = \wphase };
         methodIndex = if(method.isNumber) { method } { methods.indexOf(method) };
         if(methodIndex.isInteger.not or: { methodIndex < 0 } or: { methodIndex > 10 }) {
@@ -147,27 +147,27 @@ Onsets2 : MultiOutUGen {
     checkInputs { ^this.checkValidInputs }
 }
 
-MIR2PitchAnalyzer : MultiOutUGen {
+MIRaPitchAnalyzer : MultiOutUGen {
     *validate { |frameSize, hop, minFreq, maxFreq|
         if(frameSize.isInteger.not
             or: { [256, 512, 1024, 2048, 4096, 8192].includes(frameSize).not }) {
-            Error("MIR2 pitch: frameSize must be a literal power of two from 256 through 8192.").throw
+            Error("MIRa pitch: frameSize must be a literal power of two from 256 through 8192.").throw
         };
         if(hop.isNumber.not or: { hop < 0.0625 } or: { hop > 1 }
             or: { minFreq <= 0 } or: { maxFreq <= minFreq }) {
-            Error("MIR2 pitch: invalid literal hop or frequency bounds.").throw
+            Error("MIRa pitch: invalid literal hop or frequency bounds.").throw
         }
     }
 
-    *kr { Error("MIR2PitchAnalyzer is abstract.").throw }
-    *ar { Error("MIR2 pitch analyzers produce control-rate outputs only.").throw }
+    *kr { Error("MIRaPitchAnalyzer is abstract.").throw }
+    *ar { Error("MIRa pitch analyzers produce control-rate outputs only.").throw }
 }
 
 PitchYIN : MultiOutUGen {
     *kr {
         |in, minFreq = 40, maxFreq = 4000, frameSize = 2048,
         hop = 0.25, threshold = 0.1|
-        MIR2PitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
+        MIRaPitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
         ^this.multiNewList([
             \control, 3, in, minFreq, maxFreq, frameSize, hop, threshold
         ])
@@ -187,7 +187,7 @@ PitchMPM : MultiOutUGen {
     *kr {
         |in, minFreq = 40, maxFreq = 4000, frameSize = 2048,
         hop = 0.25, cutoff = 0.93|
-        MIR2PitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
+        MIRaPitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
         ^this.multiNewList([
             \control, 3, in, minFreq, maxFreq, frameSize, hop, cutoff
         ])
@@ -208,7 +208,7 @@ Periodicity : UGen {
         |in, minFreq = 40, maxFreq = 4000, frameSize = 2048,
         hop = 0.25, method = \nsdf|
         var methodIndex;
-        MIR2PitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
+        MIRaPitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
         methodIndex = case
             { method == \nsdf } { 0 }
             { method == \yin } { 1 }
@@ -229,7 +229,7 @@ Voicing : MultiOutUGen {
         |in, frameSize = 1024, hop = 0.25, minFreq = 40,
         maxFreq = 1000, method = \hybrid, threshold = 0.5|
         var methodIndex;
-        MIR2PitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
+        MIRaPitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
         methodIndex = case
             { method == \periodicity } { 0 }
             { method == \hybrid } { 1 }
@@ -257,7 +257,7 @@ Pitch2 : MultiOutUGen {
         hop = 0.25, algorithm = \mpm, threshold = -1,
         smooth = 0, hold = 0|
         var algorithmIndex;
-        MIR2PitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
+        MIRaPitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
         if(algorithm == \swipe) {
             var result = PitchSWIPE.kr(in, minFreq, maxFreq, frameSize, hop,
                 if(threshold < 0) { 0.2 } { threshold });

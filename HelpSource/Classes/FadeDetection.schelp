@@ -1,7 +1,7 @@
 class:: FadeDetection
 summary:: Direction and fit of a rolling level fade
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Slope
+related:: Guides/MIRa, Classes/Slope
 
 description::
 Fits RMS frame level in dB versus seconds using ordinary least squares. Returns a direction only when the absolute slope exceeds slopeThreshold and the coefficient of determination R.squared reaches minFit. Rising level gives +1, falling gives -1, otherwise zero. This describes the recent window rather than emitting a boundary trigger. The dB floor bounds silence. It is an independent regression descriptor.
@@ -33,17 +33,17 @@ returns::
 Array [direction, slopeDBPerSecond, fit].
 
 examples::
-FadeDetection fits a linear regression line to rolling dB levels to detect whether sound is fading in (+1), fading out (-1), or stationary (0), qualified by a minimum goodness-of-fit threshold. In this example, detected fade-outs trigger an octave-up shimmer delay that swells musically as the primary note trails off. An interactive code::MIR2GUI.scope:: displays real-time fade direction.
+FadeDetection fits a linear regression line to rolling dB levels to detect whether sound is fading in (+1), fading out (-1), or stationary (0), qualified by a minimum goodness-of-fit threshold. In this example, detected fade-outs trigger an octave-up shimmer delay that swells musically as the primary note trails off. An interactive code::MIRaGUI.scope:: displays real-time fade direction.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -56,23 +56,19 @@ s.waitForBoot({
         var shimmer = PitchShift.ar(source, 0.1, 2.0) * fadeOutGate * 0.3;
         var sound = (source * 0.25 ! 2) + (shimmer ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, dir) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, dir) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Fade Direction", ~mir2Bus, -1.0, 1.0, "dir");
+    ~miraGUI = MIRaGUI.scope("Fade Direction", ~miraBus, -1.0, 1.0, "dir");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Slope::

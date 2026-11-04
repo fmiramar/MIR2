@@ -1,10 +1,10 @@
 class:: RhythmTransform
 summary:: Per-band modulation magnitude and phase
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/RhythmPattern, Classes/FourierTempogram, Classes/BarkBands
+related:: Guides/MIRa, Classes/RhythmPattern, Classes/FourierTempogram, Classes/BarkBands
 
 description::
-Measures how quickly each input envelope changes. Each band gets a trailing Hann window and a direct complex Fourier projection at a linear grid of modulation frequencies in Hz. This is an independent MIR2 implementation of ordinary windowed Fourier analysis, extended from one novelty curve to a band-by-modulation matrix. It can distinguish, for example, a slow bass pulse from faster treble activity that a single summed novelty curve conceals.
+Measures how quickly each input envelope changes. Each band gets a trailing Hann window and a direct complex Fourier projection at a linear grid of modulation frequencies in Hz. This is an independent MIRa implementation of ordinary windowed Fourier analysis, extended from one novelty curve to a band-by-modulation matrix. It can distinguish, for example, a slow bass pulse from faster treble activity that a single summed novelty curve conceals.
 
 Control values are averaged over a whole number of control blocks. Held FFT features are interpreted as a continuous, zero-order-held envelope; they are not counted as separate FFT observations. This boxcar averaging offers limited antialiasing: keep envelope bandwidth below the actual feature Nyquist frequency and use a sufficiently short upstream FFT hop. Frequencies above 0.4 times the actual feature rate are rejected. The first matrix arrives after a full history, then outputs hold between analyses. Effective time resolution depends on windowTime, not just the number of modulation bins.
 
@@ -40,17 +40,17 @@ returns::
 A flat band-major Array: all numBins magnitudes of band zero, then band one, etc. If phase is 1, all phase channels follow all magnitudes. Use code::values.clump(numBins):: to form rows (or first take the magnitude portion when phase is enabled). All parameters except the envelope values are fixed at construction.
 
 examples::
-RhythmTransform measures per-band envelope modulation frequencies across an absolute Hz grid, exposing how rhythmic energy fluctuates independently within different spectral registers. In this example, 4 frequency bands are analyzed into 8 modulation bins ($0.5 \dots 8$ Hz): modulation peaks drive a multiband resonant vocoder tracking acoustic drum grooves. An interactive code::MIR2GUI.heatmap:: displays the 32-cell modulation matrix.
+RhythmTransform measures per-band envelope modulation frequencies across an absolute Hz grid, exposing how rhythmic energy fluctuates independently within different spectral registers. In this example, 4 frequency bands are analyzed into 8 modulation bins ($0.5 \dots 8$ Hz): modulation peaks drive a multiband resonant vocoder tracking acoustic drum grooves. An interactive code::MIRaGUI.heatmap:: displays the 32-cell modulation matrix.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 32);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 32);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -78,25 +78,19 @@ s.waitForBoot({
         var snarePulse = SinOsc.ar(440, 0, clampedMatrix[2][3].lag(0.05) * 0.12);
         var sound = (source * 0.25 ! 2) + Pan2.ar(bassPulse + snarePulse, 0.0);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, matrix.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, matrix.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.heatmap("Rhythm Transform", ~mir2Bus, 32);
+    ~miraGUI = MIRaGUI.heatmap("Rhythm Transform", ~miraBus, 32);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/RhythmPattern::
-link::Classes/FourierTempogram::
-link::Classes/BarkBands::

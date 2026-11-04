@@ -1,12 +1,12 @@
 class:: FFTPeak2
 summary:: Frequency and magnitude of the strongest local spectral peak
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/Pitch2
 
 description::
 Returns the strongest local maximum as [frequency in Hz, raw FFT magnitude]. Maxima exceed the left neighbor and equal or exceed the right neighbor. DC and Nyquist are excluded. With interpolation, a parabola through three log-magnitude bins estimates sub-bin frequency and height. Silence or a spectrum without interior maxima returns [0, 0]. This is a spectral peak descriptor, so a strong overtone can dominate; it is not a fundamental-frequency estimator.
 
-The shared MIR2 spectral peak kernel implements the standard quadratic spectral interpolation technique described by Julius O. Smith in Spectral Audio Signal Processing: link::https://www.dsprelated.com/freebooks/sasp/Quadratic_Interpolation_Spectral_Peaks.html::. Cost is linear in FFT bins for this single-peak output. It adds no lookahead beyond the FFT, whose 1024-sample window is 21.3 ms at 48 kHz.
+The shared MIRa spectral peak kernel implements the standard quadratic spectral interpolation technique described by Julius O. Smith in Spectral Audio Signal Processing: link::https://www.dsprelated.com/freebooks/sasp/Quadratic_Interpolation_Spectral_Peaks.html::. Cost is linear in FFT bins for this single-peak output. It adds no lookahead beyond the FFT, whose 1024-sample window is 21.3 ms at 48 kHz.
 
 Vanilla link::Classes/Pitch:: estimates a periodic fundamental from audio; FFTPeak2 instead selects the most prominent local spectral peak from an existing FFT.
 
@@ -26,17 +26,17 @@ returns::
 Two controls: frequency in Hz and raw FFT magnitude.
 
 examples::
-FFTPeak2 extracts the frequency (Hz) and raw magnitude of the strongest local spectral peak using parabolic interpolation. In this example, the dominant spectral peak frequency tunes an audio-rate sine wave carrier for a heterodyne ring modulator, producing musical sum and difference sidebands centered around the principal melodic overtone. An interactive code::MIR2GUI.scope:: displays real-time dominant peak frequency.
+FFTPeak2 extracts the frequency (Hz) and raw magnitude of the strongest local spectral peak using parabolic interpolation. In this example, the dominant spectral peak frequency tunes an audio-rate sine wave carrier for a heterodyne ring modulator, producing musical sum and difference sidebands centered around the principal melodic overtone. An interactive code::MIRaGUI.scope:: displays real-time dominant peak frequency.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -51,24 +51,19 @@ s.waitForBoot({
         var ringMod = (source * carrier) * (peakMag > 0.02).lag(0.02) * 0.25;
         var sound = (source * 0.2) + ringMod;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, peakFreq) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, peakFreq) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Dominant Peak Freq", ~mir2Bus, 100.0, 3000.0, "Hz");
+    ~miraGUI = MIRaGUI.scope("Dominant Peak Freq", ~miraBus, 100.0, 3000.0, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch2::
-link::Classes/SpecCentroid2::

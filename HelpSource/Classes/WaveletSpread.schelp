@@ -1,7 +1,7 @@
 class:: WaveletSpread
 summary:: Spread around the wavelet scale-frequency center
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/WaveletBands
+related:: Guides/MIRa, Classes/WaveletBands, Classes/WaveletCentroid, Classes/WaveletEntropy, Classes/Wavelets2
 
 description::
 Returns the energy-weighted standard deviation in Hz of the nominal scale center frequencies described in WaveletCentroid.
@@ -31,17 +31,17 @@ argument:: boundary
 Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
-WaveletSpread measures the energy-weighted standard deviation in Hz of nominal dyadic scale center frequencies around the wavelet centroid. In this example, the wavelet spread of an acoustic texture controls dynamic stereo width expansion and decorrelation delay: narrow scale spread remains centered, while broad multiscale distribution expands into a spacious stereo image. An interactive code::MIR2GUI.scope:: plots real-time wavelet spread in Hz.
+WaveletSpread measures the energy-weighted standard deviation in Hz of nominal dyadic scale center frequencies around the wavelet centroid. In this example, the wavelet spread of an acoustic texture controls dynamic stereo width expansion and decorrelation delay: narrow scale spread remains centered, while broad multiscale distribution expands into a spacious stereo image. An interactive code::MIRaGUI.scope:: plots real-time wavelet spread in Hz.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic texture fallback
             var lfo = LFNoise1.kr(0.3);
@@ -56,25 +56,19 @@ s.waitForBoot({
         var right = source - (delayed * normSpread);
         var sound = [left, right] * 0.22;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, spread.clip(0, 5000)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, spread.clip(0, 5000)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Wavelet Spread", ~mir2Bus, 0.0, 5000.0, "Hz");
+    ~miraGUI = MIRaGUI.scope("Wavelet Spread", ~miraBus, 0.0, 5000.0, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/WaveletCentroid::
-link::Classes/WaveletEntropy::
-link::Classes/Wavelets2::

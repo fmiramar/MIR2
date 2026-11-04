@@ -1,7 +1,7 @@
 class:: GFCC
 summary:: Gammatone cepstral coefficients
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/ERBBands
+related:: Guides/MIRa, Classes/ERBBands, Classes/MFCC2, Classes/BFCC
 
 description::
 Hohmann (2002), Frequency analysis and synthesis using a Gammatone filterbank. The pole radius is exp(-2*pi*b/sampleRate), where b = (24.7 + centerHz/9.265) / (pi*720/(64*36)); its angle is 2*pi*centerHz/sampleRate. Four complex one-pole stages share this pole, with overall analytic gain 2*(1-radius).pow(4). The envelope power is half the squared complex-output magnitude. This directly implements the gammatone cascade, with one ERB bandwidth per filter. Equations are also documented in the author-origin AMT implementation: link::https://amtoolbox.org/amt-1.6.0/doc/modelstages/hohmann2002_filter_code.php::.
@@ -40,17 +40,17 @@ returns::
 One control per coefficient in ascending coefficient order.
 
 examples::
-GFCC computes gammatone cepstral coefficients using a cochlear auditory filterbank followed by DCT-II decorrelation. In this example, it drives an adaptive waveshaping saturator: cepstral coefficients dynamically modulate drive and bias in a Chebyshev polynomial wavefolder, transforming saxophone timbre into an evolving synth lead. An interactive code::MIR2GUI.bars:: displays the 13 gammatone cepstral coefficients in real time.
+GFCC computes gammatone cepstral coefficients using a cochlear auditory filterbank followed by DCT-II decorrelation. In this example, it drives an adaptive waveshaping saturator: cepstral coefficients dynamically modulate drive and bias in a Chebyshev polynomial wavefolder, transforming saxophone timbre into an evolving synth lead. An interactive code::MIRaGUI.bars:: displays the 13 gammatone cepstral coefficients in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 13);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 13);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -67,25 +67,19 @@ s.waitForBoot({
         var folded = ((source * drive) + bias).fold2(0.8) * 0.3;
         var sound = (source * 0.25) + folded;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, gfcc) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, gfcc) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("GFCC Coefficients", ~mir2Bus, 13, -25.0, 25.0);
+    ~miraGUI = MIRaGUI.bars("GFCC Coefficients", ~miraBus, 13, -25.0, 25.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/ERBBands::
-link::Classes/MFCC2::
-link::Classes/BFCC::

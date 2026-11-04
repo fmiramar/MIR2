@@ -1,7 +1,7 @@
 class:: FFTSubbandFlatness2
 summary:: Flatness in independently bounded bands
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Each band returns exp(mean(log(max(w, floor)))) / mean(max(w, floor)). Silence returns 0; a flat nonzero spectrum returns 1. In these equations w is magnitude or squared magnitude. Adjacent bands include their lower boundary and exclude their upper boundary, except for the final band, which includes its upper boundary. Bands outside Nyquist or without any bin centers return 0.
@@ -28,17 +28,17 @@ returns::
 One value per band, with the optional SpecContrast valley vector appended.
 
 examples::
-FFTSubbandFlatness2 calculates spectral flatness across independently bounded frequency subbands. In this example, 4 subbands (sub-bass, low-mid, high-mid, high) monitor drum groove balance. High flatness indicates noisy/diffuse spectral content, while low flatness indicates tonal punch. The subband flatness metrics dynamically adjust independent band downward expanders, taming hiss and cymbal spill during quiet moments. An interactive code::MIR2GUI.bars:: displays real-time 4-subband flatness.
+FFTSubbandFlatness2 calculates spectral flatness across independently bounded frequency subbands. In this example, 4 subbands (sub-bass, low-mid, high-mid, high) monitor drum groove balance. High flatness indicates noisy/diffuse spectral content, while low flatness indicates tonal punch. The subband flatness metrics dynamically adjust independent band downward expanders, taming hiss and cymbal spill during quiet moments. An interactive code::MIRaGUI.bars:: displays real-time 4-subband flatness.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 4);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 4);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -53,24 +53,19 @@ s.waitForBoot({
         var midFlatness = flatness[2].lag(0.05);
         var sound = (source * (1 - (midFlatness * 0.3))) ! 2 * 0.25;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, flatness.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, flatness.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("Subband Flatness", ~mir2Bus, 4, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.bars("Subband Flatness", ~miraBus, 4, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

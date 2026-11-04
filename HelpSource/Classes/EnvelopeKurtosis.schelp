@@ -1,7 +1,7 @@
 class:: EnvelopeKurtosis
 summary:: Concentration and tails of envelope energy over time
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
 The fourth energy-weighted central time moment divided by squared temporal variance. This is Pearson kurtosis, not excess kurtosis; three is Gaussian. Degenerate variance returns zero.
@@ -29,17 +29,17 @@ returns::
 Nonnegative dimensionless kurtosis.
 
 examples::
-EnvelopeKurtosis computes the fourth energy-weighted temporal moment divided by squared variance (Pearson kurtosis, where 3 represents a Gaussian distribution). Highly impulsive plucked notes generate prominent kurtosis spikes (> 6). In this example, high kurtosis triggers an auxiliary crystalline chime layer, emphasizing crisp transients while leaving smooth sustained segments uncluttered. An interactive code::MIR2GUI.scope:: displays real-time envelope kurtosis.
+EnvelopeKurtosis computes the fourth energy-weighted temporal moment divided by squared variance (Pearson kurtosis, where 3 represents a Gaussian distribution). Highly impulsive plucked notes generate prominent kurtosis spikes (> 6). In this example, high kurtosis triggers an auxiliary crystalline chime layer, emphasizing crisp transients while leaving smooth sustained segments uncluttered. An interactive code::MIRaGUI.scope:: displays real-time envelope kurtosis.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -54,23 +54,19 @@ s.waitForBoot({
         var chime = Ringz.ar(K2A.ar(chimeGate) * 0.05, 2400, 0.2) * 0.3;
         var sound = (source * 0.25 ! 2) + (chime ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, kurtLag.clip(1, 20)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, kurtLag.clip(1, 20)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Envelope Kurtosis", ~mir2Bus, 1.0, 15.0, "kurt");
+    ~miraGUI = MIRaGUI.scope("Envelope Kurtosis", ~miraBus, 1.0, 15.0, "kurt");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

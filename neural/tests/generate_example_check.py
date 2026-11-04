@@ -35,7 +35,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     help_path = root / "HelpSource/Classes/PitchPESTO.schelp"
     source = help_path.read_text(encoding='utf-8')
-    match = re.search(r"~mir2PESTOExample\s*=\s*\{(.*?)^\s*\}\.play;", source, re.S | re.M)
+    match = re.search(r"~(?:mira|mir2)PESTOExample\s*=\s*\{(.*?)^\s*\}\.play;", source, re.S | re.M)
     if not match or "PitchPESTO.kr" not in match.group(1) or "PlayBuf.ar" not in match.group(1):
         raise SystemExit("Cannot extract the audible PitchPESTO help graph")
     body = match.group(1)
@@ -44,6 +44,8 @@ def main():
         server_setup = 'Server.supernova;\nScore.program = Score.program.replace("scsynth", "supernova");\n'
     script = r'''(
 var definition;
+~miraBuffer = 0;
+~miraPESTOModel = 1;
 ~mir2Buffer = 0;
 ~mir2PESTOModel = 1;
 __SERVER_SETUP__

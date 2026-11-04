@@ -1,11 +1,11 @@
-# MIR2 implementation log
+# MIRa implementation log
 
 Date: 2026-08-20
 Target: 0.1.0 unified first sprint
 
 Both agentic plans were read in full before implementation. Their overlapping
 `Pitch2`, frame, autocorrelation, real-time, documentation, and test policies
-were resolved as one standalone `03-jumble-science/MIR2` project. All project
+were resolved as one standalone `03-jumble-science/MIRa` project. All project
 writes remained inside that directory while other agents worked elsewhere in
 `03-jumble-science`.
 
@@ -27,7 +27,7 @@ Public version-0.1 analyzers:
   `Onsets2`;
 - `PitchYIN`, `PitchMPM`, `Periodicity`, `Voicing`, and `Pitch2`.
 
-This is the union of MIR2's stated first public milestone and Modern Pitch
+This is the union of MIRa's stated first public milestone and Modern Pitch
 Analysis's recommended first agent sprint. No future class name is installed
 as a placeholder.
 
@@ -120,7 +120,7 @@ Verified at this checkpoint:
   legal levels.
 
 The Onsets2 synthetic report includes independently swept thresholds for
-revised, original MIR2, and external native OnsetsDS implementations. It does
+revised, original MIRa, and external native OnsetsDS implementations. It does
 not claim listening approval or accuracy on annotated recordings. The shared
 FFT reader no longer changes the input buffer's coordinate representation.
 A review also corrected the old/new pitch constructor calls to
@@ -134,7 +134,7 @@ and integration continued in the parent agent.
 ## 2026-10-24 — broader classical integration verified
 
 The development catalog now has 132 public classes. This completes the primary
-classical families in the MIR2 and Modern Pitch plans, including seven wavelets,
+classical families in the MIRa and Modern Pitch plans, including seven wavelets,
 sparse CQT/VQT/CQCC, PNCC, 25 tonal/harmonic analyzers and fourteen rhythm
 analyzers. Both plans mark implemented class entries and preserve explicit
 optional research gates. `roadmap-status.md` distinguishes implementation from
@@ -160,7 +160,7 @@ Verification completed locally against SuperCollider 3.14.1:
 | Address/undefined-behavior sanitizers | 13/13 passed, 260.23 seconds |
 | PNCC stage fixture regeneration | Byte-for-byte match; standard-library Python oracle |
 | Updated PNCC frontend/hop/startup/gain checks | Passed |
-| Installed class-origin/collision check | All 132 public names resolve to MIR2 |
+| Installed class-origin/collision check | All 132 public names resolve to MIRa |
 | Forced SCDoc indexing and rendering | All 132 class pages and three existing guides, without SCDoc warnings/errors |
 | scsynth audible examples, 44.1 kHz / block 32 | 132/132 passed |
 | scsynth audible examples, 48 kHz / block 64 | 132/132 passed |
@@ -187,7 +187,7 @@ harness issue was corrected before the final full audible/silent runs.
 Both server variants are installed in the SuperCollider user Extensions tree.
 Generated binaries, scores, WAV files and detailed logs remain ignored local
 build output. Existing unrelated VSTPlugin Objective-C duplicate-class messages
-can appear when the global extension tree is scanned; no MIR2 class collision,
+can appear when the global extension tree is scanned; no MIRa class collision,
 SCDoc warning or analyzer invalid-value failure remains. No unrelated extension
 was modified. No files were pushed or published.
 
@@ -221,7 +221,7 @@ Verification completed against the installed SuperCollider 3.14.1 extension:
 | Strict Windows x86_64 MinGW cross-build | Passed; native Windows execution remains unperformed |
 | Full C++ numerical suite | 16/16 passed, 30.08 seconds |
 | ASan/UBSan for affected kernels and related CQT/tonal code | 6/6 passed, 31.76 seconds |
-| Installed class-origin check | All 135 public classes resolve to MIR2 |
+| Installed class-origin check | All 135 public classes resolve to MIRa |
 | Forced SCDoc indexing and rendering | 135 class pages and three guides; no final SCDoc warnings/errors |
 | All audible examples at 48 kHz / block 64 | 135/135 passed |
 | Thirteen new/changed examples at 44.1 kHz / block 32 and 96 kHz / block 128 | 13/13 passed at each rate |
@@ -255,7 +255,7 @@ local; nothing has been pushed or published.
 
 ## 2026-10-26 — optional native PESTO extension
 
-Completed `neural/` as a separate MIR2Neural build with the `PitchPESTO` UGen,
+Completed `neural/` as a separate MIRaNeural build with the `PitchPESTO` UGen,
 explicit pinned model export, native CPU frontend/network/confidence/decoder,
 and a deterministic one-hop computation pipeline. The base 135 classes and
 default build remain independent. No weights, Python framework or inference
@@ -294,10 +294,10 @@ cycles. [The live measurements](neural-pitch-live-measurements.json) preserve
 phase statistics and trace hashes; the report distinguishes these short local
 checks from longer endurance and general polyphony qualification.
 
-## 2026-10-28 — musical documentation overhaul, CC0 audio corpus and MIR2GUI live toolkit
+## 2026-10-28 — musical documentation overhaul, CC0 audio corpus and MIRaGUI live toolkit
 
 Completed the comprehensive overhaul of all 135 base UGen help files and PitchPESTO
-under the approved master plan (MIR2_DOCUMENTATION_AND_VISUALIZATION_PLAN.md).
+under the approved master plan (MIRa_DOCUMENTATION_AND_VISUALIZATION_PLAN.md).
 
 1. Curated CC0 Audio Corpus (sounds/):
    Installed 7 clean, uncompressed CC0 1.0 Universal audio files (44.1 kHz 16-bit WAV,
@@ -305,11 +305,11 @@ under the approved master plan (MIR2_DOCUMENTATION_AND_VISUALIZATION_PLAN.md).
    piano-chords.wav, melody.wav, plucks.wav, stereo.wav, bass-melody-mix.wav,
    and texture.wav. Full provenance, Freesound IDs, author attribution, and DSP
    processing history are documented in sounds/README.md.
-2. Pure-SuperCollider Live MIR GUI Toolkit (Classes/MIR2GUI.sc):
-   Implemented 10 standard real-time MIR visualizers: MIR2Scope, MIR2BarView,
-   MIR2Heatmap, MIR2ChromaWheel, MIR2TonnetzView, MIR2StereoScope,
-   MIR2PianoRoll, MIR2RhythmWheel, MIR2TristimulusView, and MIR2EnvelopeView.
-   All views are integrated via factory methods (MIR2GUI.soundPath, MIR2GUI.chroma,
+2. Pure-SuperCollider Live MIR GUI Toolkit (Classes/MIRaGUI.sc):
+   Implemented 10 standard real-time MIR visualizers: MIRaScope, MIRaBarView,
+   MIRaHeatmap, MIRaChromaWheel, MIRaTonnetzView, MIRaStereoScope,
+   MIRaPianoRoll, MIRaRhythmWheel, MIRaTristimulusView, and MIRaEnvelopeView.
+   All views are integrated via factory methods (MIRaGUI.soundPath, MIRaGUI.chroma,
    etc.), execute safely across headless and graphical environments, and cleanly release
    their polling SkipJack routines upon window closure.
 3. Musical Examples Across All 135 Classes:
@@ -318,8 +318,8 @@ under the approved master plan (MIR2_DOCUMENTATION_AND_VISUALIZATION_PLAN.md).
    and dynamic stereo spatializers). Every example provides graceful fallback to self-contained
    synthetic source graphs and includes a commented SoundIn.ar(0) alternative.
 4. End-to-End Verification:
-   - compile_check.scd: Passed without errors (MIR2_COMPILE_OK).
-   - compile_help_examples.scd: Compiled every executable snippet across all 135 help files (MIR2_HELP_EXAMPLES_OK).
-   - verify_scdoc.scd: Cleanly indexed and rendered all 135 class help files and guides with 0 errors and 0 warnings (MIR2_SCDOC_OK).
+   - compile_check.scd: Passed without errors (MIRa_COMPILE_OK).
+   - compile_help_examples.scd: Compiled every executable snippet across all 135 help files (MIRa_HELP_EXAMPLES_OK).
+   - verify_scdoc.scd: Cleanly indexed and rendered all 135 class help files and guides with 0 errors and 0 warnings (MIRa_SCDOC_OK).
    - generate_example_check.py --nrt: Headless NRT audio rendering across all 135 classes verified finite audible levels with zero badPrimitive calls.
-   - All files mirrored to user Extensions directory (~/Library/Application Support/SuperCollider/Extensions/MIR2/).
+   - All files mirrored to user Extensions directory (~/Library/Application Support/SuperCollider/Extensions/MIRa/).

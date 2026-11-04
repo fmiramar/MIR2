@@ -1,29 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-MIR2AdvancedPitch : MultiOutUGen {
+MIRaAdvancedPitch : MultiOutUGen {
     *methodIndex { |method|
         var names = [\yin, \mpm, \probYin, \harmonic, \swipe];
         var index = names.indexOf(method);
-        if(index.isNil) { Error("MIR2 advanced pitch: unknown method " ++ method).throw };
+        if(index.isNil) { Error("MIRa advanced pitch: unknown method " ++ method).throw };
         ^index
     }
     *build { |outputs, in, minFreq, maxFreq, frameSize, hop, method, parameter = 0,
         capacity = 1, bufnum = -1, binsPerOctave = 60, tracking = 1|
-        MIR2PitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
-        if(in.rate != \audio) { Error("MIR2 advanced pitch requires audio-rate input.").throw };
+        MIRaPitchAnalyzer.validate(frameSize, hop, minFreq, maxFreq);
+        if(in.rate != \audio) { Error("MIRa advanced pitch requires audio-rate input.").throw };
         if(binsPerOctave.isInteger.not or: { binsPerOctave < 12 } or: { binsPerOctave > 96 }) {
-            Error("MIR2 pitch: binsPerOctave must be a literal integer from 12 through 96.").throw
+            Error("MIRa pitch: binsPerOctave must be a literal integer from 12 through 96.").throw
         };
         ^this.multiNewList([\control, outputs, in, minFreq, maxFreq, frameSize, hop,
             this.methodIndex(method), parameter, capacity, bufnum, binsPerOctave, tracking])
     }
-    *ar { Error("MIR2 pitch analyzers return control-rate features.").throw }
+    *ar { Error("MIRa pitch analyzers return control-rate features.").throw }
     init { |numOutputs ... theInputs| inputs = theInputs; ^this.initOutputs(numOutputs, \control) }
     argNamesInputsOffset { ^2 }
     checkInputs { ^this.checkValidInputs }
     *latency { |sampleRate = 48000, frameSize = 4096| ^frameSize / sampleRate }
 }
 
-FundamentalCandidates : MIR2AdvancedPitch {
+FundamentalCandidates : MIRaAdvancedPitch {
     *kr { |in, maxCandidates = 5, minFreq = 55, maxFreq = 1760, frameSize = 4096,
         hop = 0.25, method = \probYin, binsPerOctave = 60|
         var outputs;
@@ -35,7 +35,7 @@ FundamentalCandidates : MIR2AdvancedPitch {
         ^[outputs.copyRange(0, maxCandidates - 1), outputs.copyRange(maxCandidates, (maxCandidates * 2) - 1)]
     }
 }
-PitchProb : MIR2AdvancedPitch {
+PitchProb : MIRaAdvancedPitch {
     *kr { |in, minFreq = 55, maxFreq = 1760, frameSize = 4096, hop = 0.25,
         numThresholds = 32, tracking = 1|
         if(numThresholds.isInteger.not or: { numThresholds < 4 } or: { numThresholds > 128 }) {
@@ -45,20 +45,20 @@ PitchProb : MIR2AdvancedPitch {
             16, -1, 60, tracking)
     }
 }
-PitchAmbiguity : MIR2AdvancedPitch {
+PitchAmbiguity : MIRaAdvancedPitch {
     *kr { |in, minFreq = 55, maxFreq = 1760, frameSize = 4096, hop = 0.25,
         method = \probYin, binsPerOctave = 60|
         ^this.build(3, in, minFreq, maxFreq, frameSize, hop, method, 0, 16, -1, binsPerOctave)
     }
 }
-PitchSWIPE : MIR2AdvancedPitch {
+PitchSWIPE : MIRaAdvancedPitch {
     *kr { |in, minFreq = 55, maxFreq = 1760, frameSize = 8192, hop = 0.125,
         strengthThreshold = 0.2, binsPerOctave = 60|
         ^this.build(4, in, minFreq, maxFreq, frameSize, hop, \swipe, strengthThreshold,
             16, -1, binsPerOctave)
     }
 }
-PitchConsensus : MIR2AdvancedPitch {
+PitchConsensus : MIRaAdvancedPitch {
     *kr { |in, minFreq = 55, maxFreq = 1760, frameSize = 8192, hop = 0.125,
         methods = #[\yin, \mpm, \swipe], binsPerOctave = 60|
         var mask = 0;
@@ -71,7 +71,7 @@ PitchConsensus : MIR2AdvancedPitch {
         ^this.build(4, in, minFreq, maxFreq, frameSize, hop, \swipe, mask, 16, -1, binsPerOctave)
     }
 }
-PitchSalienceBuf : MIR2AdvancedPitch {
+PitchSalienceBuf : MIRaAdvancedPitch {
     *kr { |in, bufnum, minFreq = 55, maxFreq = 1760, binsPerOctave = 60,
         frameSize = 8192, hop = 0.125, method = \swipe|
         if([\swipe, \harmonic].includes(method).not) {
@@ -92,7 +92,7 @@ PitchSalience : Object {
         ^PitchSalienceBuf.numBins(minFreq, maxFreq, binsPerOctave)
     }
 }
-MultiPitch : MIR2AdvancedPitch {
+MultiPitch : MIRaAdvancedPitch {
     *kr { |in, maxPolyphony = 4, minFreq = 55, maxFreq = 1760, frameSize = 4096,
         hop = 0.25, method = \klapuri, threshold = 0.15, binsPerOctave = 60|
         var outputs;
@@ -106,14 +106,14 @@ MultiPitch : MIR2AdvancedPitch {
             outputs.copyRange(maxPolyphony, (maxPolyphony * 2) - 1), outputs.last]
     }
 }
-PredominantPitch : MIR2AdvancedPitch {
+PredominantPitch : MIRaAdvancedPitch {
     *kr { |in, minFreq = 110, maxFreq = 1760, frameSize = 4096, hop = 0.125,
         minDuration = 0.06, binsPerOctave = 60|
         ^this.build(3, in, minFreq, maxFreq, frameSize, hop, \harmonic,
             minDuration, 16, -1, binsPerOctave)
     }
 }
-PitchContour : MIR2AdvancedPitch {
+PitchContour : MIRaAdvancedPitch {
     *kr { |candidateFreqs, candidateProbabilities, maxJump = 600, transitionWeight = 1,
         octavePenalty = 1, unvoicedPenalty = 2, trig = 1, lag = 0|
         var frequencies = candidateFreqs.asArray, probabilities = candidateProbabilities.asArray;
@@ -127,7 +127,7 @@ PitchContour : MIR2AdvancedPitch {
             octavePenalty, unvoicedPenalty, trig, lag] ++ frequencies ++ probabilities)
     }
 }
-PitchStability : MIR2AdvancedPitch {
+PitchStability : MIRaAdvancedPitch {
     *kr { |freq, confidence = 1, windowTime = 0.5|
         if(windowTime.isNumber.not or: { windowTime < 0.05 } or: { windowTime > 5 }) {
             Error("PitchStability: windowTime must be a literal number from 0.05 through 5 seconds.").throw
@@ -143,7 +143,7 @@ PitchDeviation : UGen {
     }
     *ar { Error("PitchDeviation produces control-rate output.").throw }
 }
-Vibrato2 : MIR2AdvancedPitch {
+Vibrato2 : MIRaAdvancedPitch {
     *kr { |freq, pitchConfidence = 1, minRate = 3, maxRate = 12, minExtent = 5, windowTime = 1|
         if(windowTime.isNumber.not or: { windowTime < 0.1 } or: { windowTime > 5 }) {
             Error("Vibrato2: windowTime must be a literal number from 0.1 through 5 seconds.").throw

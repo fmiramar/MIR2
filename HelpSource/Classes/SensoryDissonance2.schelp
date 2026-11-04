@@ -1,7 +1,7 @@
 class:: SensoryDissonance2
 summary:: Pairwise sensory roughness of spectral peaks
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Inharmonicity, Classes/Tonnetz
 
 description::
 Implements the pairwise Plomp-Levelt curve parametrization described by Sethares (1993 and subsequent author documentation). For two peaks, x = 0.24 * abs(f2-f1) / (0.0207*min(f1,f2)+18.96); roughness is 5 * amplitudeWeight * (exp(-3.51*x)-exp(-5.75*x)). Every unordered pair contributes once. The minimum model weights by the smaller magnitude, while product uses their product. This is an independent equation implementation with bounded peak extraction. Sensory roughness is not an aesthetic or cultural judgement of musical dissonance. Unresolved close peaks, FFT window and peak threshold strongly affect the estimate.
@@ -32,17 +32,17 @@ returns::
 Nonnegative roughness sum; zero for silence or fewer than two peaks. The value is not constrained to 0 through 1.
 
 examples::
-SensoryDissonance2 models acoustic roughness based on the Sethares parametrization of the Plomp & Levelt sensory dissonance curves across all pairs of spectral peaks. In this example, it drives an adaptive waveshaping saturator: consonant harmonic chords pass through with warmth and clarity, while crunchy dissonant intervals trigger aggressive saturation and wavefolding. An interactive code::MIR2GUI.scope:: tracks the real-time roughness metric.
+SensoryDissonance2 models acoustic roughness based on the Sethares parametrization of the Plomp & Levelt sensory dissonance curves across all pairs of spectral peaks. In this example, it drives an adaptive waveshaping saturator: consonant harmonic chords pass through with warmth and clarity, while crunchy dissonant intervals trigger aggressive saturation and wavefolding. An interactive code::MIRaGUI.scope:: tracks the real-time roughness metric.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -55,25 +55,19 @@ s.waitForBoot({
         var saturated = (source * drive).tanh * 0.3;
         var sound = (source * 0.2) + saturated;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, roughness) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, roughness) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Sensory Roughness", ~mir2Bus, 0.0, 5.0);
+    ~miraGUI = MIRaGUI.scope("Sensory Roughness", ~miraBus, 0.0, 5.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Inharmonicity::
-link::Classes/HarmonicPeaks::
-link::Classes/Tonnetz::

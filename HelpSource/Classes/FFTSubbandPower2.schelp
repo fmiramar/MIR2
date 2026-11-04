@@ -1,7 +1,7 @@
 class:: FFTSubbandPower2
 summary:: Mean bin power in independently bounded bands
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Each band returns mean(w). The default power mode squares raw FFT magnitudes; there is no FFT-size or window normalization. In these equations w is magnitude or squared magnitude. Adjacent bands include their lower boundary and exclude their upper boundary, except for the final band, which includes its upper boundary. Bands outside Nyquist or without any bin centers return 0.
@@ -26,17 +26,17 @@ returns::
 One value per band, with the optional SpecContrast valley vector appended.
 
 examples::
-FFTSubbandPower2 computes the mean bin power in each independently bounded frequency band. In this example, 4 subbands (`#[0, 250, 1500, 6000, 20000]`) monitor the balance between sub-bass, midrange, and treble. The normalized relative power across bands drives an active parametric equalizer, dynamically compensating for mix imbalances in real time. An interactive code::MIR2GUI.bars:: displays normalized power across subbands.
+FFTSubbandPower2 computes the mean bin power in each independently bounded frequency band. In this example, 4 subbands (`#[0, 250, 1500, 6000, 20000]`) monitor the balance between sub-bass, midrange, and treble. The normalized relative power across bands drives an active parametric equalizer, dynamically compensating for mix imbalances in real time. An interactive code::MIRaGUI.bars:: displays normalized power across subbands.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 4);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 4);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -54,24 +54,19 @@ s.waitForBoot({
         var eq = BHiShelf.ar(BLowShelf.ar(source, 200, 1.0, bassBoost), 6000, 1.0, trebleBoost);
         var sound = eq * 0.25 ! 2;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, normPower) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, normPower) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("Subband Power", ~mir2Bus, 4, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.bars("Subband Power", ~miraBus, 4, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

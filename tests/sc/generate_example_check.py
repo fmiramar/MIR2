@@ -29,7 +29,7 @@ if args.classes:
     if len(files) != len(args.classes):
         raise SystemExit('Requested example class not found')
 lines = ['(', 'var ok = true, definitions = List.new, names = List.new;',
-         'var buffer = 0, salience = 1;', '~mir2Buffer = 0;']
+         'var buffer = 0, salience = 1;', '~miraBuffer = 0; ~mir2Buffer = 0;']
 if args.server == 'supernova':
     lines += ['Server.supernova;', 'Score.program = Score.program.replace("scsynth", "supernova");']
 if not args.skip_docs:
@@ -59,7 +59,7 @@ for index, path in enumerate(files):
     if index % 16 == 0:
         lines += ['{']
     text = path.read_text(encoding='utf-8')
-    match = re.search(r'~mir2\w*Example\s*=\s*\{(.*?)^\s*\}.play;', text, re.S | re.M)
+    match = re.search(r'~(?:mira|mir2)\w*Example\s*=\s*\{(.*?)^\s*\}.play;', text, re.S | re.M)
     if not match:
         raise SystemExit('No audible example graph: ' + path.name)
     name, body = path.stem, match.group(1)
@@ -68,7 +68,7 @@ for index, path in enumerate(files):
     lines += ['try {', f'    var definition = SynthDef(\\example{name}, {{',
               '        var sound = {', body, '        }.value;',
               '''        var units = UGen.buildSynthDef.children.copy.select { |ugen|
-            ugen.class.filenameSymbol.asString.find("/MIR2/Classes/").notNil
+            (ugen.class.filenameSymbol.asString.find("/MIR2/Classes/").notNil or: { ugen.class.filenameSymbol.asString.find("/MIRa/Classes/").notNil })
         };
         var invalid = units.collect { |ugen|
             var signals = if(ugen.isKindOf(MultiOutUGen)) { ugen.channels } { [ugen] };

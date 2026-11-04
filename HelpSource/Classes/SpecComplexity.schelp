@@ -1,7 +1,7 @@
 class:: SpecComplexity
 summary:: Count or weighted count of spectral peaks
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Counts local maxima above threshold * max(w). A maximum must exceed its left neighbor and equal or exceed its right neighbor; DC and Nyquist are excluded. Weighted mode sums w[peak] / max(w). Threshold is relative, so uniform input gain does not change the count.
@@ -40,17 +40,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecComplexity counts the number of prominent local spectral peaks exceeding a relative amplitude threshold. Dense harmonic chords produce many peaks, whereas sparse solo tones produce few. In this example, spectral complexity opens an expansive stereo reverb tail during dense chordal passages, while sparse passages remain clean and dry. An interactive code::MIR2GUI.scope:: displays real-time spectral complexity.
+SpecComplexity counts the number of prominent local spectral peaks exceeding a relative amplitude threshold. Dense harmonic chords produce many peaks, whereas sparse solo tones produce few. In this example, spectral complexity opens an expansive stereo reverb tail during dense chordal passages, while sparse passages remain clean and dry. An interactive code::MIRaGUI.scope:: displays real-time spectral complexity.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -63,24 +63,19 @@ s.waitForBoot({
         var wet = FreeVerb2.ar(source, source, 1.0, 0.8, 0.2) * revMix;
         var sound = (source * (1 - (revMix * 0.4)) ! 2) + wet;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, complexity.clip(0, 50)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, complexity.clip(0, 50)) };
         sound * Line.kr(0, 1, 0.2) * 0.35
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Complexity", ~mir2Bus, 0.0, 30.0, "peaks");
+    ~miraGUI = MIRaGUI.scope("Spectral Complexity", ~miraBus, 0.0, 30.0, "peaks");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

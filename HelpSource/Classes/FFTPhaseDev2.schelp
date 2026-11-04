@@ -1,7 +1,7 @@
 class:: FFTPhaseDev2
 summary:: Wrapped second phase difference
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/Onsets2, Classes/FFTFlux2
+related:: Guides/MIRa, Classes/Onsets2, Classes/FFTFlux2, Classes/FFTComplexDev2
 
 description::
 Mean or sum of absolute wrapped second phase differences. Weighted mode multiplies by current magnitude. Histories advance for every bin, including bins below the magnitude gate, so low-energy bins cannot misalign the phase history. Independently implemented from Dixon, Onset Detection Revisited (DAFx 2006).
@@ -24,17 +24,17 @@ returns::
 One nonnegative control-rate evidence value.
 
 examples::
-FFTPhaseDev2 computes the second difference of spectral phase, highlighting sudden phase discontinuities caused by percussive attacks. In this example, it drives an adaptive pitch-flutter modulator: phase jumps trigger sudden tape-style micro-pitch fluctuations across an auxiliary delay line on acoustic drums. An interactive code::MIR2GUI.scope:: tracks the real-time phase deviation evidence.
+FFTPhaseDev2 computes the second difference of spectral phase, highlighting sudden phase discontinuities caused by percussive attacks. In this example, it drives an adaptive pitch-flutter modulator: phase jumps trigger sudden tape-style micro-pitch fluctuations across an auxiliary delay line on acoustic drums. An interactive code::MIRaGUI.scope:: tracks the real-time phase deviation evidence.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -50,25 +50,19 @@ s.waitForBoot({
         var delay = DelayC.ar(source, 0.05, 0.01 + flutter) * 0.3;
         var sound = (source * 0.25) + delay;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, dev) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, dev) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Phase Deviation", ~mir2Bus, 0.0, 3.14);
+    ~miraGUI = MIRaGUI.scope("Phase Deviation", ~miraBus, 0.0, 3.14);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FFTComplexDev2::
-link::Classes/FFTFlux2::
-link::Classes/Onsets2::

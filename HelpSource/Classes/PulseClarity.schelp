@@ -1,12 +1,12 @@
 class:: PulseClarity
 summary:: Concentration of pulse evidence
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+related:: Guides/MIRa, Classes/Onsets2, Classes/BeatTrack3, Classes/Tempo, Classes/BeatStatistics2
 
 description::
-Returns clip(2*maximumEvidence*(1-normalizedEntropy), 0, 1) from the shared autocorrelation/Fourier tempo distribution. This is an explicit MIR2 pulse-clarity convention.
+Returns clip(2*maximumEvidence*(1-normalizedEntropy), 0, 1) from the shared autocorrelation/Fourier tempo distribution. This is an explicit MIRa pulse-clarity convention.
 
-The periodicity-analysis source is Grosche, Müller and Kurth (2010), link::https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf::. MIR2 uses trailing absolute-BPM windows and an original causal tracker; it does not implement cyclic tempo folding or claim equivalence with the paper. Output begins after the requested warmup and sufficient periods, and is held between analyses. Silence clears evidence as it leaves the trailing window. Tempo ambiguities, syncopation, sparse events and changing meter remain limitations. Vanilla BeatTrack also estimates pulse timing; MIR2 exposes the evidence distribution, alternative tempi and explicit continuity controls.
+The periodicity-analysis source is Grosche, Müller and Kurth (2010), link::https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf::. MIRa uses trailing absolute-BPM windows and an original causal tracker; it does not implement cyclic tempo folding or claim equivalence with the paper. Output begins after the requested warmup and sufficient periods, and is held between analyses. Silence clears evidence as it leaves the trailing window. Tempo ambiguities, syncopation, sparse events and changing meter remain limitations. Vanilla BeatTrack also estimates pulse timing; MIRa exposes the evidence distribution, alternative tempi and explicit continuity controls.
 
 classmethods::
 method:: kr
@@ -47,17 +47,17 @@ returns::
 One control-rate value from 0 to 1.
 
 examples::
-PulseClarity measures the concentration and distinctness of rhythmic periodicities, quantifying how clearly a human listener perceives an underlying beat. In this example, pulse clarity controls the sidechain gating on a lush synthesizer pad: strong metric grooves cause the pad to rhythmically duck and pump in sync with the beat, while vague, rubato sections allow the pad to wash out into wide ambient diffusion. An interactive code::MIR2GUI.scope:: tracks the real-time pulse clarity metric.
+PulseClarity measures the concentration and distinctness of rhythmic periodicities, quantifying how clearly a human listener perceives an underlying beat. In this example, pulse clarity controls the sidechain gating on a lush synthesizer pad: strong metric grooves cause the pad to rhythmically duck and pump in sync with the beat, while vague, rubato sections allow the pad to wash out into wide ambient diffusion. An interactive code::MIRaGUI.scope:: tracks the real-time pulse clarity metric.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -77,25 +77,19 @@ s.waitForBoot({
         var pump = pad * (1.0 - (claritySmooth * 0.7));
         var sound = (source * 0.25 ! 2) + pump;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, clarity) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, clarity) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Pulse Clarity", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Pulse Clarity", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Tempo::
-link::Classes/BeatStatistics2::
-link::Classes/BeatTrack3::

@@ -1,10 +1,10 @@
 class:: Inharmonicity
 summary:: Power-weighted deviation from an integer harmonic series
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/SensoryDissonance2, Classes/Pitch2
 
 description::
-Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIR2 conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. The value is sum(a_h squared * abs(f_h-h*f0)) / (f0 * sum(a_h squared)). Increasing partial stretch increases it while associated partials remain within tolerance. This is a dimensionless frequency deviation; unmatched peaks are excluded.
+Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIRa conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. The value is sum(a_h squared * abs(f_h-h*f0)) / (f0 * sum(a_h squared)). Increasing partial stretch increases it while associated partials remain within tolerance. This is a dimensionless frequency deviation; unmatched peaks are excluded.
 
 
 
@@ -35,17 +35,17 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-Inharmonicity measures the power-weighted deviation of spectral partials from ideal integer multiples of a fundamental. In this example, it drives an adaptive dispersive comb resonator: high inharmonicity from acoustic bell and kalimba plucks increases allpass delay dispersion, transforming harmonic resonances into metallic, inharmonic timbres. An interactive code::MIR2GUI.scope:: tracks the real-time inharmonicity index.
+Inharmonicity measures the power-weighted deviation of spectral partials from ideal integer multiples of a fundamental. In this example, it drives an adaptive dispersive comb resonator: high inharmonicity from acoustic bell and kalimba plucks increases allpass delay dispersion, transforming harmonic resonances into metallic, inharmonic timbres. An interactive code::MIRaGUI.scope:: tracks the real-time inharmonicity index.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -64,25 +64,19 @@ s.waitForBoot({
         var comb = CombC.ar(source, 0.05, delayTime, 0.3 + (inharmSmooth * 0.8).clip(0, 1.5));
         var sound = (source * 0.25) + (comb * 0.2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, inharm) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, inharm) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Inharmonicity Index", ~mir2Bus, 0.0, 0.5);
+    ~miraGUI = MIRaGUI.scope("Inharmonicity Index", ~miraBus, 0.0, 0.5);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HarmonicPeaks::
-link::Classes/SensoryDissonance2::
-link::Classes/Pitch2::

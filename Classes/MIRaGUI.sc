@@ -1,36 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /*
-    MIR2GUI: Reusable real-time MIR visualization toolkit for SuperCollider.
+    MIRaGUI: Reusable real-time MIR visualization toolkit for SuperCollider.
     Provides standard graphical monitors for MIR feature extraction:
-    - MIR2Scope: Scrolling time-series scalar feature strip
-    - MIR2BarView: Multi-band spectrum and cepstral bar monitor
-    - MIR2Heatmap: 2D scrolling waterfall spectrogram/tempogram
-    - MIR2ChromaWheel: 12-pitch-class circular polar radar
-    - MIR2TonnetzView: 2D planar projection of 6D Tonnetz harmonic space
-    - MIR2StereoScope: Polar goniometer and stereo correlation meter
-    - MIR2PianoRoll: Scrolling pitch and multi-pitch tracker
-    - MIR2RhythmWheel: Circular tempo and beat phase dial
-    - MIR2TristimulusView: Barycentric ternary triangle for harmonic energy
-    - MIR2EnvelopeView: Triggered transient envelope and attack/decay scope
+    - MIRaScope: Scrolling time-series scalar feature strip
+    - MIRaBarView: Multi-band spectrum and cepstral bar monitor
+    - MIRaHeatmap: 2D scrolling waterfall spectrogram/tempogram
+    - MIRaChromaWheel: 12-pitch-class circular polar radar
+    - MIRaTonnetzView: 2D planar projection of 6D Tonnetz harmonic space
+    - MIRaStereoScope: Polar goniometer and stereo correlation meter
+    - MIRaPianoRoll: Scrolling pitch and multi-pitch tracker
+    - MIRaRhythmWheel: Circular tempo and beat phase dial
+    - MIRaTristimulusView: Barycentric ternary triangle for harmonic energy
+    - MIRaEnvelopeView: Triggered transient envelope and attack/decay scope
 */
 
-MIR2GUI {
+MIRaGUI {
     *soundPath { |filename|
         var devPath, matches;
-        // 1. Direct check relative to this class file (works in git checkout or installed Extensions/MIR2)
+        // 1. Direct check relative to this class file (works in git checkout or installed Extensions/MIRa)
         devPath = this.filenameSymbol.asString.dirname.dirname +/+ "sounds" +/+ filename;
         if(File.exists(devPath)) { ^devPath };
 
         // 2. User Extension directory
-        devPath = Platform.userExtensionDir +/+ "MIR2/sounds" +/+ filename;
+        devPath = Platform.userExtensionDir +/+ "MIRa/sounds" +/+ filename;
         if(File.exists(devPath)) { ^devPath };
 
         // 3. System Extension directory
-        devPath = Platform.systemExtensionDir +/+ "MIR2/sounds" +/+ filename;
+        devPath = Platform.systemExtensionDir +/+ "MIRa/sounds" +/+ filename;
         if(File.exists(devPath)) { ^devPath };
 
         // 4. User App Support directory
-        devPath = Platform.userAppSupportDir +/+ "Extensions/MIR2/sounds" +/+ filename;
+        devPath = Platform.userAppSupportDir +/+ "Extensions/MIRa/sounds" +/+ filename;
         if(File.exists(devPath)) { ^devPath };
 
         // 5. Any subfolder in userExtensionDir ending in /sounds/filename
@@ -41,47 +41,47 @@ MIR2GUI {
     }
 
     *scope { |name="Feature", bus, minVal=0.0, maxVal=1.0, units="", width=380, height=200|
-        ^MIR2Scope(name, bus, minVal, maxVal, units, width, height)
+        ^MIRaScope(name, bus, minVal, maxVal, units, width, height)
     }
 
     *bars { |name="Spectrum", bus, numBars=24, minVal=0.0, maxVal=1.0, labels, width=420, height=220|
-        ^MIR2BarView(name, bus, numBars, minVal, maxVal, labels, width, height)
+        ^MIRaBarView(name, bus, numBars, minVal, maxVal, labels, width, height)
     }
 
     *heatmap { |name="Time-Frequency", bus, numBins=84, minVal=0.0, maxVal=1.0, width=460, height=240|
-        ^MIR2Heatmap(name, bus, numBins, minVal, maxVal, width, height)
+        ^MIRaHeatmap(name, bus, numBins, minVal, maxVal, width, height)
     }
 
     *chroma { |name="Chroma Wheel", bus, tuning=440, width=320, height=340|
-        ^MIR2ChromaWheel(name, bus, tuning, width, height)
+        ^MIRaChromaWheel(name, bus, tuning, width, height)
     }
 
     *tonnetz { |name="Tonnetz Space", bus, width=340, height=360|
-        ^MIR2TonnetzView(name, bus, width, height)
+        ^MIRaTonnetzView(name, bus, width, height)
     }
 
     *stereo { |name="Stereo Scope", bus, width=360, height=360|
-        ^MIR2StereoScope(name, bus, width, height)
+        ^MIRaStereoScope(name, bus, width, height)
     }
 
     *pianoRoll { |name="Piano Roll", bus, minMIDI=36, maxMIDI=84, width=440, height=240|
-        ^MIR2PianoRoll(name, bus, minMIDI, maxMIDI, width, height)
+        ^MIRaPianoRoll(name, bus, minMIDI, maxMIDI, width, height)
     }
 
     *rhythm { |name="Rhythm Radar", bus, width=320, height=340|
-        ^MIR2RhythmWheel(name, bus, width, height)
+        ^MIRaRhythmWheel(name, bus, width, height)
     }
 
     *tristimulus { |name="Tristimulus", bus, width=340, height=340|
-        ^MIR2TristimulusView(name, bus, width, height)
+        ^MIRaTristimulusView(name, bus, width, height)
     }
 
     *envelope { |name="Transient Envelope", bus, width=380, height=200|
-        ^MIR2EnvelopeView(name, bus, width, height)
+        ^MIRaEnvelopeView(name, bus, width, height)
     }
 }
 
-MIR2BaseView {
+MIRaBaseView {
     var <window, <userView, <skipjack, <bus, <name;
     var <themeBg, <themeFg, <themeGrid, <themeAccent, <themeAccent2;
 
@@ -99,7 +99,7 @@ MIR2BaseView {
     }
 }
 
-MIR2Scope : MIR2BaseView {
+MIRaScope : MIRaBaseView {
     var <minVal, <maxVal, <units, <historySize, <history, <currentVal = 0.0;
 
     *new { |name="Feature", bus, minVal=0.0, maxVal=1.0, units="", width=380, height=200, historySize=200|
@@ -186,7 +186,7 @@ MIR2Scope : MIR2BaseView {
     }
 }
 
-MIR2BarView : MIR2BaseView {
+MIRaBarView : MIRaBaseView {
     var <numBars, <minVal, <maxVal, <labels, <values, <peaks;
 
     *new { |name="Spectrum", bus, numBars=24, minVal=0.0, maxVal=1.0, labels, width=420, height=220|
@@ -267,7 +267,7 @@ MIR2BarView : MIR2BaseView {
     }
 }
 
-MIR2Heatmap : MIR2BaseView {
+MIRaHeatmap : MIRaBaseView {
     var <numBins, <minVal, <maxVal, <historyFrames, <grid;
 
     *new { |name="Heatmap", bus, numBins=84, minVal=0.0, maxVal=1.0, width=460, height=240, historyFrames=80|
@@ -332,7 +332,7 @@ MIR2Heatmap : MIR2BaseView {
     }
 }
 
-MIR2ChromaWheel : MIR2BaseView {
+MIRaChromaWheel : MIRaBaseView {
     var <tuning, <chromaValues;
     classvar <noteNames;
 
@@ -420,7 +420,7 @@ MIR2ChromaWheel : MIR2BaseView {
     }
 }
 
-MIR2TonnetzView : MIR2BaseView {
+MIRaTonnetzView : MIRaBaseView {
     var <tonnetzCoords;
 
     *new { |name="Tonnetz Space", bus, width=340, height=360|
@@ -488,7 +488,7 @@ MIR2TonnetzView : MIR2BaseView {
     }
 }
 
-MIR2StereoScope : MIR2BaseView {
+MIRaStereoScope : MIRaBaseView {
     var <balance = 0.0, <widthVal = 1.0, <corr = 1.0;
 
     *new { |name="Stereo Scope", bus, width=360, height=360|
@@ -555,7 +555,7 @@ MIR2StereoScope : MIR2BaseView {
     }
 }
 
-MIR2PianoRoll : MIR2BaseView {
+MIRaPianoRoll : MIRaBaseView {
     var <minMIDI, <maxMIDI, <pitchHistory, <currentMIDI = 60.0;
 
     *new { |name="Piano Roll", bus, minMIDI=36, maxMIDI=84, width=440, height=240, historySize=120|
@@ -628,7 +628,7 @@ MIR2PianoRoll : MIR2BaseView {
     }
 }
 
-MIR2RhythmWheel : MIR2BaseView {
+MIRaRhythmWheel : MIRaBaseView {
     var <bpm = 120.0, <confidence = 1.0, <phase = 0.0;
 
     *new { |name="Rhythm Radar", bus, width=320, height=340|
@@ -699,7 +699,7 @@ MIR2RhythmWheel : MIR2BaseView {
     }
 }
 
-MIR2TristimulusView : MIR2BaseView {
+MIRaTristimulusView : MIRaBaseView {
     var <t1 = 0.33, <t2 = 0.33, <t3 = 0.34;
 
     *new { |name="Tristimulus", bus, width=340, height=340|
@@ -767,7 +767,7 @@ MIR2TristimulusView : MIR2BaseView {
     }
 }
 
-MIR2EnvelopeView : MIR2BaseView {
+MIRaEnvelopeView : MIRaBaseView {
     var <attackVal = 0.05, <decayVal = 0.5;
 
     *new { |name="Transient Envelope", bus, width=380, height=200|

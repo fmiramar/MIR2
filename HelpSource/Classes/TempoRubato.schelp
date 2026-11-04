@@ -1,7 +1,7 @@
 class:: TempoRubato
 summary:: Signed relative tempo change
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+related:: Guides/MIRa, Classes/Onsets2, Classes/BeatTrack3, Classes/TempoStability, Classes/Tempo, Classes/BeatStatistics2
 
 description::
 Differentiates natural log BPM in time and multiplies by 100, then applies exponential smoothing. Invalid or low-confidence input breaks the derivative chain and lets the result decay toward zero.
@@ -26,17 +26,17 @@ returns::
 Approximate percent tempo change per second; positive means acceleration.
 
 examples::
-TempoRubato differentiates log tempo in physical time to measure instantaneous signed rate of tempo change (% acceleration or deceleration per second). In this example, it drives an expressive dynamic filter sweep: tempo accelerations open an auxiliary lowpass filter brighter, while decelerations darken the timbre. An interactive code::MIR2GUI.scope:: tracks the signed rubato rate in %/s.
+TempoRubato differentiates log tempo in physical time to measure instantaneous signed rate of tempo change (% acceleration or deceleration per second). In this example, it drives an expressive dynamic filter sweep: tempo accelerations open an auxiliary lowpass filter brighter, while decelerations darken the timbre. An interactive code::MIRaGUI.scope:: tracks the signed rubato rate in %/s.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -57,25 +57,19 @@ s.waitForBoot({
         var filtered = LPF.ar(source, cutoff) * 0.3;
         var sound = (source * 0.2) + filtered;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, rubato) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, rubato) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Tempo Rubato", ~mir2Bus, -20.0, 20.0, "%/s");
+    ~miraGUI = MIRaGUI.scope("Tempo Rubato", ~miraBus, -20.0, 20.0, "%/s");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/TempoStability::
-link::Classes/Tempo::
-link::Classes/BeatStatistics2::

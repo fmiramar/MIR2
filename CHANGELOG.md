@@ -21,7 +21,7 @@
   chords with an opt-in nine-quality vocabulary; existing defaults remain.
 - Audited CREPE, PESTO, RMVPE, FCPE and SPICE; selected PESTO v2 for a possible
   separate prototype.
-- Added optional `MIR2Neural` / `PitchPESTO` with a native CPU VQT frontend,
+- Added optional `MIRaNeural` / `PitchPESTO` with a native CPU VQT frontend,
   encoder, learned confidence and decoder; explicit pinned model export;
   work distributed across audio blocks; and an audible resynthesis example.
   The base 135 classes need no neural dependencies. Model weights are not

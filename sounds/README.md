@@ -1,8 +1,8 @@
-# MIR2 Example Audio Corpus
+# MIRa Example Audio Corpus
 
-This directory contains clean, dry Creative Commons Zero (CC0 1.0 Universal) audio recordings curated for the SuperCollider MIR2 analysis library. These recordings provide musically meaningful source material for pitch, tonal, rhythm, onset, harmonic, spectral, stereo, and temporal feature extractors, replacing the speech-only default clip (`ExampleFiles.child`).
+This directory contains clean, dry Creative Commons Zero (CC0 1.0 Universal) audio recordings curated for the SuperCollider MIRa analysis library. These recordings provide musically meaningful source material for pitch, tonal, rhythm, onset, harmonic, spectral, stereo, and temporal feature extractors, replacing the speech-only default clip (`ExampleFiles.child`).
 
-Although the CC0 1.0 Universal Public Domain Dedication permits copying, modifying, and distributing these works without requesting permission or providing attribution, MIR2 documents and credits all original authors below.
+Although the CC0 1.0 Universal Public Domain Dedication permits copying, modifying, and distributing these works without requesting permission or providing attribution, MIRa documents and credits all original authors below.
 
 All files are formatted as **44,100 Hz, 16-bit PCM WAV, peak-normalized to -1.0 dBFS**, with 5 ms linear zero-crossing edge fades to prevent loop boundary clicks.
 

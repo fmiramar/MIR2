@@ -1,12 +1,12 @@
 class:: KeyTrack2
 summary:: Tonal key estimate
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
 Uses tuning-aware HPCP with exponential time averaging, followed by Pearson correlation against all 24 rotated major/minor profiles. Krumhansl-Kessler data are reported by Temperley (1999); Temperley's 1999 profiles and Faraldo et al.'s EDMA ECIR 2016 measured profiles are also available. The key is the strongest correlation, subject to threshold. This independent implementation uses a twelve-bin HPCP and does not reproduce any external implementation's full preprocessing. Mode 0 means major, 1 minor; root 0 is C through 11 B. Silence or insufficient correlation gives root/mode -1. A local chord, speech or short excerpt may not establish a musical key.
 
-Vanilla link::Classes/KeyTrack:: also estimates tonality. MIR2 accepts configurable FFT sizes and tuning, exposes separate root/mode/strength, and uses selectable profiles.
+Vanilla link::Classes/KeyTrack:: also estimates tonality. MIRa accepts configurable FFT sizes and tuning, exposes separate root/mode/strength, and uses selectable profiles.
 
 classmethods::
 method:: kr
@@ -41,17 +41,17 @@ returns::
 An Array: root index, mode index, and positive Pearson correlation from 0 through 1.
 
 examples::
-KeyTrack2 estimates musical key by correlating tuning-aware HPCP against 24 major and minor profiles, returning the root index (0=C..11=B), mode (0=Major, 1=Minor), and correlation strength. In this example, detected key root note plays an acoustic sub-bass pedal note, shifting cleanly when the harmony changes. An interactive code::MIR2GUI.scope:: displays real-time estimated key root.
+KeyTrack2 estimates musical key by correlating tuning-aware HPCP against 24 major and minor profiles, returning the root index (0=C..11=B), mode (0=Major, 1=Minor), and correlation strength. In this example, detected key root note plays an acoustic sub-bass pedal note, shifting cleanly when the harmony changes. An interactive code::MIRaGUI.scope:: displays real-time estimated key root.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -64,25 +64,19 @@ s.waitForBoot({
         var bass = SinOsc.ar((36 + root).midicps, 0, (key[2] > 0.3).lag(0.05) * 0.2);
         var sound = (source * 0.25 ! 2) + (bass ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, root) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, root) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Estimated Key Root", ~mir2Bus, 0.0, 11.0, "pitch");
+    ~miraGUI = MIRaGUI.scope("Estimated Key Root", ~miraBus, 0.0, 11.0, "pitch");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

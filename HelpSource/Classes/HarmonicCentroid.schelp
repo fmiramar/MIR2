@@ -1,10 +1,10 @@
 class:: HarmonicCentroid
 summary:: Amplitude-weighted harmonic spectral centre
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/HarmonicSpread, Classes/SpecCentroid2, Classes/Pitch2
 
 description::
-Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIR2 conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Computes sum(a_h * f_h) / sum(a_h) over associated peaks. Unmatched spectral energy does not contribute.
+Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIRa conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Computes sum(a_h * f_h) / sum(a_h) over associated peaks. Unmatched spectral energy does not contribute.
 
 Vanilla link::Classes/SpecCentroid:: uses the whole spectrum. This class includes only peaks associated with the supplied harmonic series.
 
@@ -35,17 +35,17 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-HarmonicCentroid computes the amplitude-weighted mean frequency of harmonic partials in Hz, reflecting perceptual harmonic brightness without influence from non-harmonic background noise. In this example, it drives an adaptive state-variable formant filter: the cutoff dynamically hugs the center-of-mass of harmonic energy on a saxophone solo. An interactive code::MIR2GUI.scope:: tracks the centroid frequency in Hz.
+HarmonicCentroid computes the amplitude-weighted mean frequency of harmonic partials in Hz, reflecting perceptual harmonic brightness without influence from non-harmonic background noise. In this example, it drives an adaptive state-variable formant filter: the cutoff dynamically hugs the center-of-mass of harmonic energy on a saxophone solo. An interactive code::MIRaGUI.scope:: tracks the centroid frequency in Hz.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -61,26 +61,19 @@ s.waitForBoot({
         var filtered = BPF.ar(source, centreSmooth, 0.2) * 2.5;
         var sound = (source * 0.25) + filtered;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, centre) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, centre) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Harmonic Centroid", ~mir2Bus, 100.0, 4000.0, "Hz");
+    ~miraGUI = MIRaGUI.scope("Harmonic Centroid", ~miraBus, 100.0, 4000.0, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HarmonicSpread::
-link::Classes/HarmonicPeaks::
-link::Classes/SpecCentroid2::
-link::Classes/Pitch2::

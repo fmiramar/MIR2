@@ -1,10 +1,10 @@
 class:: HarmonicEnergyRatio
 summary:: Spectral power near associated harmonics
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Noisiness, Classes/Tristimulus, Classes/Pitch2
 
 description::
-Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIR2 conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Marks each associated peak bin and its immediate neighbours, counts their squared FFT magnitudes once, and divides by total spectrum power. The three-bin mask suits a Hann main lobe but is not a sinusoidal energy decomposition. Other windows, unresolved harmonics and inaccurate F0 alter the fraction.
+Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIRa conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Marks each associated peak bin and its immediate neighbours, counts their squared FFT magnitudes once, and divides by total spectrum power. The three-bin mask suits a Hann main lobe but is not a sinusoidal energy decomposition. Other windows, unresolved harmonics and inaccurate F0 alter the fraction.
 
 
 
@@ -35,17 +35,17 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-HarmonicEnergyRatio measures the fraction of total spectral energy accounted for by harmonic partials associated with F0. In this example, it drives an adaptive Karplus-Strong waveguide feedback gate: high harmonic energy sustains resonant string feedback, while breath and noisy consonants cause instantaneous decay. An interactive code::MIR2GUI.scope:: tracks the real-time harmonic energy proportion.
+HarmonicEnergyRatio measures the fraction of total spectral energy accounted for by harmonic partials associated with F0. In this example, it drives an adaptive Karplus-Strong waveguide feedback gate: high harmonic energy sustains resonant string feedback, while breath and noisy consonants cause instantaneous decay. An interactive code::MIRaGUI.scope:: tracks the real-time harmonic energy proportion.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -63,27 +63,19 @@ s.waitForBoot({
         var comb = CombC.ar(source, 0.05, delayTime, feedback) * 0.3;
         var sound = (source * 0.25) + comb;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, ratio) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, ratio) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Harmonic Energy Ratio", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Harmonic Energy Ratio", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Noisiness::
-link::Classes/HarmonicPeaks::
-link::Classes/Tristimulus::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

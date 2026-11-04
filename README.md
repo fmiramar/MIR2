@@ -1,8 +1,8 @@
-![MIR2 Banner](Dashboard%20MIRa%20com%20cubo%20SC%20Retro.png)
+![MIRa Banner](Dashboard%20MIRa%20com%20cubo%20SC%20Retro.png)
 
-# MIR2 (MIRa) — Music Information Retrieval for SuperCollider
+# MIRa (MIRa) — Music Information Retrieval for SuperCollider
 
-**MIR2** is a native SuperCollider plugin library providing **135 real-time Music Information Retrieval (MIR) unit generators**, an interactive Qt live visualization toolkit (`MIR2GUI`), a curated CC0 audio test corpus, and an optional deep neural pitch tracker (`PitchPESTO`).
+**MIRa** is a native SuperCollider plugin library providing **135 real-time Music Information Retrieval (MIR) unit generators**, an interactive Qt live visualization toolkit (`MIRaGUI`), a curated CC0 audio test corpus, and an optional deep neural pitch tracker (`PitchPESTO`).
 
 ---
 
@@ -12,7 +12,7 @@
 >
 > In real-time computer music and interactive sound design, this Portuguese meaning captures exactly what MIR UGens do analytically: **they act as an analytical crosshair aimed directly at an audio stream.**
 >
-> Instead of treating audio as an undifferentiated stream of oscillating samples, MIR2 places an analytical sight (*mira*) onto specific acoustic, perceptual, and structural dimensions of the sound:
+> Instead of treating audio as an undifferentiated stream of oscillating samples, MIRa places an analytical sight (*mira*) onto specific acoustic, perceptual, and structural dimensions of the sound:
 > - **Focusing on Pitch & Harmony**: Locking onto the fundamental frequency, tracking chord progressions, tracing harmonic centroids, and mapping 6D Tonnetz space.
 > - **Targeting Rhythm & Pulse**: Calculating tempo confidence, detecting onsets, isolating meter subdivisions, and evaluating rhythmic clarity.
 > - **Measuring Timbre & Texture**: Sighting spectral centroids, Shannon entropy, flatness, brightness, inharmonicity, and multi-band perceptual loudness.
@@ -26,7 +26,7 @@
 ## Feature Overview
 
 - **135 Public UGen Classes**: Spanning 12 functional MIR families covering spectral, tonal, temporal, rhythm, harmonic, auditory, stereo, wavelet, and neural analysis.
-- **Pure-SuperCollider Live Visualizer Toolkit (`MIR2GUI`)**: 10 real-time Qt GUI views designed after standard MIR research tools (Chroma Wheels, 2D Tonnetz grids, Waterfall Spectrogram Heatmaps, Multi-pitch Piano Rolls, Rhythm Radars, Goniometer Stereo Scopes, and Tristimulus triangles).
+- **Pure-SuperCollider Live Visualizer Toolkit (`MIRaGUI`)**: 10 real-time Qt GUI views designed after standard MIR research tools (Chroma Wheels, 2D Tonnetz grids, Waterfall Spectrogram Heatmaps, Multi-pitch Piano Rolls, Rhythm Radars, Goniometer Stereo Scopes, and Tristimulus triangles).
 - **Curated CC0 Audio Test Corpus**: 7 dry 44.1 kHz WAV recordings (`drums.wav`, `piano-chords.wav`, `melody.wav`, `plucks.wav`, `stereo.wav`, `bass-melody-mix.wav`, `texture.wav`) accompanied by self-contained synthetic fallbacks.
 - **Individually Handcrafted Musical Examples**: Every single help file includes a musically meaningful synthesis or filtering process demonstrating how to steer audio with measured features, plus zero-warning SCDoc documentation.
 - **Dual Server Architecture**: Native support for both standard `scsynth` and multi-threaded `supernova`.
@@ -56,40 +56,40 @@
 
 ---
 
-## Live MIR Visualization Toolkit (`MIR2GUI`)
+## Live MIR Visualization Toolkit (`MIRaGUI`)
 
-MIR2 includes 10 real-time GUI monitors accessible through clean static factory methods:
+MIRa includes 10 real-time GUI monitors accessible through clean static factory methods:
 
 ```supercollider
 // Oscilloscope feature strip with min/max grid and units
-MIR2GUI.scope("Spectral Centroid", ~bus, 100, 8000, "Hz");
+MIRaGUI.scope("Spectral Centroid", ~bus, 100, 8000, "Hz");
 
 // Multi-band bar view with peak hold decay
-MIR2GUI.bars("MFCC Coefficients", ~bus, 13, -20.0, 20.0);
+MIRaGUI.bars("MFCC Coefficients", ~bus, 13, -20.0, 20.0);
 
 // Circular 12-pitch-class polar radar
-MIR2GUI.chroma("Harmonic Pitch Profile", ~bus);
+MIRaGUI.chroma("Harmonic Pitch Profile", ~bus);
 
 // 2D planar projection of 6D Tonnetz space
-MIR2GUI.tonnetz("Tonal Centroid Space", ~bus);
+MIRaGUI.tonnetz("Tonal Centroid Space", ~bus);
 
 // Real-time scrolling fundamental frequency piano roll
-MIR2GUI.pianoRoll("PESTO Neural Pitch", ~bus, minMIDI: 48, maxMIDI: 84);
+MIRaGUI.pianoRoll("PESTO Neural Pitch", ~bus, minMIDI: 48, maxMIDI: 84);
 
 // Circular tempo and beat phase dial
-MIR2GUI.rhythm("Beat Phase & Tempo", ~bus);
+MIRaGUI.rhythm("Beat Phase & Tempo", ~bus);
 
 // Barycentric ternary harmonic distribution (T1, T2, T3)
-MIR2GUI.tristimulus("Harmonic Tristimulus", ~bus);
+MIRaGUI.tristimulus("Harmonic Tristimulus", ~bus);
 
 // Polar goniometer (Lissajous X/Y phase scope) and correlation meter
-MIR2GUI.stereo("Stereo Goniometer", ~bus);
+MIRaGUI.stereo("Stereo Goniometer", ~bus);
 
 // Scrolling 2D spectrogram / tempogram waterfall
-MIR2GUI.heatmap("Spectrogram Waterfall", ~bus, numBins: 84);
+MIRaGUI.heatmap("Spectrogram Waterfall", ~bus, numBins: 84);
 
 // Triggered transient envelope and attack/decay time-domain scope
-MIR2GUI.envelope("Transient Envelope", ~bus);
+MIRaGUI.envelope("Transient Envelope", ~bus);
 ```
 
 ---
@@ -97,21 +97,21 @@ MIR2GUI.envelope("Transient Envelope", ~bus);
 ## Installation
 
 ### Pre-Built Binaries
-1. Download the release archive for your platform from the [Releases](https://github.com/fmiramar/MIR2/releases) page.
-2. Unzip and copy the `MIR2` folder into your SuperCollider `Extensions` directory:
+1. Download the release archive for your platform from the [Releases](https://github.com/fmiramar/MIRa/releases) page.
+2. Unzip and copy the `MIRa` folder into your SuperCollider `Extensions` directory:
    - **macOS**: `~/Library/Application Support/SuperCollider/Extensions/`
    - **Linux**: `~/.local/share/SuperCollider/Extensions/`
    - **Windows**: `%LOCALAPPDATA%\SuperCollider\Extensions\`
 3. Restart SuperCollider or recompile the class library (`Cmd+Shift+L` or `Ctrl+Shift+L`).
-4. Open the master guide: `HelpBrowser.openHelpFor("Guides/MIR2")`.
+4. Open the master guide: `HelpBrowser.openHelpFor("Guides/MIRa")`.
 
 ### Building from Source
 
 Requirements: CMake 3.16+, C++17 compiler, and SuperCollider 3.14+ source or SDK.
 
 ```sh
-git clone https://github.com/fmiramar/MIR2.git
-cd MIR2
+git clone https://github.com/fmiramar/MIRa.git
+cd MIRa
 
 cmake -B build \
   -DSC_PATH=/path/to/supercollider \
@@ -127,7 +127,7 @@ cmake --install build --prefix ~/Library/Application\ Support/SuperCollider/Exte
 
 ## Verification and Quality Assurance
 
-MIR2 is thoroughly tested through an automated verification suite:
+MIRa is thoroughly tested through an automated verification suite:
 - **C++ Unit Tests**: 16 native test suites covering filter banks, CQT kernels, wavelet coefficients, PNCC noise suppression, and Tonnetz matrices (`ctest`).
 - **ASan & UBSan**: Memory sanitization checks ensuring zero leaks, memory corruption, or undefined behavior.
 - **Class Compilation**: Complete class tree validation (`tests/sc/compile_check.scd`).
@@ -138,7 +138,7 @@ MIR2 is thoroughly tested through an automated verification suite:
 
 ## Documentation & References
 
-- [Master Project Guide](HelpSource/Guides/MIR2.schelp): Comprehensive overview of all 135 classes.
+- [Master Project Guide](HelpSource/Guides/MIRa.schelp): Comprehensive overview of all 135 classes.
 - [Onsets2 Evaluation](docs/onset-evaluation.md): Classical methods and SuperFlux audit.
 - [Spectral & Auditory Implementation](docs/spectral-auditory-implementation.md): Math conventions and filter designs.
 - [Tonal & Harmonic Analysis](docs/tonal-harmonic-implementation.md): HPCP, 108 extended chord templates, and Tonnetz.

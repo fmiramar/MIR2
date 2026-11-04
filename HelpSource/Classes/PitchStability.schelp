@@ -1,7 +1,7 @@
 class:: PitchStability
 summary:: Confidence-weighted pitch spread over a time window
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PitchDeviation, Classes/Vibrato2
 
 description::
 An original statistical descriptor of a supplied pitch trajectory. Frequency is converted to cents relative to 440 Hz; confidence-weighted first and second moments define population variance over the rolling window. Initial estimates use observations collected so far. Unvoiced observations have zero weight; a currently unvoiced input outputs zeros. Vibrato and glissando both increase spread, so this is pitch stability rather than a vibrato classifier. The method is a direct application of weighted variance and contains no borrowed DSP implementation.
@@ -23,17 +23,17 @@ returns::
 An Array: stability = exp(-deviationCents / 50), weighted population standard deviation in cents.
 
 examples::
-PitchStability computes rolling weighted variance in cents over an observation window, returning an exponential stability metric ($1.0$ for rock-solid pitch, approaching $0.0$ during vibrato, trills, and glissandi). In this example, it gates a lush stereo tape delay: fast melodic transitions stay dry and focused, while long held notes bloom out into warm delay repeats. An interactive code::MIR2GUI.scope:: tracks the real-time stability metric.
+PitchStability computes rolling weighted variance in cents over an observation window, returning an exponential stability metric ($1.0$ for rock-solid pitch, approaching $0.0$ during vibrato, trills, and glissandi). In this example, it gates a lush stereo tape delay: fast melodic transitions stay dry and focused, while long held notes bloom out into warm delay repeats. An interactive code::MIRaGUI.scope:: tracks the real-time stability metric.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -49,25 +49,19 @@ s.waitForBoot({
         var delay = CombC.ar(delaySend, 0.5, [0.25, 0.33], 1.8) * 0.35;
         var sound = (source * 0.25 ! 2) + delay;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, stability[0]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, stability[0]) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Pitch Stability", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Pitch Stability", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/PitchDeviation::
-link::Classes/Vibrato2::
-link::Classes/Pitch2::

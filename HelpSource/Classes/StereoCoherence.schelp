@@ -1,7 +1,7 @@
 class:: StereoCoherence
 summary:: Averaged magnitude-squared coherence within a frequency band
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/FFT
+related:: Guides/MIRa, Classes/FFT
 
 description::
 Each Hann-windowed frame updates exponentially averaged left/right power and complex cross power. Each bin contributes |P_LR|.squared/(P_LL*P_RR), averaged across the selected band with shared-energy weights 2*sqrt(P_LL*P_RR). This is an averaged spectral coherence estimator following the cross-spectrum definition used in Welch analysis, with exponential averaging in place of a finite segment average. Four frames are required before output; stationarity over averageTime remains necessary.
@@ -38,20 +38,20 @@ returns::
 Coherence from zero through one; silence or no shared energy returns zero.
 
 examples::
-StereoCoherence measures the magnitude-squared cross-spectral coherence between two audio channels within a specified frequency band (0 for uncorrelated/diffuse sound, 1 for fully coherent linear relationship). In this example, low coherence (indicating diffuse ambient reverberation or room decorrelation) automatically opens an ambient stereo reverb send, while highly coherent direct sound remains crisp and upfront. An interactive code::MIR2GUI.scope:: displays real-time stereo coherence.
+StereoCoherence measures the magnitude-squared cross-spectral coherence between two audio channels within a specified frequency band (0 for uncorrelated/diffuse sound, 1 for fully coherent linear relationship). In this example, low coherence (indicating diffuse ambient reverberation or room decorrelation) automatically opens an ambient stereo reverb send, while highly coherent direct sound remains crisp and upfront. An interactive code::MIRaGUI.scope:: displays real-time stereo coherence.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("stereo.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("stereo.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.isKindOf(Buffer) and: { ~mir2Buffer.numChannels >= 2 }) {
-            PlayBuf.ar(2, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.isKindOf(Buffer) and: { ~miraBuffer.numChannels >= 2 }) {
+            PlayBuf.ar(2, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
-            if(~mir2Buffer.notNil) {
-                var sig = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+            if(~miraBuffer.notNil) {
+                var sig = PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1);
                 [sig, DelayC.ar(sig, 0.02, 0.003)]
             } {
                 // Synthetic stereo fallback
@@ -68,23 +68,19 @@ s.waitForBoot({
         var wet = FreeVerb2.ar(source[0], source[1], 1.0, 0.7, 0.3) * diffuseSend;
         var sound = (source * 0.25) + wet;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, cohLag.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, cohLag.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Stereo Coherence", ~mir2Bus, 0.0, 1.0, "index");
+    ~miraGUI = MIRaGUI.scope("Stereo Coherence", ~miraBus, 0.0, 1.0, "index");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FFT::

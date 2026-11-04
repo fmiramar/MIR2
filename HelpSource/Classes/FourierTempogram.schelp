@@ -1,12 +1,12 @@
 class:: FourierTempogram
 summary:: Fourier tempo evidence
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+related:: Guides/MIRa, Classes/Onsets2, Classes/BeatTrack3, Classes/Tempogram, Classes/BeatHistogram, Classes/Tempo
 
 description::
 A trailing, mean-centered Hann-windowed novelty signal is projected onto each BPM sinusoid. Normalized magnitude divides by the windowed absolute sum. This uses Fourier periodicity evidence, without octave folding.
 
-The periodicity-analysis source is Grosche, Müller and Kurth (2010), link::https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf::. MIR2 uses trailing absolute-BPM windows and an original causal tracker; it does not implement cyclic tempo folding or claim equivalence with the paper. Output begins after the requested warmup and sufficient periods, and is held between analyses. Silence clears evidence as it leaves the trailing window. Tempo ambiguities, syncopation, sparse events and changing meter remain limitations. Vanilla BeatTrack also estimates pulse timing; MIR2 exposes the evidence distribution, alternative tempi and explicit continuity controls.
+The periodicity-analysis source is Grosche, Müller and Kurth (2010), link::https://resources.mpi-inf.mpg.de/MIR/tempogramtoolbox/2010_GroscheMuellerKurth_TempogramCyclic_ICASSP.pdf::. MIRa uses trailing absolute-BPM windows and an original causal tracker; it does not implement cyclic tempo folding or claim equivalence with the paper. Output begins after the requested warmup and sufficient periods, and is held between analyses. Silence clears evidence as it leaves the trailing window. Tempo ambiguities, syncopation, sparse events and changing meter remain limitations. Vanilla BeatTrack also estimates pulse timing; MIRa exposes the evidence distribution, alternative tempi and explicit continuity controls.
 
 classmethods::
 method:: kr
@@ -41,17 +41,17 @@ returns::
 An Array of numBins magnitudes; normalized values are 0–1.
 
 examples::
-FourierTempogram computes windowed discrete Fourier projections of the onset novelty curve across an absolute BPM grid. In this example, it drives a tempo-synchronized cyclic stereo chorus: dominant periodicities modulate delay times in rhythmic lockstep with the acoustic drum performance. An interactive code::MIR2GUI.heatmap:: displays the real-time Fourier tempo spectrogram.
+FourierTempogram computes windowed discrete Fourier projections of the onset novelty curve across an absolute BPM grid. In this example, it drives a tempo-synchronized cyclic stereo chorus: dominant periodicities modulate delay times in rhythmic lockstep with the acoustic drum performance. An interactive code::MIRaGUI.heatmap:: displays the real-time Fourier tempo spectrogram.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 48);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 48);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -72,25 +72,19 @@ s.waitForBoot({
         var chorus = DelayC.ar(source ! 2, 0.05, [modL, modR]) * peakEnergy.clip(0, 1) * 0.35;
         var sound = (source * 0.25 ! 2) + chorus;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, fourier.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, fourier.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.heatmap("Fourier Tempogram", ~mir2Bus, 48);
+    ~miraGUI = MIRaGUI.heatmap("Fourier Tempogram", ~miraBus, 48);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Tempogram::
-link::Classes/BeatHistogram::
-link::Classes/Tempo::

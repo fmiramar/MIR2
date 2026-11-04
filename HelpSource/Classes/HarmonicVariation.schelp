@@ -1,10 +1,10 @@
 class:: HarmonicVariation
 summary:: Change in the harmonic amplitude distribution
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/HarmonicDeviation, Classes/FFTFlux2, Classes/Pitch2
 
 description::
-Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIR2 conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Measures one minus cosine similarity between current and previous harmonic-slot amplitude vectors. Common gain changes leave it at zero. The first usable frame and frames after missing harmonic evidence return zero. Frequency changes that preserve the harmonic amplitude pattern do not count as variation.
+Shared interpolated spectral peaks are associated with the nearest integer harmonic of the supplied F0. Only the strongest matching peak occupies each harmonic slot. Missing harmonics retain zero slots; an incorrect F0 or tight tolerance changes the result. The formulas are explicit MIRa conventions in the harmonic-descriptor tradition summarized by Peeters (2004); this is independent code, not a wrapper around another analysis library. Measures one minus cosine similarity between current and previous harmonic-slot amplitude vectors. Common gain changes leave it at zero. The first usable frame and frames after missing harmonic evidence return zero. Frequency changes that preserve the harmonic amplitude pattern do not count as variation.
 
 
 
@@ -35,17 +35,17 @@ method:: fromAudio
 Convenience constructor: accepts audio and builds Pitch2 plus FFT internally, then calls kr with the estimated F0. The input range defaults to 55 through 1760 Hz, FFT size 4096 and hop fraction 0.25; it accepts the same harmonic controls. Use kr when sharing an existing pitch estimate or FFT chain.
 
 examples::
-HarmonicVariation measures the frame-to-frame normalized spectral correlation distance across harmonic partials, quantifying timbral flux independent of pitch or loudness. In this example, it triggers a granular micro-delay particle generator whenever the harmonic timbre shifts: steady sustains remain clean, while expressive articulation and vibrato generate fluttering grain clouds. An interactive code::MIR2GUI.scope:: plots the variation index.
+HarmonicVariation measures the frame-to-frame normalized spectral correlation distance across harmonic partials, quantifying timbral flux independent of pitch or loudness. In this example, it triggers a granular micro-delay particle generator whenever the harmonic timbre shifts: steady sustains remain clean, while expressive articulation and vibrato generate fluttering grain clouds. An interactive code::MIRaGUI.scope:: plots the variation index.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -62,26 +62,19 @@ s.waitForBoot({
         var granules = Ringz.ar(grainBurst, pitch[0].clip(100, 2000) * [1.5, 2.0], 0.03).sum * 0.15;
         var sound = (source * 0.25) + granules;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, variation) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, variation) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Harmonic Variation", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Harmonic Variation", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HarmonicDeviation::
-link::Classes/FFTFlux2::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

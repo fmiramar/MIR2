@@ -1,7 +1,7 @@
 class:: SpecEnergy
 summary:: Sum of spectral bin weights
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Returns sum(w). With the default power weights this is the one-sided raw spectral energy, with DC and Nyquist counted once like every other selected bin. No Parseval or window normalization is applied.
@@ -34,17 +34,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecEnergy calculates the unnormalized total spectral energy (sum of squared magnitudes). In this example, spectral energy modulates analog tape saturation drive and warmth, producing pleasing non-linear saturation on energetic drum hits while leaving quiet taps transparent. An interactive code::MIR2GUI.scope:: displays real-time spectral energy.
+SpecEnergy calculates the unnormalized total spectral energy (sum of squared magnitudes). In this example, spectral energy modulates analog tape saturation drive and warmth, producing pleasing non-linear saturation on energetic drum hits while leaving quiet taps transparent. An interactive code::MIRaGUI.scope:: displays real-time spectral energy.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -59,24 +59,19 @@ s.waitForBoot({
         var drive = energy.lag(0.05).linexp(0.1, 10.0, 1.0, 3.5).clip(1.0, 4.0);
         var saturated = (source * drive).tanh * 0.3;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, energy.clip(0, 50)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, energy.clip(0, 50)) };
         saturated * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Energy", ~mir2Bus, 0.0, 20.0, "energy");
+    ~miraGUI = MIRaGUI.scope("Spectral Energy", ~miraBus, 0.0, 20.0, "energy");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

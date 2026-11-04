@@ -1,10 +1,10 @@
 class:: PitchSWIPE
 summary:: Prime-harmonic SWIPE spectral pitch evidence
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PitchYIN, Classes/PitchConsensus
 
 description::
-Paper-based SWIPE prime implementation after Camacho and Harris, JASA 124(3), 2008, DOI 10.1121/1.2951592. It resamples square-root magnitude onto a 0.1 ERB grid, applies signed cosine kernels at the first and prime harmonics with a 1/sqrt(frequency) envelope, and normalizes by positive-kernel and loudness norms. Candidate-dependent optimal window duration is eight periods; neighbouring power-of-two Hann-window strengths are blended in log window length. All windows share one causal frame centre. The longest window is capped at frameSize, so the low end deteriorates when eight periods do not fit; for 55 Hz at 48 kHz use 8192. MIR2 uses 2x FFT padding, linear ERB interpolation and parabolic interpolation on a log-frequency grid, rather than reproducing the reference offline interpolation exactly. No external implementation code is incorporated. Strength is spectral similarity, not probability.
+Paper-based SWIPE prime implementation after Camacho and Harris, JASA 124(3), 2008, DOI 10.1121/1.2951592. It resamples square-root magnitude onto a 0.1 ERB grid, applies signed cosine kernels at the first and prime harmonics with a 1/sqrt(frequency) envelope, and normalizes by positive-kernel and loudness norms. Candidate-dependent optimal window duration is eight periods; neighbouring power-of-two Hann-window strengths are blended in log window length. All windows share one causal frame centre. The longest window is capped at frameSize, so the low end deteriorates when eight periods do not fit; for 55 Hz at 48 kHz use 8192. MIRa uses 2x FFT padding, linear ERB interpolation and parabolic interpolation on a log-frequency grid, rather than reproducing the reference offline interpolation exactly. No external implementation code is incorporated. Strength is spectral similarity, not probability.
 
 Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
 
@@ -35,17 +35,17 @@ returns::
 An Array: frequency in Hz, strength from 0 through 1, voiced flag, octave competitor ratio.
 
 examples::
-PitchSWIPE tracks fundamental frequency using Camacho & Harris's prime-harmonic spectral cosine matching algorithm with candidate-dependent multi-resolution windows. In this example, it drives an intelligent synthetic vocal harmonizer: detected pitch tunes a parallel Saw/BPF lead that doubles the saxophone solo, gracefully fading on unvoiced breath. An interactive code::MIR2GUI.pianoRoll:: plots the tracked SWIPE pitch contour.
+PitchSWIPE tracks fundamental frequency using Camacho & Harris's prime-harmonic spectral cosine matching algorithm with candidate-dependent multi-resolution windows. In this example, it drives an intelligent synthetic vocal harmonizer: detected pitch tunes a parallel Saw/BPF lead that doubles the saxophone solo, gracefully fading on unvoiced breath. An interactive code::MIRaGUI.pianoRoll:: plots the tracked SWIPE pitch contour.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -60,25 +60,19 @@ s.waitForBoot({
         var synthLead = Saw.ar(freq.clip(50, 2000).lag(0.02)) * (strength * voiced).lag(0.03) * 0.18;
         var sound = (source * 0.25) + synthLead;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, freq) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("SWIPE Pitch Tracker", ~mir2Bus, 36, 84);
+    ~miraGUI = MIRaGUI.pianoRoll("SWIPE Pitch Tracker", ~miraBus, 36, 84);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch2::
-link::Classes/PitchYIN::
-link::Classes/PitchConsensus::

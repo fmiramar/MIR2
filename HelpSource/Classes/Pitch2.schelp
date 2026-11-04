@@ -1,10 +1,10 @@
 class:: Pitch2
 summary:: General modern F0 facade with explicit octave ambiguity
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch, Classes/PitchYIN, Classes/PitchMPM
+related:: Guides/MIRa, Classes/Pitch, Classes/PitchYIN, Classes/PitchMPM, Classes/Periodicity, Classes/Voicing
 
 description::
-Provides one entry point to MIR2's YIN and McLeod pitch engines. It returns frequency, algorithm-specific confidence, binary voicing, and competition from octave-related candidates instead of collapsing all evidence into one frequency. Octave ambiguity is code::competitor / (selected + competitor)::, where the competitor is the strongest local candidate near one-quarter, one-half, two, or four times the selected frequency within 80 cents.
+Provides one entry point to MIRa's YIN and McLeod pitch engines. It returns frequency, algorithm-specific confidence, binary voicing, and competition from octave-related candidates instead of collapsing all evidence into one frequency. Octave ambiguity is code::competitor / (selected + competitor)::, where the competitor is the strongest local candidate near one-quarter, one-half, two, or four times the selected frequency within 80 cents.
 
 For code::\yin::, confidence is one minus CMNDF; for code::\mpm::, it is NSDF clarity. Neither is a calibrated probability. A negative code::threshold:: selects the method default: 0.1 for YIN and 0.93 for MPM. Silence returns zero evidence and frequency unless code::hold:: is explicitly nonzero; while holding, confidence and voicing still fall to zero.
 
@@ -50,17 +50,17 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
-Pitch2 provides a unified F0 tracker with explicit octave ambiguity and confidence metrics. In this example, detected pitch tunes an adaptive harmonic ring modulator: the carrier frequency locks in consonant intervals to the melodic source, while octave ambiguity dynamically reins in modulation intensity when pitch candidate rivalry is high. An interactive code::MIR2GUI.pianoRoll:: plots the fundamental pitch contour in real time.
+Pitch2 provides a unified F0 tracker with explicit octave ambiguity and confidence metrics. In this example, detected pitch tunes an adaptive harmonic ring modulator: the carrier frequency locks in consonant intervals to the melodic source, while octave ambiguity dynamically reins in modulation intensity when pitch candidate rivalry is high. An interactive code::MIRaGUI.pianoRoll:: plots the fundamental pitch contour in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -78,28 +78,19 @@ s.waitForBoot({
         var ring = (source * carrier * 1.5).tanh * modDepth;
         var sound = (source * 0.25) + (ring * 0.2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, freq) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("Pitch2 Tracker", ~mir2Bus, 36, 84);
+    ~miraGUI = MIRaGUI.pianoRoll("Pitch2 Tracker", ~miraBus, 36, 84);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch::
-link::Classes/PitchYIN::
-link::Classes/PitchMPM::
-link::Classes/Periodicity::
-link::Classes/Voicing::
-

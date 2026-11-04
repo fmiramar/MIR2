@@ -1,7 +1,7 @@
 class:: FFTFlux2
 summary:: Explicit frame-to-frame spectral distance
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/FFTFlux
+related:: Guides/MIRa, Classes/FFTFlux, Classes/FFTFluxPos, Classes/Onsets2
 
 description::
 Calculates the Euclidean distance between consecutive selected FFT spectra. Positive mode half-wave rectifies bin differences; normalized mode divides by the current frame norm. The first frame and silence return zero.
@@ -39,17 +39,17 @@ Nonnegative spectral distance.
 instancemethods::
 
 examples::
-Spectral flux measures frame-to-frame spectral distance. In this example, flux spikes trigger a dynamic granular scatter delay: sudden drum hits scatter into metallic micro-echoes while steady decaying tails remain focused. An interactive code::MIR2GUI.scope:: tracks the live flux detection curve.
+Spectral flux measures frame-to-frame spectral distance. In this example, flux spikes trigger a dynamic granular scatter delay: sudden drum hits scatter into metallic micro-echoes while steady decaying tails remain focused. An interactive code::MIRaGUI.scope:: tracks the live flux detection curve.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -65,26 +65,19 @@ s.waitForBoot({
         var scatter = CombC.ar(source, 0.1, [0.03, 0.045], 0.3) * scatterGate;
         var sound = (source * 0.25) + (scatter.sum * 0.25);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, flux) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, flux) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Flux", ~mir2Bus, 0.0, 15.0);
+    ~miraGUI = MIRaGUI.scope("Spectral Flux", ~miraBus, 0.0, 15.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FFTFlux::
-link::Classes/FFTFluxPos::
-link::Classes/Onsets2::
-

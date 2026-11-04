@@ -1,12 +1,12 @@
 class:: RhythmPattern
 summary:: Bark/log-power modulation pattern for rhythmic timbre control
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/RhythmTransform, Classes/BarkBands, Classes/BeatHistogram
+related:: Guides/MIRa, Classes/RhythmTransform, Classes/BarkBands, Classes/BeatHistogram
 
 description::
-Extracts a band-by-modulation-frequency matrix from Bark-band power. MIR2 applies log1p compression, Hann-windowed modulation analysis, optional emphasis around 4 Hz, separable Gaussian smoothing and L2 normalization. Changes in rhythmic activity across frequency bands can control an effect or synthesized accompaniment.
+Extracts a band-by-modulation-frequency matrix from Bark-band power. MIRa applies log1p compression, Hann-windowed modulation analysis, optional emphasis around 4 Hz, separable Gaussian smoothing and L2 normalization. Changes in rhythmic activity across frequency bands can control an effect or synthesized accompaniment.
 
-This is a bounded MIR2 adaptation inspired by Lidy and Rauber, “Evaluation of Feature Extractors and Psycho-Acoustic Transformations for Music Genre Classification” (ISMIR 2005), link::https://ismir2005.ismir.net/proceedings/1033.pdf::. It does not reproduce the canonical Rhythm Patterns descriptor: spectral masking, calibrated phon/sone conversion, gradient filtering and whole-track median aggregation are omitted. Neither the output nor its weighting is calibrated in psychoacoustic units. No genre-classification accuracy is claimed. The krBands method permits externally prepared envelopes.
+This is a bounded MIRa adaptation inspired by Lidy and Rauber, “Evaluation of Feature Extractors and Psycho-Acoustic Transformations for Music Genre Classification” (ISMIR 2005), link::https://ismir2005.ismir.net/proceedings/1033.pdf::. It does not reproduce the canonical Rhythm Patterns descriptor: spectral masking, calibrated phon/sone conversion, gradient filtering and whole-track median aggregation are omitted. Neither the output nor its weighting is calibrated in psychoacoustic units. No genre-classification accuracy is claimed. The krBands method permits externally prepared envelopes.
 
 Timing, warmup, held-input pooling and work bounds follow link::Classes/RhythmTransform::. Wait for a full history before expecting modulation results. At most 1024 matrix elements and 524288 band-by-bin-by-history products are accepted. Normalize removes absolute level; use code::\none:: when level matters. The closest vanilla analysis tool is FFT; RhythmPattern adds a Bark/log-power frontend and a bounded matrix of modulation features, rather than an audio-frequency spectrum.
 
@@ -89,13 +89,13 @@ Extracts an 8-band by 8-bin fluctuation pattern from drum groove audio. RhythmPa
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 64);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 64);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -113,25 +113,19 @@ s.waitForBoot({
         var modComb = CombC.ar(source, 0.05, lowActivity.linexp(0, 5, 0.002, 0.02), 0.3) * 0.3;
         var panned = Pan2.ar(source * 0.3, highActivity.linlin(0, 5, -0.6, 0.6)) + (modComb ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, pattern.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, pattern.clip(0, 1)) };
         panned * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.heatmap("Rhythm Pattern (8 bands x 8 bins)", ~mir2Bus, 64);
+    ~miraGUI = MIRaGUI.heatmap("Rhythm Pattern (8 bands x 8 bins)", ~miraBus, 64);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/RhythmTransform::
-link::Classes/BarkBands::
-link::Classes/BeatHistogram::

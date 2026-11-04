@@ -1,12 +1,12 @@
 class:: SpecHFC
 summary:: Frequency weighted spectral content
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Returns sum(f * w) for linear weighting, or sum(f.squared * w) for quadratic weighting. Frequencies are in Hz, and no level normalization is applied. With power weights the units are raw FFT power times Hz or Hz squared.
 
-For these formulas w is the raw FFT magnitude or its square, and f is the bin-center frequency in Hz. Silence returns 0. The reader preserves the FFT chain. High-frequency-content descriptor family introduced in onset work by Masri and Bateman (1996); MIR2 makes Hz weighting and magnitude/power conventions explicit.
+For these formulas w is the raw FFT magnitude or its square, and f is the bin-center frequency in Hz. Silence returns 0. The reader preserves the FFT chain. High-frequency-content descriptor family introduced in onset work by Masri and Bateman (1996); MIRa makes Hz weighting and magnitude/power conventions explicit.
 
 CPU cost is linear in the number of FFT bins; no memory is allocated while processing. It adds no lookahead beyond the upstream FFT. At a 1024-sample window and 48 kHz the initial analysis window is about 21.3 ms. Changing FFT size or window affects unnormalized values.
 
@@ -37,17 +37,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecHFC computes high-frequency-content energy by weighting spectral bins by their frequency. In percussion processing, HFC rises sharply on cymbal and hi-hat transients. In this example, HFC controls an automatic high-frequency transient gate, routing cymbal shimmer to an airy stereo chorus while preserving clean dry bass and snare. An interactive code::MIR2GUI.scope:: displays real-time high-frequency content.
+SpecHFC computes high-frequency-content energy by weighting spectral bins by their frequency. In percussion processing, HFC rises sharply on cymbal and hi-hat transients. In this example, HFC controls an automatic high-frequency transient gate, routing cymbal shimmer to an airy stereo chorus while preserving clean dry bass and snare. An interactive code::MIRaGUI.scope:: displays real-time high-frequency content.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -64,24 +64,19 @@ s.waitForBoot({
         var chorus = DelayC.ar(cymbalWash, 0.02, SinOsc.kr([0.5, 0.7]).range(0.002, 0.008)) * 0.3;
         var sound = (source * 0.25 ! 2) + chorus;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, (hfc / 10).clip(0, 1000)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, (hfc / 10).clip(0, 1000)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("High Frequency Content", ~mir2Bus, 0.0, 500.0, "HFC");
+    ~miraGUI = MIRaGUI.scope("High Frequency Content", ~miraBus, 0.0, 500.0, "HFC");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

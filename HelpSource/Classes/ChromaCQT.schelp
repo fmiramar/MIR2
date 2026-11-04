@@ -1,10 +1,10 @@
 class:: ChromaCQT
 summary:: Twelve pitch classes from a tunable constant-Q filter bank
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/CQT, Classes/HPCP, Classes/Chromagram2
+related:: Guides/MIRa, Classes/CQT, Classes/HPCP, Classes/Chromagram2, Classes/Tonnetz
 
 description::
-ChromaCQT squares constant-Q magnitudes and folds each bin into its nearest equal-tempered semitone, summing across octaves. Its twelve outputs are C, C-sharp, D, E-flat, E, F, F-sharp, G, A-flat, A, B-flat, B. Half-semitone ties go to the higher note, using a 4e-6-semitone tolerance to absorb float32 SynthDef frequency rounding. The optional threshold removes weak folded powers before normalization. The native unit shares MIR2's sparse variable-length Hann kernels and exposes twelve outputs without an intermediate graph of up to 192 CQT outputs.
+ChromaCQT squares constant-Q magnitudes and folds each bin into its nearest equal-tempered semitone, summing across octaves. Its twelve outputs are C, C-sharp, D, E-flat, E, F, F-sharp, G, A-flat, A, B-flat, B. Half-semitone ties go to the higher note, using a 4e-6-semitone tolerance to absorb float32 SynthDef frequency rounding. The optional threshold removes weak folded powers before normalization. The native unit shares MIRa's sparse variable-length Hann kernels and exposes twelve outputs without an intermediate graph of up to 192 CQT outputs.
 
 The constant-Q technique follows Judith Brown (1991) and Brown and Puckette (1992); see link::Classes/CQT::. Pitch-class folding follows the standard chromagram definition described by Meinard Mueller's FMP material: link::https://www.audiolabs-erlangen.de/resources/MIR/FMP/C3/C3S1_SpecLogFreq-Chromagram.html::. This independent implementation uses unit-sum Hann kernels and nearest-semitone power folding; it does not claim numerical equivalence to librosa.
 
@@ -40,17 +40,17 @@ returns::
 Twelve control-rate pitch-class powers, C first, with the selected normalization.
 
 examples::
-ChromaCQT folds constant-Q spectral energy across multiple octaves into twelve equal-tempered pitch classes (C through B). In this example, it drives a 12-voice polyphonic organ resynthesizer: detected pitch classes continuously open corresponding pipe-organ sine voices, doubling piano chord progressions with lush harmonic resonance. An interactive code::MIR2GUI.chroma:: displays the real-time energy distribution across the circular chroma wheel.
+ChromaCQT folds constant-Q spectral energy across multiple octaves into twelve equal-tempered pitch classes (C through B). In this example, it drives a 12-voice polyphonic organ resynthesizer: detected pitch classes continuously open corresponding pipe-organ sine voices, doubling piano chord progressions with lush harmonic resonance. An interactive code::MIRaGUI.chroma:: displays the real-time energy distribution across the circular chroma wheel.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 12);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 12);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -64,26 +64,19 @@ s.waitForBoot({
         });
         var sound = (source * 0.25) + (organ * 0.3);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, chroma) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, chroma) };
         sound * Line.kr(0, 1, 0.3) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.chroma("Chroma CQT Wheel", ~mir2Bus);
+    ~miraGUI = MIRaGUI.chroma("Chroma CQT Wheel", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/CQT::
-link::Classes/HPCP::
-link::Classes/Chromagram2::
-link::Classes/Tonnetz::

@@ -1,12 +1,12 @@
 class:: Periodicity
 summary:: Repeating-structure evidence without a final F0 decision
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2
+related:: Guides/MIRa, Classes/Pitch2, Classes/PitchYIN, Classes/PitchMPM, Classes/Voicing
 
 description::
 Reports the strongest normalized repeating-structure evidence in the requested lag range. code::\nsdf:: uses the strongest McLeod normalized square difference peak; code::\yin:: uses one minus the selected CMNDF minimum. The output is an algorithmic periodicity measure, not pitch confidence or probability: missing-fundamental and polyphonic signals can be strongly periodic while their F0 identity remains uncertain.
 
-Frame scheduling, effective minimum frequency, latency, and silence behavior match the MIR2 pitch family. Silence returns zero. The closest vanilla comparison is the optional clarity-like evidence in link::Classes/Pitch::, but code::Periodicity:: is deliberately usable without accepting or retaining a frequency result.
+Frame scheduling, effective minimum frequency, latency, and silence behavior match the MIRa pitch family. Silence returns zero. The closest vanilla comparison is the optional clarity-like evidence in link::Classes/Pitch::, but code::Periodicity:: is deliberately usable without accepting or retaining a frequency result.
 
 classmethods::
 
@@ -39,17 +39,17 @@ Returns approximate first-result latency in seconds.
 instancemethods::
 
 examples::
-Periodicity reports repeating-structure evidence without requiring a commitment to an F0 decision. In this example, periodicity controls the feedback damping of a Karplus-Strong physical waveguide: periodic sustained sections produce long ringing tones, while non-periodic friction decays instantly into muted plucks. An interactive code::MIR2GUI.scope:: tracks the live periodicity index.
+Periodicity reports repeating-structure evidence without requiring a commitment to an F0 decision. In this example, periodicity controls the feedback damping of a Karplus-Strong physical waveguide: periodic sustained sections produce long ringing tones, while non-periodic friction decays instantly into muted plucks. An interactive code::MIRaGUI.scope:: tracks the live periodicity index.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic texture fallback
             PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
@@ -61,27 +61,19 @@ s.waitForBoot({
         var waveguide = CombC.ar(source, 0.05, 110.reciprocal, feedback * 2.0);
         var sound = (source * 0.2) + (waveguide * 0.3);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, periodicity) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, periodicity) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Periodicity", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Periodicity", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch2::
-link::Classes/PitchYIN::
-link::Classes/PitchMPM::
-link::Classes/Voicing::
-

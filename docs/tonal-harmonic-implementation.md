@@ -13,7 +13,7 @@ arguments, formulas, units and silence/startup behavior.
 HPCP is C-first and supports 12, 24, 36 or 120 bins. Peaks contribute squared
 magnitudes to possible harmonic fundamentals, with harmonic weights 0.6^(h-1),
 nearest/cosine/squared-cosine pitch-class weighting and explicit none/max/L1/L2
-normalization. This is a documented MIR2 harmonic weighting convention, not a
+normalization. This is a documented MIRa harmonic weighting convention, not a
 claim of exact upstream HPCP equivalence. `Chromagram2` can instead distribute
 FFT-bin power by linear pitch-class interpolation. `TuningFrequency` estimates
 the circular mean of peak detuning modulo a semitone and exposes concentration
@@ -57,7 +57,7 @@ and state-machine correctness, not recording-based recognition accuracy.
 
 `ChordTrack.qualityNames` and `ChordTrack.label` expose language-side labels.
 The three chord help examples exercise the extended vocabulary audibly. The
-additional test executable `MIR2ExtendedChordTests.cpp` uses independent bitmask
+additional test executable `MIRaExtendedChordTests.cpp` uses independent bitmask
 templates and reports an optimized-kernel microbenchmark, excluding SC overhead.
 
 ## Harmonic descriptors

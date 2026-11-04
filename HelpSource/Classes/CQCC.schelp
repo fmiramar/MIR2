@@ -1,12 +1,12 @@
 class:: CQCC
 summary:: Constant-Q cepstra after uniform-frequency resampling
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/MFCC2
+related:: Guides/MIRa, Classes/MFCC2, Classes/CQT, Classes/ChromaCQT
 
 description::
 Computes a constant-Q magnitude spectrum, squares it, applies a natural logarithm with a power floor, interpolates that log-power curve at uniform Hz positions, then applies an orthonormal DCT-II. Interpolation weights are linear in Hz between adjacent logarithmically spaced analysis frequencies. Uniform positions include fmin and the highest CQT centre. The DCT uses cos(pi*k*(i+0.5)/uniformBins), scaled by sqrt(1/uniformBins) for k=0 and sqrt(2/uniformBins) otherwise.
 
-The processing sequence follows Todisco, Delgado and Evans, A New Feature for Automatic Speaker Verification Anti-Spoofing: Constant Q Cepstral Coefficients (Odyssey 2016), link::https://www.isca-archive.org/odyssey_2016/todisco16_odyssey.pdf::. MIR2 uses piecewise linear interpolation of log power; the published CQCC system uses a spline resampling method. This choice is explicit and does not claim reference-system numerical equivalence. There is no automatic mean normalization, liftering, or delta concatenation; use the separate feature dynamics utilities when needed.
+The processing sequence follows Todisco, Delgado and Evans, A New Feature for Automatic Speaker Verification Anti-Spoofing: Constant Q Cepstral Coefficients (Odyssey 2016), link::https://www.isca-archive.org/odyssey_2016/todisco16_odyssey.pdf::. MIRa uses piecewise linear interpolation of log power; the published CQCC system uses a spline resampling method. This choice is explicit and does not claim reference-system numerical equivalence. There is no automatic mean normalization, liftering, or delta concatenation; use the separate feature dynamics utilities when needed.
 
 Each analysis band uses a separate variable-length Hann-windowed complex sinusoid. With B bins per octave, band k is centred at fmin * 2.pow(k/B), and its kernel length is ceil(sampleRate / ((2.pow(1/B)-1)*frequency + gamma)). CQT uses gamma=0. The kernels are centred inside a common power-of-two frame and transformed to sparse spectral rows at construction. Processing performs one FFT and complex dot products with those rows. These are variable-length analysis filters, rather than interpolated FFT magnitudes.
 
@@ -57,17 +57,17 @@ returns::
 Array of numCoeffs cepstral values. These are signed log-power coordinates, not bounded probabilities.
 
 examples::
-CQCC computes cepstral coefficients derived from uniform resampling of a constant-Q log spectrum. In this example, 13 constant-Q cepstral coefficients dynamically modulate an FM carrier: lower cepstral orders control the FM modulation index while higher orders control carrier frequency offsets, creating an expressive timbral shadow tracking acoustic piano chords. An interactive code::MIR2GUI.bars:: displays the 13 cepstral coefficients in real time.
+CQCC computes cepstral coefficients derived from uniform resampling of a constant-Q log spectrum. In this example, 13 constant-Q cepstral coefficients dynamically modulate an FM carrier: lower cepstral orders control the FM modulation index while higher orders control carrier frequency offsets, creating an expressive timbral shadow tracking acoustic piano chords. An interactive code::MIRaGUI.bars:: displays the 13 cepstral coefficients in real time.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 13);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 13);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -85,25 +85,19 @@ s.waitForBoot({
         var carrier = SinOsc.ar(carrierFreq + modulator) * 0.15;
         var sound = (source * 0.25) + carrier;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, cqcc) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, cqcc) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.bars("CQCC Coefficients", ~mir2Bus, 13, -30.0, 30.0);
+    ~miraGUI = MIRaGUI.bars("CQCC Coefficients", ~miraBus, 13, -30.0, 30.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/CQT::
-link::Classes/MFCC2::
-link::Classes/ChromaCQT::

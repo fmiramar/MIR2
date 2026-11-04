@@ -1,7 +1,7 @@
 class:: SpecEntropy
 summary:: Shannon entropy of spectral energy
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 Let p = w / sum(w). Returns -sum(p * log(p)). The default divides this by log(number of bins), giving 0 for a single occupied bin and 1 for a flat spectrum. Zero terms contribute zero.
@@ -37,17 +37,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecEntropy computes the Shannon entropy of the power spectrum (0 for a pure sinusoidal tone, approaching 1 for white noise). In this example, high spectral entropy routes the audio into a diffuse multi-tap delay network, while low entropy preserves direct focused sound. An interactive code::MIR2GUI.scope:: displays real-time normalized spectral entropy.
+SpecEntropy computes the Shannon entropy of the power spectrum (0 for a pure sinusoidal tone, approaching 1 for white noise). In this example, high spectral entropy routes the audio into a diffuse multi-tap delay network, while low entropy preserves direct focused sound. An interactive code::MIRaGUI.scope:: displays real-time normalized spectral entropy.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic texture fallback
             PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
@@ -61,24 +61,19 @@ s.waitForBoot({
         var direct = source * (1 - (entLag * 0.5));
         var sound = (direct ! 2) + scatter;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, entropy.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, entropy.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2) * 0.3
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Entropy", ~mir2Bus, 0.0, 1.0, "norm");
+    ~miraGUI = MIRaGUI.scope("Spectral Entropy", ~miraBus, 0.0, 1.0, "norm");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

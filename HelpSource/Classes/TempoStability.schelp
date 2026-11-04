@@ -1,7 +1,7 @@
 class:: TempoStability
 summary:: Confidence-weighted tempo stability
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+related:: Guides/MIRa, Classes/Onsets2, Classes/BeatTrack3, Classes/TempoRubato, Classes/Tempo, Classes/BeatStatistics2
 
 description::
 Computes the weighted standard deviation of log2(BPM) over a trailing control-rate window, then exp(-12*deviation). Fewer than two accepted observations yields zero; perfectly steady accepted tempo yields one.
@@ -26,17 +26,17 @@ returns::
 One stability score from 0 to 1.
 
 examples::
-TempoStability computes the confidence-weighted standard deviation of tempo over a rolling control window, outputting a normalized score ($1.0$ for rock-solid mechanical timing, decaying toward $0.0$ during tempo drifts and rubato). In this example, it controls feedback on a stereo flanger: steady tempos produce resonant metallic comb tones, while tempo fluctuations cleanly damp the feedback. An interactive code::MIR2GUI.scope:: plots the real-time stability score.
+TempoStability computes the confidence-weighted standard deviation of tempo over a rolling control window, outputting a normalized score ($1.0$ for rock-solid mechanical timing, decaying toward $0.0$ during tempo drifts and rubato). In this example, it controls feedback on a stereo flanger: steady tempos produce resonant metallic comb tones, while tempo fluctuations cleanly damp the feedback. An interactive code::MIRaGUI.scope:: plots the real-time stability score.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -57,25 +57,19 @@ s.waitForBoot({
         var flanger = CombC.ar(source, 0.02, flangerMod, stableSmooth.linlin(0, 1, 0.1, 0.8)) * 0.3;
         var sound = (source * 0.25 ! 2) + flanger;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, stable) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, stable) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Tempo Stability", ~mir2Bus, 0.0, 1.0);
+    ~miraGUI = MIRaGUI.scope("Tempo Stability", ~miraBus, 0.0, 1.0);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/TempoRubato::
-link::Classes/Tempo::
-link::Classes/BeatStatistics2::

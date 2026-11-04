@@ -1,7 +1,7 @@
 class:: VQT
 summary:: Variable-Q spectral analysis with a bandwidth offset
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/CQT
+related:: Guides/MIRa, Classes/CQT, Classes/ChromaCQT, Classes/CQCC
 
 description::
 Each analysis band uses a separate variable-length Hann-windowed complex sinusoid. With B bins per octave, band k is centred at fmin * 2.pow(k/B), and its kernel length is ceil(sampleRate / ((2.pow(1/B)-1)*frequency + gamma)). CQT uses gamma=0. The kernels are centred inside a common power-of-two frame and transformed to sparse spectral rows at construction. Processing performs one FFT and complex dot products with those rows. These are variable-length analysis filters, rather than interpolated FFT magnitudes.
@@ -57,17 +57,17 @@ argument:: gamma
 Bandwidth offset in Hz. The helper defaults to zero; pass the VQT gamma explicitly when sizing a VQT.
 
 examples::
-VQT introduces a bandwidth offset code::gamma:: to shorten low-frequency analysis windows, delivering faster temporal response for transient bass articulation. In this example, 48 VQT bins analyze a bass-melody mix: fast low-end activity modulates an analog-style Moog ladder filter tracking walking bass lines cleanly. An interactive code::MIR2GUI.heatmap:: displays the real-time variable-Q spectrogram.
+VQT introduces a bandwidth offset code::gamma:: to shorten low-frequency analysis windows, delivering faster temporal response for transient bass articulation. In this example, 48 VQT bins analyze a bass-melody mix: fast low-end activity modulates an analog-style Moog ladder filter tracking walking bass lines cleanly. An interactive code::MIRaGUI.heatmap:: displays the real-time variable-Q spectrogram.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("bass-melody-mix.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 48);
+    var path = MIRaGUI.soundPath("bass-melody-mix.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 48);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic bass + melody fallback
             var bass = SinOsc.ar(Select.kr(LFNoise0.kr(1).range(0, 4), [55, 65.4, 73.4, 82.4]), 0, 0.3);
@@ -83,25 +83,19 @@ s.waitForBoot({
         var filtered = MoogFF.ar(source, filterCutoff, 1.5) * 1.5;
         var sound = (source * 0.2) + (filtered * 0.25);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, magnitudes.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, magnitudes.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.heatmap("VQT Spectrogram", ~mir2Bus, 48);
+    ~miraGUI = MIRaGUI.heatmap("VQT Spectrogram", ~miraBus, 48);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/CQT::
-link::Classes/ChromaCQT::
-link::Classes/CQCC::

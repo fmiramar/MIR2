@@ -46,7 +46,7 @@ PNCC then applies its own discrete area normalization, which cancels an
 otherwise arbitrary per-filter gain. The sampled matrix includes DC and
 Nyquist, while the paper's finite sum excludes Nyquist; the requested upper
 centre is also limited to 0.45 of the sample rate. These are further frontend
-conventions to retain when reproducing MIR2 output.
+conventions to retain when reproducing MIRa output.
 
 ## Independent oracle
 
@@ -55,7 +55,7 @@ rather than the C++ ring buffer, and separate list equations for the nonlinear
 stages. It generates `tests/reference/pncc-stages.csv` from deterministic band
 powers containing silence, stationary backgrounds, band-limited entrances,
 nonstationary modulation, gain changes and renewed activity after silence.
-`MIR2PNCCTests.cpp` compares every recorded medium-power, background, floor,
+`MIRaPNCCTests.cpp` compares every recorded medium-power, background, floor,
 weighted-power, mean-power and cepstral value to the C++ result. The fixture
 contains 158 emitted frames and is reproducible without third-party packages.
 Gammatone weights additionally have finite/nonnegative/unit-area checks over

@@ -1,7 +1,7 @@
 class:: StereoWidth
 summary:: Side energy as a normalized stereo width measure
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Amplitude
+related:: Guides/MIRa, Classes/Amplitude
 
 description::
 With M=(L+R)/2 and S=(L-R)/2, returns sqrt(sum(S.squared)/(sum(M.squared)+sum(S.squared))). Identical channels give zero, equal uncorrelated channels approach sqrt(0.5), and inverted channels give one. This is an M/S energy measure; it does not estimate a perceived source angle.
@@ -26,20 +26,20 @@ returns::
 Width from zero through one.
 
 examples::
-StereoWidth computes the normalized side-channel energy ratio from an M/S decomposition (0 for mono, ~0.7 for uncorrelated stereo, 1 for fully out-of-phase audio). In this example, measured stereo width dynamically controls the Side channel gain in a Mid/Side matrix: narrow mixes are gently widened, while overly wide or phasey signals are reined in to preserve center clarity. An interactive code::MIR2GUI.stereo:: displays the stereo width ellipse.
+StereoWidth computes the normalized side-channel energy ratio from an M/S decomposition (0 for mono, ~0.7 for uncorrelated stereo, 1 for fully out-of-phase audio). In this example, measured stereo width dynamically controls the Side channel gain in a Mid/Side matrix: narrow mixes are gently widened, while overly wide or phasey signals are reined in to preserve center clarity. An interactive code::MIRaGUI.stereo:: displays the stereo width ellipse.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("stereo.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 3);
+    var path = MIRaGUI.soundPath("stereo.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 3);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.isKindOf(Buffer) and: { ~mir2Buffer.numChannels >= 2 }) {
-            PlayBuf.ar(2, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.isKindOf(Buffer) and: { ~miraBuffer.numChannels >= 2 }) {
+            PlayBuf.ar(2, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
-            if(~mir2Buffer.notNil) {
-                var sig = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+            if(~miraBuffer.notNil) {
+                var sig = PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1);
                 [sig, DelayC.ar(sig, 0.02, 0.003)]
             } {
                 // Synthetic stereo fallback
@@ -58,23 +58,19 @@ s.waitForBoot({
         var sideGain = widthLag.linlin(0.1, 0.7, 1.4, 0.7).clip(0.5, 1.8);
         var enhanced = [mid + (side * sideGain), mid - (side * sideGain)] * 0.25;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, [0.0, widthLag * 2, 1.0]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, [0.0, widthLag * 2, 1.0]) };
         enhanced * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.stereo("Stereo Width", ~mir2Bus);
+    ~miraGUI = MIRaGUI.stereo("Stereo Width", ~miraBus);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Amplitude::

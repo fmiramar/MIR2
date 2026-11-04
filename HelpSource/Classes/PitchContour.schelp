@@ -1,10 +1,10 @@
 class:: PitchContour
 summary:: Causal dynamic-programming tracker for candidate arrays
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PitchProb
 
 description::
-Uses a fixed-capacity candidate graph and Viterbi-style min-sum dynamic programming: negative log observation weight plus continuity, octave and voicing transition costs. This follows the general candidate-tracking approach used by probabilistic pitch estimators such as Mauch and Dixon (ICASSP 2014); the sparse state graph and transition formula are MIR2 conventions, not the pYIN HMM. A ring of 32 predecessor rows supports bounded traceback. There is no hidden pitch analyzer. Frequency zero marks the unvoiced state; confidence is the selected observation weight, not a posterior path probability.
+Uses a fixed-capacity candidate graph and Viterbi-style min-sum dynamic programming: negative log observation weight plus continuity, octave and voicing transition costs. This follows the general candidate-tracking approach used by probabilistic pitch estimators such as Mauch and Dixon (ICASSP 2014); the sparse state graph and transition formula are MIRa conventions, not the pYIN HMM. A ring of 32 predecessor rows supports bounded traceback. There is no hidden pitch analyzer. Frequency zero marks the unvoiced state; confidence is the selected observation weight, not a posterior path probability.
 
 Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
 
@@ -38,17 +38,17 @@ returns::
 An Array: tracked frequency in Hz, selected candidate observation probability, signed pitch jump in cents.
 
 examples::
-PitchContour performs Viterbi-style dynamic programming over a multi-candidate pitch graph with octave and voicing penalty costs and bounded traceback lag. In this example, it stabilizes pitch candidates extracted from an expressive saxophone solo, eliminating octave skips and tracking smooth glissandi with a vintage theremin sine voice. An interactive code::MIR2GUI.pianoRoll:: plots the tracked Viterbi contour.
+PitchContour performs Viterbi-style dynamic programming over a multi-candidate pitch graph with octave and voicing penalty costs and bounded traceback lag. In this example, it stabilizes pitch candidates extracted from an expressive saxophone solo, eliminating octave skips and tracking smooth glissandi with a vintage theremin sine voice. An interactive code::MIRaGUI.pianoRoll:: plots the tracked Viterbi contour.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -62,25 +62,19 @@ s.waitForBoot({
         var theremin = SinOsc.ar(freq.lag(0.02), 0, track[1].lag(0.04) * 0.16 * (track[0] > 50));
         var sound = (source * 0.25) + theremin;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, track[0]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, track[0]) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("Viterbi Pitch Contour", ~mir2Bus, 36, 84);
+    ~miraGUI = MIRaGUI.pianoRoll("Viterbi Pitch Contour", ~miraBus, 36, 84);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/FundamentalCandidates::
-link::Classes/PitchProb::
-link::Classes/Pitch2::

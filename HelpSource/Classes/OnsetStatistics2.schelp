@@ -1,7 +1,7 @@
 class:: OnsetStatistics2
 summary:: Rolling onset interval statistics
 categories:: UGens>Analysis>Rhythm
-related:: Guides/MIR2, Classes/Onsets2, Classes/BeatTrack3
+related:: Guides/MIRa, Classes/Onsets2, Classes/BeatTrack3, Classes/OnsetRate, Classes/Tempo
 
 description::
 A bounded timestamp ring retains rising-edge onsets from the trailing window. Rate is event count divided by the complete requested window; interval moments use only adjacent retained events.
@@ -23,17 +23,17 @@ returns::
 [eventsPerSecond, meanIntervalSeconds, intervalStandardDeviationSeconds, intervalCoefficientOfVariation]. Fewer than two events yields zero interval statistics.
 
 examples::
-OnsetStatistics2 measures rolling inter-onset intervals (IOI) from event triggers, returning event rate, mean interval, standard deviation, and coefficient of variation. In this example, mean IOI dynamically modulates the rate and pitch spread of an auxiliary generative bell cluster: fast drumming produces tight, high-pitched clusters, while sparse grooves produce slow, resonant chime strikes. An interactive code::MIR2GUI.scope:: tracks the mean IOI in seconds.
+OnsetStatistics2 measures rolling inter-onset intervals (IOI) from event triggers, returning event rate, mean interval, standard deviation, and coefficient of variation. In this example, mean IOI dynamically modulates the rate and pitch spread of an auxiliary generative bell cluster: fast drumming produces tight, high-pitched clusters, while sparse grooves produce slow, resonant chime strikes. An interactive code::MIRaGUI.scope:: tracks the mean IOI in seconds.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -54,25 +54,19 @@ s.waitForBoot({
         var bell = Ringz.ar(Decay2.ar(K2A.ar(bellTrig), 0.002, 0.05) * 0.05, bellFreq, 0.25) * 0.3;
         var sound = (source * 0.25) + bell;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, stats[1]) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, stats[1]) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Mean IOI", ~mir2Bus, 0.0, 1.0, "s");
+    ~miraGUI = MIRaGUI.scope("Mean IOI", ~miraBus, 0.0, 1.0, "s");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/OnsetRate::
-link::Classes/Onsets2::
-link::Classes/Tempo::

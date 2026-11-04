@@ -1,7 +1,7 @@
 class:: ChordTrack
 summary:: Causal chord tracking with optional extended vocabulary
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
 An original template matcher over supplied chroma, following the pitch-class/template approach surveyed by Gomez (2006), DOI 10.1287/ijoc.1040.0126. Each chord receives cosine similarity multiplied by a coverage factor: min(1, weakestChordTone/(0.05*totalChroma)). An explicit no-chord state has score threshold. Causal min-sum dynamic programming adds transitionPenalty when the state changes; optional exponential chroma smoothing follows elapsed time. The default major/minor vocabulary is unchanged; the extended vocabulary adds diminished, augmented, seventh and suspended chords.
@@ -42,17 +42,17 @@ argument:: quality
 A language Integer quality index. Returns a label such as "C:maj7"; this helper does not accept UGen signals.
 
 examples::
-ChordTrack identifies chord roots and qualities from chroma using causal min-sum dynamic programming over templates (triads or extended chords). In this example, detected chords drive a polyphonic accompaniment synthesizer playing matching chord voicings in real time. An interactive code::MIR2GUI.scope:: displays real-time detected chord root.
+ChordTrack identifies chord roots and qualities from chroma using causal min-sum dynamic programming over templates (triads or extended chords). In this example, detected chords drive a polyphonic accompaniment synthesizer playing matching chord voicings in real time. An interactive code::MIRaGUI.scope:: displays real-time detected chord root.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -71,25 +71,19 @@ s.waitForBoot({
         var synthChord = Mix.ar(SinOsc.ar(root * [0, third, fifth, seventh].midiratio, 0, gains * chord[2] * (chord[0] >= 0) * 0.035));
         var sound = (source * 0.25 ! 2) + (synthChord ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, chord[0].clip(0, 11)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, chord[0].clip(0, 11)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Detected Chord Root", ~mir2Bus, 0.0, 11.0, "root");
+    ~miraGUI = MIRaGUI.scope("Detected Chord Root", ~miraBus, 0.0, 11.0, "root");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

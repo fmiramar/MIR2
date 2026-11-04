@@ -1,8 +1,8 @@
-# MIR2 Neural
+# MIRa Neural
 
-MIR2 Neural is an optional native CPU extension for monophonic pitch analysis.
+MIRa Neural is an optional native CPU extension for monophonic pitch analysis.
 It implements the PESTO research technique inside SuperCollider and remains
-separate from MIR2's classical analyzers. The base MIR2 build does not require
+separate from MIRa's classical analyzers. The base MIRa build does not require
 this extension, an inference framework, or model files.
 
 `PitchPESTO` estimates fundamental frequency, learned voicing confidence and
@@ -27,7 +27,7 @@ checkout:
 ```sh
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release -DSTRICT=ON \
-  -DMIR2_NEURAL_PLUGIN=ON -DSC_PATH=/path/to/supercollider \
+  -DMIRa_NEURAL_PLUGIN=ON -DSC_PATH=/path/to/supercollider \
   -DSCSYNTH=ON -DSUPERNOVA=ON
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
@@ -35,8 +35,8 @@ cmake --install build --prefix /path/to/SuperCollider/Extensions
 ```
 
 Recompile the class library and open `PitchPESTO` help. Its project overview is
-`Guides/MIR2`, supplied by the base MIR2 installation. Set
-`MIR2_NEURAL_PLUGIN=OFF` to build only the standalone native probe and tests;
+`Guides/MIRa`, supplied by the base MIRa installation. Set
+`MIRa_NEURAL_PLUGIN=OFF` to build only the standalone native probe and tests;
 that configuration needs no SuperCollider checkout.
 
 The runtime uses native C++ on the CPU. It needs no Python, PyTorch, ONNX, GPU or
@@ -69,7 +69,7 @@ not normalize, resample, or convert it to integer PCM.
 
 Export separately for each server sample rate: 16000, 44100, 48000 or 96000 Hz.
 The UGen rejects a model whose rate differs from the server's rate. For the help
-example, create a `models` directory inside the installed `MIR2Neural` extension
+example, create a `models` directory inside the installed `MIRaNeural` extension
 and copy the corresponding `model.wav` there as
 `mir-1k_g7-48000.wav` (substitute the actual sample rate). These are local generated
 assets; installing the plugin does not install or redistribute them.
@@ -134,7 +134,7 @@ packages are only required to export and compare reference results.
 
 ## License and provenance
 
-MIR2 Neural is distributed under the parent project's GPL-3.0-or-later license.
+MIRa Neural is distributed under the parent project's GPL-3.0-or-later license.
 Its PESTO adaptation and upstream provenance are documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the upstream LGPL-3.0 text is
 preserved in [licenses/LGPL-3.0.md](licenses/LGPL-3.0.md).

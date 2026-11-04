@@ -1,7 +1,7 @@
 class:: SpecCentroid2
 summary:: Explicit spectral centroid in Hz
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid
+related:: Guides/MIRa, Classes/SpecCentroid, Classes/SpecFlatness2, Classes/SpecPcile2
 
 description::
 Calculates the weighted mean frequency of a SuperCollider FFT frame. Bins from code::minFreq:: through code::maxFreq:: contribute either magnitude or power, and silence returns zero. The output updates when the FFT chain produces a new frame and otherwise retains that frame's result.
@@ -33,17 +33,17 @@ Centroid frequency in Hz, or 0 for silence.
 instancemethods::
 
 examples::
-The spectral centroid measures the brightness center-of-mass in Hz. In this example, it drives an adaptive spectral tilt cross-modulator: bright cymbal and snare hits open an auxiliary high-frequency pitch-shifted shimmer comb, while low-frequency bass hits remain grounded and dry. An interactive code::MIR2GUI.scope:: plots the real-time centroid frequency in Hz.
+The spectral centroid measures the brightness center-of-mass in Hz. In this example, it drives an adaptive spectral tilt cross-modulator: bright cymbal and snare hits open an auxiliary high-frequency pitch-shifted shimmer comb, while low-frequency bass hits remain grounded and dry. An interactive code::MIRaGUI.scope:: plots the real-time centroid frequency in Hz.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("drums.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("drums.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic drum fallback
             var trig = Impulse.kr(2);
@@ -59,26 +59,19 @@ s.waitForBoot({
         var comb = CombC.ar(source, 0.05, (centroid.clip(200, 4000).reciprocal * 4), 0.2) * brightNorm;
         var sound = (source * 0.2) + (comb * 0.25);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, centroid) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, centroid) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Spectral Centroid", ~mir2Bus, 0, 8000, "Hz");
+    ~miraGUI = MIRaGUI.scope("Spectral Centroid", ~miraBus, 0, 8000, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid::
-link::Classes/SpecFlatness2::
-link::Classes/SpecPcile2::
-

@@ -1,10 +1,10 @@
 class:: PitchConsensus
 summary:: Pitch agreement and disagreement across estimators
 categories:: UGens>Analysis>Pitch
-related:: Guides/MIR2, Classes/Pitch2, Classes/FundamentalCandidates
+related:: Guides/MIRa, Classes/Pitch2, Classes/FundamentalCandidates, Classes/PitchSWIPE, Classes/PitchProb
 
 description::
-Combines YIN, MPM and SWIPE prime evidence after de Cheveigne and Kawahara (2002), McLeod and Wyvill (2005), and Camacho and Harris (2008). MIR2 chooses the confidence-weighted cluster within 50 cents of an estimate, and returns its weighted geometric mean. Agreement is cluster weight divided by all valid estimate weight. Spread includes every valid estimate; octave conflict is weight belonging to octave-related outliers divided by total weight. A single valid method yields agreement 1, so agreement alone is not voicing confidence. This fusion rule is an original deterministic utility, not a published consensus algorithm.
+Combines YIN, MPM and SWIPE prime evidence after de Cheveigne and Kawahara (2002), McLeod and Wyvill (2005), and Camacho and Harris (2008). MIRa chooses the confidence-weighted cluster within 50 cents of an estimate, and returns its weighted geometric mean. Agreement is cluster weight divided by all valid estimate weight. Spread includes every valid estimate; octave conflict is weight belonging to octave-related outliers divided by total weight. A single valid method yields agreement 1, so agreement alone is not voicing confidence. This fusion rule is an original deterministic utility, not a published consensus algorithm.
 
 Like link::Classes/Pitch::, this family extracts control signals from sound; it exposes explicit evidence or contour information for synthesis control.
 
@@ -35,17 +35,17 @@ returns::
 An Array: winning cluster frequency in Hz, agreement, weighted RMS spread in cents, octave-conflict weight fraction.
 
 examples::
-PitchConsensus fuses multiple independent pitch estimators (YIN, MPM, and SWIPE) using confidence-weighted clustering to provide rock-solid fault-tolerant pitch tracking. In this example, it drives an adaptive harmonic comb resonator: when estimators achieve high consensus agreement, the resonator responds with pure, glassy resonance; when estimators disagree or fight octave ties, the resonator softly attenuates. An interactive code::MIR2GUI.pianoRoll:: plots the consensus pitch.
+PitchConsensus fuses multiple independent pitch estimators (YIN, MPM, and SWIPE) using confidence-weighted clustering to provide rock-solid fault-tolerant pitch tracking. In this example, it drives an adaptive harmonic comb resonator: when estimators achieve high consensus agreement, the resonator responds with pure, glassy resonance; when estimators disagree or fight octave ties, the resonator softly attenuates. An interactive code::MIRaGUI.pianoRoll:: plots the consensus pitch.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
@@ -61,25 +61,19 @@ s.waitForBoot({
         var comb = CombC.ar(source, 0.05, delayTime, 0.3) * agreement.lag(0.04) * 0.4;
         var sound = (source * 0.25) + comb;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, freq) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, freq) };
         sound * Line.kr(0, 1, 0.2) ! 2
     }.play;
 
-    ~mir2GUI = MIR2GUI.pianoRoll("Consensus Pitch", ~mir2Bus, 36, 84);
+    ~miraGUI = MIRaGUI.pianoRoll("Consensus Pitch", ~miraBus, 36, 84);
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Pitch2::
-link::Classes/PitchSWIPE::
-link::Classes/PitchProb::

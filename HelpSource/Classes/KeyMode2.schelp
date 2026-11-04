@@ -1,12 +1,12 @@
 class:: KeyMode2
 summary:: Tonal key mode
 categories:: UGens>Analysis>Tonal
-related:: Guides/MIR2, Classes/HPCP, Classes/HarmonicPeaks
+related:: Guides/MIRa, Classes/HPCP, Classes/HarmonicPeaks, Classes/Pitch2
 
 description::
 Uses tuning-aware HPCP with exponential time averaging, followed by Pearson correlation against all 24 rotated major/minor profiles. Krumhansl-Kessler data are reported by Temperley (1999); Temperley's 1999 profiles and Faraldo et al.'s EDMA ECIR 2016 measured profiles are also available. The key is the strongest correlation, subject to threshold. This independent implementation uses a twelve-bin HPCP and does not reproduce any external implementation's full preprocessing. Mode 0 means major, 1 minor; root 0 is C through 11 B. Silence or insufficient correlation gives root/mode -1. A local chord, speech or short excerpt may not establish a musical key.
 
-Vanilla link::Classes/KeyTrack:: also estimates tonality. MIR2 accepts configurable FFT sizes and tuning, exposes separate root/mode/strength, and uses selectable profiles.
+Vanilla link::Classes/KeyTrack:: also estimates tonality. MIRa accepts configurable FFT sizes and tuning, exposes separate root/mode/strength, and uses selectable profiles.
 
 classmethods::
 method:: kr
@@ -41,17 +41,17 @@ returns::
 Mode index: 0 major, 1 minor, -1 no key.
 
 examples::
-KeyMode2 detects the tonal mode of the estimated key (0 for Major, 1 for Minor, -1 for undefined). In this example, detected mode switches the harmony of a synthesized backing triad between bright Major and dark Minor voicings. An interactive code::MIR2GUI.scope:: displays real-time key mode.
+KeyMode2 detects the tonal mode of the estimated key (0 for Major, 1 for Minor, -1 for undefined). In this example, detected mode switches the harmony of a synthesized backing triad between bright Major and dark Minor voicings. An interactive code::MIRaGUI.scope:: displays real-time key mode.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("piano-chords.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("piano-chords.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic chords fallback
             Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
@@ -64,25 +64,19 @@ s.waitForBoot({
         var chordVoice = SinOsc.ar((48 + [0, thirdInt, 7]).midicps, 0, (mode >= 0).lag(0.05) * 0.05).sum;
         var sound = (source * 0.25 ! 2) + (chordVoice ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, mode.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, mode.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Key Mode (0=Maj, 1=Min)", ~mir2Bus, 0.0, 1.0, "mode");
+    ~miraGUI = MIRaGUI.scope("Key Mode (0=Maj, 1=Min)", ~miraBus, 0.0, 1.0, "mode");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/HPCP::
-link::Classes/HarmonicPeaks::
-link::Classes/Pitch2::

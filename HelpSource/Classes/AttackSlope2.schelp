@@ -1,7 +1,7 @@
 class:: AttackSlope2
 summary:: Externally triggered attack slope
 categories:: UGens>Analysis
-related:: Guides/MIR2, Classes/Slope
+related:: Guides/MIRa, Classes/Slope
 
 description::
 A positive trigger edge begins a fixed maxTime capture of nonoverlapping RMS envelope frames. A new trigger restarts an unfinished capture. After capture, the largest RMS peak defines relative lowRatio and highRatio thresholds. The attack runs from the first upward low crossing to the first upward high crossing before the peak; decay runs from the first downward high crossing after the peak to the first downward low crossing. Linear interpolation refines crossing times between envelope frames. Attack slope is peak*(highRatio-lowRatio)/attackTime. These are independent, externally segmented event measurements: onset detection is supplied by the caller. The output holds the last completed result while a new capture runs. The first result arrives after maxTime, resolution is limited by frameTime, and events crossing the capture boundaries can be truncated. An already-high first frame has no observable rise. CPU is O(maxTime/frameTime) once per completed capture and memory is fixed at construction. The convention follows relative-threshold envelope attack descriptors, with explicit segmentation and crossing definitions.
@@ -33,17 +33,17 @@ returns::
 RMS amplitude units per second; zero for an unresolved or instantaneous attack.
 
 examples::
-AttackSlope2 measures the linear rise slope (peak * (highRatio - lowRatio) / attackTime) of a captured transient event. Steep slopes indicate hard, forceful plucks or strikes; gentle slopes indicate soft legato playing. In this example, attack slope triggers a punchy sub-bass ping that reinforces hard-plucked notes. An interactive code::MIR2GUI.scope:: displays real-time attack slope.
+AttackSlope2 measures the linear rise slope (peak * (highRatio - lowRatio) / attackTime) of a captured transient event. Steep slopes indicate hard, forceful plucks or strikes; gentle slopes indicate soft legato playing. In this example, attack slope triggers a punchy sub-bass ping that reinforces hard-plucked notes. An interactive code::MIRaGUI.scope:: displays real-time attack slope.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("plucks.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("plucks.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic pluck fallback
             var trig = Impulse.kr(1.5);
@@ -59,23 +59,19 @@ s.waitForBoot({
         var punch = SinOsc.ar(60, 0, punchTrig * 0.3);
         var sound = (source * 0.25 ! 2) + (punch ! 2);
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, slopeLag.clip(0, 10)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, slopeLag.clip(0, 10)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Attack Slope", ~mir2Bus, 0.0, 10.0, "slope");
+    ~miraGUI = MIRaGUI.scope("Attack Slope", ~miraBus, 0.0, 10.0, "slope");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/Slope::

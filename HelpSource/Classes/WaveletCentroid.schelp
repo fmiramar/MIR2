@@ -1,7 +1,7 @@
 class:: WaveletCentroid
 summary:: Energy-weighted center of wavelet scale frequencies
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/WaveletBands
+related:: Guides/MIRa, Classes/WaveletBands, Classes/WaveletSpread, Classes/WaveletEntropy, Classes/Wavelets2
 
 description::
 Weights nominal dyadic scale center frequencies by scale energy. Detail centers use the geometric center of their ideal dyadic band; the approximation band uses its half-band center. Actual Daubechies filters overlap, so this is a scale-frequency descriptor, not an FFT centroid.
@@ -31,17 +31,17 @@ argument:: boundary
 Literal \periodic (default) or \symmetric. Symmetric mode mirrors the frame including each endpoint and transforms 2 * frameSize coefficients. Scale energies divide by this doubled length, preserving input mean square. Other modes are rejected.
 
 examples::
-WaveletCentroid computes the energy-weighted center of nominal wavelet scale frequencies in Hz. In this example, the wavelet centroid extracted from an acoustic melody controls the cutoff frequency of a tracking resonant filter on an accompanying analog-style sawtooth synth, harmonizing timbre with the melody. An interactive code::MIR2GUI.scope:: tracks the wavelet centroid frequency in Hz.
+WaveletCentroid computes the energy-weighted center of nominal wavelet scale frequencies in Hz. In this example, the wavelet centroid extracted from an acoustic melody controls the cutoff frequency of a tracking resonant filter on an accompanying analog-style sawtooth synth, harmonizing timbre with the melody. An interactive code::MIRaGUI.scope:: tracks the wavelet centroid frequency in Hz.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("melody.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("melody.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic melody fallback
             var freq = Demand.kr(Impulse.kr(4), 0, Dseq([60, 63, 67, 70, 72, 67, 65, 62].midicps, inf));
@@ -55,25 +55,19 @@ s.waitForBoot({
         var filtered = RLPF.ar(synthLead, centroid.clip(100, 7000).lag(0.04), 0.3);
         var sound = (source * 0.25 ! 2) + filtered;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, centroid.clip(100, 7000)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, centroid.clip(100, 7000)) };
         sound * Line.kr(0, 1, 0.2)
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Wavelet Centroid", ~mir2Bus, 100.0, 7000.0, "Hz");
+    ~miraGUI = MIRaGUI.scope("Wavelet Centroid", ~miraBus, 100.0, 7000.0, "Hz");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/WaveletSpread::
-link::Classes/WaveletEntropy::
-link::Classes/Wavelets2::

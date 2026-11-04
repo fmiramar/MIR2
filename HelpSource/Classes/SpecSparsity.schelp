@@ -1,7 +1,7 @@
 class:: SpecSparsity
 summary:: Hoyer spectral sparsity
 categories:: UGens>Analysis>MIR
-related:: Guides/MIR2, Classes/SpecCentroid2
+related:: Guides/MIRa, Classes/SpecCentroid2, Classes/SpecFlatness2
 
 description::
 For M selected bins returns (sqrt(M) - sum(w)/sqrt(sum(w.squared))) / (sqrt(M)-1). A flat nonzero vector is 0 and a vector with a single occupied bin is 1; silence is 0. One selected nonzero bin returns 1.
@@ -34,17 +34,17 @@ returns::
 One control-rate descriptor value.
 
 examples::
-SpecSparsity computes the Hoyer sparsity metric (0 for fully dense equal energy across all bins, 1 for energy concentrated in a single bin). In this example, high sparsity activates a clean resonant tuned comb filter to emphasize sparse sinusoidal partials, whereas dense noise passes through directly. An interactive code::MIR2GUI.scope:: displays real-time Hoyer sparsity.
+SpecSparsity computes the Hoyer sparsity metric (0 for fully dense equal energy across all bins, 1 for energy concentrated in a single bin). In this example, high sparsity activates a clean resonant tuned comb filter to emphasize sparse sinusoidal partials, whereas dense noise passes through directly. An interactive code::MIRaGUI.scope:: displays real-time Hoyer sparsity.
 code::
 (
 s.waitForBoot({
-    var path = MIR2GUI.soundPath("texture.wav");
-    ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
-    ~mir2Bus = Bus.control(s, 1);
+    var path = MIRaGUI.soundPath("texture.wav");
+    ~miraBuffer = if(path.notNil) { Buffer.read(s, path) } { nil };
+    ~miraBus = Bus.control(s, 1);
     s.sync;
-    ~mir2Example = {
-        var source = if(~mir2Buffer.notNil) {
-            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+    ~miraExample = {
+        var source = if(~miraBuffer.notNil) {
+            PlayBuf.ar(1, ~miraBuffer, BufRateScale.kr(~miraBuffer), loop: 1)
         } {
             // Synthetic texture fallback
             PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
@@ -57,24 +57,19 @@ s.waitForBoot({
         var comb = CombC.ar(source, 0.02, 1/440, 0.5) * resMix;
         var sound = (source * (1 - (resMix * 0.5)) ! 2) + comb;
 
-        if(~mir2Bus.notNil) { Out.kr(~mir2Bus, sparsity.clip(0, 1)) };
+        if(~miraBus.notNil) { Out.kr(~miraBus, sparsity.clip(0, 1)) };
         sound * Line.kr(0, 1, 0.2) * 0.3
     }.play;
 
-    ~mir2GUI = MIR2GUI.scope("Hoyer Sparsity", ~mir2Bus, 0.0, 1.0, "norm");
+    ~miraGUI = MIRaGUI.scope("Hoyer Sparsity", ~miraBus, 0.0, 1.0, "norm");
 });
 )
 ::
 code::
 (
-~mir2Example.free;
-if(~mir2GUI.notNil) { ~mir2GUI.close };
-if(~mir2Bus.notNil) { ~mir2Bus.free };
-if(~mir2Buffer.notNil) { ~mir2Buffer.free };
+~miraExample.free;
+if(~miraGUI.notNil) { ~miraGUI.close };
+if(~miraBus.notNil) { ~miraBus.free };
+if(~miraBuffer.notNil) { ~miraBuffer.free };
 )
 ::
-
-subsection:: See also
-link::Guides/MIR2::
-link::Classes/SpecCentroid2::
-link::Classes/SpecFlatness2::

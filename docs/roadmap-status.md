@@ -1,4 +1,4 @@
-# MIR2 full roadmap status
+# MIRa full roadmap status
 
 The broader classical implementation now contains **135 public classes**, with
 native DSP, SuperCollider APIs and an audible analysis-driven example for every
@@ -6,7 +6,7 @@ class. Work is tracked in local Git only. Nothing has been pushed or published.
 The original classical integration was verified on 2026-10-24. The native
 research extension and its verification are recorded in `implementation-log.md`.
 Implementation coverage is distinct from general recognition accuracy on music.
-The separate optional `MIR2Neural` extension adds `PitchPESTO`, verified locally
+The separate optional `MIRaNeural` extension adds `PitchPESTO`, verified locally
 on 2026-10-26; it is not a dependency of the 135-class base plugin.
 
 | Family | Implemented scope | Evidence and remaining limits |
@@ -61,7 +61,7 @@ for every class. See `implementation-log.md` for exact checks and limits.
   Implemented across all 135 base classes and PitchPESTO. Replaced uniform gain-scaling
   examples with handcrafted, musically meaningful synthesis processes; installed a
   curated CC0 1.0 audio suite (sounds/) with self-contained synthetic fallbacks; developed
-  the MIR2GUI live visualization toolkit (10 standard MIR visualizers in pure SuperCollider);
+  the MIRaGUI live visualization toolkit (10 standard MIR visualizers in pure SuperCollider);
   and verified all 135 help examples through headless NRT audio rendering, SCDoc indexing,
   and class compilation with zero errors or bad primitive calls.
 - **Recording-based quality:** the user explicitly deferred the proposed

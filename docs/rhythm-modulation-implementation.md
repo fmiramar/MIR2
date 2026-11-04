@@ -2,7 +2,7 @@
 
 The optional per-band rhythm gate is implemented as `RhythmTransform` and `RhythmPattern`. The distinct capability is retaining **which spectral band carries each modulation rate**. Summing envelopes before a tempogram loses that association. An independent two-envelope fixture with 2 Hz and 5 Hz amplitude modulation preserves both rates in separate rows, including their phase and amplitude, across nine sample-rate/block-size combinations.
 
-`RhythmPattern` is explicitly a **MIR2 Bark/log-power adaptation**, not an exact reproduction of the canonical Rhythm Patterns descriptor. Its source relationship is Lidy and Rauber, [Evaluation of Feature Extractors and Psycho-Acoustic Transformations for Music Genre Classification, ISMIR 2005, section 3.1](https://ismir2005.ismir.net/proceedings/1033.pdf). That method motivates the per-band modulation representation, 4 Hz emphasis and smoothing. MIR2 omits spectral masking, phon/sone calibration, gradient filtering and whole-track median aggregation. No upstream implementation or data tables were copied. Genre-classification quality is not inferred from the numerical tests.
+`RhythmPattern` is explicitly a **MIRa Bark/log-power adaptation**, not an exact reproduction of the canonical Rhythm Patterns descriptor. Its source relationship is Lidy and Rauber, [Evaluation of Feature Extractors and Psycho-Acoustic Transformations for Music Genre Classification, ISMIR 2005, section 3.1](https://ismir2005.ismir.net/proceedings/1033.pdf). That method motivates the per-band modulation representation, 4 Hz emphasis and smoothing. MIRa omits spectral masking, phon/sone calibration, gradient filtering and whole-track median aggregation. No upstream implementation or data tables were copied. Genre-classification quality is not inferred from the numerical tests.
 
 ## Defined signal and layout
 
@@ -11,7 +11,7 @@ The optional per-band rhythm gate is implemented as `RhythmTransform` and `Rhyth
 - Magnitudes are flat, band-major: `band * numBins + bin`. Optional RhythmTransform phase channels are a complete second matrix after the magnitudes, with the same layout.
 - The symmetric Hann window uses denominator `frames - 1`. Direct complex projection evaluates arbitrary modulation frequencies; no zero padding or FFT-bin rounding changes the requested grid. Magnitude is `2 * abs(projection) / sum(window)` except DC, which uses one rather than two. This is coherent-gain correction, not energy normalization.
 - Phase is the cosine phase extrapolated to the newest pooled sample, wrapped to [-pi, pi]. The newest sample represents the center of its block-averaging interval. Tiny coefficients have phase zero.
-- Optional fluctuation emphasis is the declared MIR2 function `2 / (f/4 + 4/f)`, zero at DC and unit gain at 4 Hz. It is not a calibrated fluctuation-strength measurement. Gaussian smoothing is separable across bands and bins, radius `ceil(3*sigma)` at most nine, with truncated-edge weight renormalization. L2 normalization is none, global, or per band.
+- Optional fluctuation emphasis is the declared MIRa function `2 / (f/4 + 4/f)`, zero at DC and unit gain at 4 Hz. It is not a calibrated fluctuation-strength measurement. Gaussian smoothing is separable across bands and bins, radius `ceil(3*sigma)` at most nine, with truncated-edge weight renormalization. L2 normalization is none, global, or per band.
 
 ## Streaming and bounds
 
@@ -25,7 +25,7 @@ Increasing hopTime reduces average CPU but does not reduce the per-update comput
 
 ## Verification
 
-`tests/cpp/MIR2ModulationTests.cpp` checks:
+`tests/cpp/MIRaModulationTests.cpp` checks:
 
 - An independently constructed long-double complex DFT against every magnitude/phase channel, including non-integer frequencies, DC and mean removal.
 - Two independent AM envelopes at 2/5 Hz: correct separate peak bins, amplitudes within 0.005, phase within 0.002 radians, and exact first/subsequent update times at 44.1/48/96 kHz with block sizes 32/64/128.
@@ -41,4 +41,4 @@ The focused suite passes in optimized and AddressSanitizer/UndefinedBehaviorSani
 | 24 × 16 × 400 | 0.165 | 0.221 |
 | 32 × 32 × 512 (work limit) | 0.526 | 0.661 |
 
-The musical examples use the supplied audio sample, a short 1.5-second history, and audible feature-controlled synthesis/filtering. Dataset classification evaluation and perceptual validation of a canonical phon/sone frontend remain separate research; they are not prerequisites hidden behind the delivered MIR2 adaptation.
+The musical examples use the supplied audio sample, a short 1.5-second history, and audible feature-controlled synthesis/filtering. Dataset classification evaluation and perceptual validation of a canonical phon/sone frontend remain separate research; they are not prerequisites hidden behind the delivered MIRa adaptation.
