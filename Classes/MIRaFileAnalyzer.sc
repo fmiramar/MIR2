@@ -14,7 +14,7 @@ MIRaFileAnalyzer {
     *analyze { |audioPath, hopHz = 100, numCQT = 72, fmin = 65.4, action|
         var resolvedPath, sf, duration, sampleRate, numChannels;
         var oscPath, outPath, synthDef, score, options;
-        var totalChannels;
+        var totalChannels, uid, sdefName;
 
         resolvedPath = audioPath.standardizePath;
         if(File.exists(resolvedPath).not) {
@@ -47,12 +47,15 @@ MIRaFileAnalyzer {
         // [6]: Onset trigger
         // [7..18]: 12 HPCP Chroma bins
         // [19 .. 19 + numCQT - 1]: numCQT CQT bins
+        uid = UniqueID.next;
+        sdefName = (\miraFileExtractor_ ++ uid).asSymbol;
+
         totalChannels = 7 + 12 + numCQT;
 
-        oscPath = PathName.tmp +/+ "mira_extract_%.osc".format(UniqueMethods.hash);
-        outPath = PathName.tmp +/+ "mira_extract_%.wav".format(UniqueMethods.hash);
+        oscPath = PathName.tmp +/+ "mira_extract_%.osc".format(uid);
+        outPath = PathName.tmp +/+ "mira_extract_%.wav".format(uid);
 
-        synthDef = SynthDef(\miraFileExtractor, { |bufnum|
+        synthDef = SynthDef(sdefName, { |bufnum|
             var sig = PlayBuf.ar(numChannels, bufnum, BufRateScale.kr(bufnum), loop: 0);
             var mono = if(numChannels > 1) { Mix(sig) * 0.5 } { sig };
             var chain = FFT(LocalBuf(1024), mono);
@@ -73,7 +76,7 @@ MIRaFileAnalyzer {
         score = Score([
             [0.0, [\b_allocRead, 0, resolvedPath]],
             [0.0, [\d_recv, synthDef.asBytes]],
-            [0.0, [\s_new, \miraFileExtractor, 1000, 0, 0, \bufnum, 0]],
+            [0.0, [\s_new, sdefName, 1000, 0, 0, \bufnum, 0]],
             [duration + 0.08, [\n_free, 1000]]
         ]);
 
@@ -191,25 +194,43 @@ MIRaFileAnalyzer {
 
     *readWaveform { |audioPath, targetPoints = 2000|
         var sf = SoundFile.openRead(audioPath);
-        var totalFrames, numChannels, step, raw, result;
+        var totalFrames, numChannels, raw, result;
         if(sf.isNil) { ^FloatArray.new };
 
         totalFrames = sf.numFrames;
         numChannels = sf.numChannels;
-        step = (totalFrames / targetPoints).ceil.asInteger.max(1);
+        if(totalFrames <= 0) {
+            sf.close;
+            ^FloatArray.newClear(targetPoints * 2);
+        };
+
         raw = FloatArray.newClear(totalFrames * numChannels);
         sf.readData(raw);
         sf.close;
 
         result = FloatArray.newClear(targetPoints * 2);
         targetPoints.do { |i|
-            var start = i * step;
-            var finish = (start + step).min(totalFrames);
+            var start = ((i * totalFrames) / targetPoints).floor.asInteger;
+            var finish = (((i + 1) * totalFrames) / targetPoints).ceil.asInteger.min(totalFrames);
             var minVal = 0.0, maxVal = 0.0;
-            (start .. finish - 1).do { |f|
-                var sample = raw[f * numChannels]; // channel 0
-                minVal = minVal.min(sample);
-                maxVal = maxVal.max(sample);
+            if(start < finish) {
+                var first = true;
+                (start .. finish - 1).do { |f|
+                    var idx = f * numChannels;
+                    if(idx < raw.size) {
+                        var sample = raw[idx];
+                        if(sample.notNil) {
+                            if(first) {
+                                minVal = sample;
+                                maxVal = sample;
+                                first = false;
+                            } {
+                                minVal = minVal.min(sample);
+                                maxVal = maxVal.max(sample);
+                            };
+                        };
+                    };
+                };
             };
             result[i * 2] = minVal;
             result[(i * 2) + 1] = maxVal;
