@@ -46,11 +46,21 @@ s.waitForBoot({
         modelPath = Platform.userExtensionDir +/+ "MIR2Neural/models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
     };
     if(File.exists(modelPath).not) {
-        Error("PitchPESTO: export a model for this server rate and copy it to " ++ modelPath).throw;
+        modelPath = Platform.userExtensionDir +/+ "MIR2/models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
+    };
+    if(File.exists(modelPath).not) {
+        modelPath = Platform.userAppSupportDir +/+ "models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
+    };
+    if(File.exists(modelPath).not) {
+        Error("PitchPESTO: model file mir-1k_g7-" ++ rate ++ ".wav not found at " ++ modelPath).throw;
     };
 
     ~mir2PESTOModel = Buffer.read(s, modelPath);
-    ~mir2Buffer = if(audioPath.notNil) { Buffer.read(s, audioPath) } { Buffer.read(s, ExampleFiles.child) };
+    ~mir2Buffer = if(audioPath.notNil) {
+        Buffer.read(s, audioPath)
+    } {
+        if(\ExampleFiles.asClass.notNil) { Buffer.read(s, ExampleFiles.child) } { nil }
+    };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
 
@@ -90,7 +100,7 @@ s.waitForBoot({
     s.sync;
     if(~mir2Buffer.notNil) { ~mir2Buffer.free };
     if(~mir2PESTOModel.notNil) { ~mir2PESTOModel.free };
-}).play(AppClock);
+});
 )
 ::
 

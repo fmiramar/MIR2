@@ -95,7 +95,7 @@ MIR2BaseView {
 
     close {
         if(skipjack.notNil) { skipjack.stop; skipjack = nil };
-        if(window.notNil and: { window.isClosed.not }) { window.close };
+        { if(window.notNil and: { window.isClosed.not }) { window.close } }.defer;
     }
 }
 
