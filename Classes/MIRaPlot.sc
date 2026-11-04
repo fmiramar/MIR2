@@ -136,9 +136,13 @@ MIRaPlot {
                         });
                         playStartTime = Main.elapsedTime - pausedAt;
                     };
-                    mainView.refresh;
-                }
+                    mainView.children.do { |ch| if(ch.isKindOf(UserView)) { ch.refresh } };
+                },
+                getCursorTime: { currentCursorTime }
             );
+
+            // Initial refresh to draw views, images, and playhead cursor immediately
+            mainView.children.do { |ch| if(ch.isKindOf(UserView)) { ch.refresh } };
 
             // Play / Pause handling
             playBtn.action = { |btn|
@@ -151,7 +155,7 @@ MIRaPlot {
                             isPlaying = false;
                             pausedAt = 0;
                             currentCursorTime = 0;
-                            mainView.refresh;
+                            mainView.children.do { |ch| if(ch.isKindOf(UserView)) { ch.refresh } };
                         }.defer;
                     });
                 } {
@@ -168,7 +172,7 @@ MIRaPlot {
                 currentCursorTime = 0;
                 MIRaPlot.stopPlayback;
                 timeTxt.string_("00:00.00 / %".format(MIRaPlot.formatTime(dict[\duration])));
-                mainView.refresh;
+                mainView.children.do { |ch| if(ch.isKindOf(UserView)) { ch.refresh } };
             };
 
             cmapPopup.action = { |pop|
@@ -179,8 +183,10 @@ MIRaPlot {
                     if(ch.respondsTo(\updateImages)) {
                         ch.updateImages(specImg, chromaImg, colormapName);
                     };
+                    if(ch.isKindOf(UserView)) {
+                        ch.refresh;
+                    };
                 };
-                mainView.refresh;
             };
 
             // Keyboard Spacebar play/pause
@@ -199,13 +205,14 @@ MIRaPlot {
                             MIRaPlot.formatTime(currentCursorTime),
                             MIRaPlot.formatTime(dict[\duration])
                         ));
-                        mainView.refresh;
+                        mainView.children.do { |ch| if(ch.isKindOf(UserView)) { ch.refresh } };
                         if(currentCursorTime >= dict[\duration]) {
                             isPlaying = false;
                             playBtn.value = 0;
                             pausedAt = 0;
                             currentCursorTime = 0;
                             MIRaPlot.stopPlayback;
+                            mainView.children.do { |ch| if(ch.isKindOf(UserView)) { ch.refresh } };
                         };
                     };
                     (1 / 30).wait;
@@ -226,6 +233,7 @@ MIRaPlot {
 
     *makeMatrixImage { |matrix, colormapName = \magma, dbScale = true|
         var numFrames, numBins, img, pixels, pixelTable;
+        var maxVal = 1e-6;
         if(matrix.isNil or: { matrix.isEmpty }) { ^nil };
 
         numFrames = matrix.size;
@@ -234,26 +242,35 @@ MIRaPlot {
         pixels = Int32Array.newClear(numFrames * numBins);
         pixelTable = MIRaColormap.pixelTable(colormapName);
 
+        if(dbScale.not) {
+            numFrames.do { |x|
+                numBins.do { |b|
+                    var v = matrix[x][b];
+                    if(v > maxVal) { maxVal = v };
+                };
+            };
+        };
+
         numBins.do { |b|
             var y = numBins - 1 - b;
             numFrames.do { |x|
                 var raw = matrix[x][b];
                 var norm;
                 if(dbScale) {
-                    var db = if(raw > 1e-5) { 20 * raw.log10 } { -100 };
-                    norm = ((db + 80) / 80).clip(0.0, 1.0);
+                    var db = if(raw > 1e-6) { 20 * raw.log10 } { -100 };
+                    norm = ((db + 70) / 70).clip(0.0, 1.0);
                 } {
-                    norm = raw.clip(0.0, 1.0);
+                    norm = (raw / maxVal).clip(0.0, 1.0);
                 };
                 pixels[(y * numFrames) + x] = pixelTable[(norm * 255).round.asInteger];
             };
         };
 
-        img.loadPixels(pixels);
+        img.setPixels(pixels);
         ^img
     }
 
-    *buildTiers { |parent, data, activeTiers, tierHeights, width, height, plotLeft, plotRight, specImg, chromaImg, colormapName, onSeek|
+    *buildTiers { |parent, data, activeTiers, tierHeights, width, height, plotLeft, plotRight, specImg, chromaImg, colormapName, onSeek, getCursorTime|
         var currentY = 8;
         var plotWidth = width - plotLeft - plotRight;
         var totalAvailable = height - 16;
@@ -273,19 +290,19 @@ MIRaPlot {
 
             switch(k,
                 \wave, {
-                    this.setupWaveTier(uv, data, plotLeft, plotWidth, h, onSeek);
+                    this.setupWaveTier(uv, data, plotLeft, plotWidth, h, onSeek, getCursorTime);
                 },
                 \spec, {
-                    this.setupSpecTier(uv, data, plotLeft, plotWidth, h, specImg, colormapName, onSeek);
+                    this.setupSpecTier(uv, data, plotLeft, plotWidth, h, specImg, colormapName, onSeek, getCursorTime);
                 },
                 \chroma, {
-                    this.setupChromaTier(uv, data, plotLeft, plotWidth, h, chromaImg, colormapName, onSeek);
+                    this.setupChromaTier(uv, data, plotLeft, plotWidth, h, chromaImg, colormapName, onSeek, getCursorTime);
                 },
                 \pitch, {
-                    this.setupPitchTier(uv, data, plotLeft, plotWidth, h, onSeek);
+                    this.setupPitchTier(uv, data, plotLeft, plotWidth, h, onSeek, getCursorTime);
                 },
                 \dynamics, {
-                    this.setupDynamicsTier(uv, data, plotLeft, plotWidth, h, onSeek);
+                    this.setupDynamicsTier(uv, data, plotLeft, plotWidth, h, onSeek, getCursorTime);
                 }
             );
 
@@ -293,7 +310,7 @@ MIRaPlot {
         };
     }
 
-    *setupWaveTier { |view, data, plotLeft, plotWidth, h, onSeek|
+    *setupWaveTier { |view, data, plotLeft, plotWidth, h, onSeek, getCursorTime|
         var wave = data[\waveform];
         var onsets = data[\onsets];
         var rms = data[\rms];
@@ -307,6 +324,10 @@ MIRaPlot {
             Pen.fillRect(plotRect);
             Pen.strokeColor = Color.gray(0.3);
             Pen.strokeRect(plotRect);
+
+            Pen.push;
+            Pen.addRect(plotRect);
+            Pen.clip;
 
             // Waveform fill
             if(wave.notNil and: { wave.size >= 2 }) {
@@ -345,21 +366,28 @@ MIRaPlot {
                 Pen.stroke;
             };
 
+            Pen.pop;
+
             // Labels
             Pen.stringLeftJustIn("Waveform & Onsets", Rect(8, 8, plotLeft - 10, 16), Font.sansSerif(10, true), Color.white);
             Pen.stringLeftJustIn("RMS", Rect(8, 24, plotLeft - 10, 14), Font.sansSerif(9), Color(0.9, 0.8, 0.2));
             Pen.stringLeftJustIn("Onsets", Rect(8, 38, plotLeft - 10, 14), Font.sansSerif(9), Color(1.0, 0.4, 0.1));
 
             this.drawTimeAxis(plotRect, duration);
+            this.drawCursor(plotRect, duration, getCursorTime.value);
         };
 
         view.mouseDownAction = { |v, x, y|
             var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
             onSeek.value(normX * duration);
         };
+        view.mouseMoveAction = { |v, x, y|
+            var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
+            onSeek.value(normX * duration);
+        };
     }
 
-    *setupSpecTier { |view, data, plotLeft, plotWidth, h, specImg, colormapName, onSeek|
+    *setupSpecTier { |view, data, plotLeft, plotWidth, h, specImg, colormapName, onSeek, getCursorTime|
         var duration = data[\duration];
         var img = specImg;
         var cmap = colormapName;
@@ -387,18 +415,23 @@ MIRaPlot {
             Pen.stringRightJustIn("200 Hz", Rect(2, plotRect.top + (plotRect.height * 0.75) - 6, plotLeft - 6, 12), Font.sansSerif(9), Color.gray(0.8));
             Pen.stringRightJustIn("65 Hz", Rect(2, plotRect.bottom - 14, plotLeft - 6, 12), Font.sansSerif(9), Color.gray(0.8));
 
-            this.drawColorbar(cbRect, cmap, "0dB", "-80dB");
+            this.drawColorbar(cbRect, cmap, "0dB", "-70dB");
             Pen.stringLeftJustIn("Spectrogram (CQT)", Rect(8, 6, plotLeft - 10, 16), Font.sansSerif(10, true), Color.white);
             this.drawTimeAxis(plotRect, duration);
+            this.drawCursor(plotRect, duration, getCursorTime.value);
         };
 
         view.mouseDownAction = { |v, x, y|
             var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
             onSeek.value(normX * duration);
         };
+        view.mouseMoveAction = { |v, x, y|
+            var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
+            onSeek.value(normX * duration);
+        };
     }
 
-    *setupChromaTier { |view, data, plotLeft, plotWidth, h, chromaImg, colormapName, onSeek|
+    *setupChromaTier { |view, data, plotLeft, plotWidth, h, chromaImg, colormapName, onSeek, getCursorTime|
         var duration = data[\duration];
         var img = chromaImg;
         var cmap = colormapName;
@@ -433,20 +466,44 @@ MIRaPlot {
             this.drawColorbar(cbRect, cmap, "Max", "0");
             Pen.stringLeftJustIn("Chromagram (HPCP)", Rect(8, 6, plotLeft - 10, 16), Font.sansSerif(10, true), Color.white);
             this.drawTimeAxis(plotRect, duration);
+            this.drawCursor(plotRect, duration, getCursorTime.value);
         };
 
         view.mouseDownAction = { |v, x, y|
             var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
             onSeek.value(normX * duration);
         };
+        view.mouseMoveAction = { |v, x, y|
+            var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
+            onSeek.value(normX * duration);
+        };
     }
 
-    *setupPitchTier { |view, data, plotLeft, plotWidth, h, onSeek|
+    *setupPitchTier { |view, data, plotLeft, plotWidth, h, onSeek, getCursorTime|
         var pitchMIDI = data[\pitchMIDI];
         var voicing = data[\voicing];
         var confidence = data[\confidence];
         var duration = data[\duration];
-        var minNote = 36, maxNote = 84;
+        var validMidi, minNote, maxNote, gridNotes;
+
+        // Auto-scale pitch range to the song's actual voiced range
+        validMidi = if(pitchMIDI.notNil and: { voicing.notNil }) {
+            pitchMIDI.select { |m, i| (voicing[i] > 0.5) and: { (confidence[i] ? 0) > 0.3 } and: { m > 20 } and: { m < 120 } }
+        } { [] };
+
+        if(validMidi.notEmpty) {
+            minNote = ((validMidi.minItem / 12).floor * 12 - 12).max(24).asInteger;
+            maxNote = ((validMidi.maxItem / 12).ceil * 12 + 12).min(108).asInteger;
+        } {
+            minNote = 36;
+            maxNote = 84;
+        };
+
+        if((maxNote - minNote) < 36) {
+            maxNote = minNote + 36;
+        };
+
+        gridNotes = (minNote, minNote + 12 .. maxNote);
 
         view.drawFunc = {
             var plotRect = Rect(plotLeft, 6, plotWidth, h - 20);
@@ -454,27 +511,37 @@ MIRaPlot {
             Pen.fillColor = Color(0.08, 0.08, 0.10);
             Pen.fillRect(plotRect);
 
-            [36, 48, 60, 72, 84].do { |midi|
-                var y = plotRect.bottom - (((midi - minNote) / (maxNote - minNote)) * plotRect.height);
-                Pen.strokeColor = Color.gray(0.28);
+            // Octave grid lines and labels
+            gridNotes.do { |midi|
+                var normY = (midi - minNote) / (maxNote - minNote);
+                var y = plotRect.bottom - (normY * plotRect.height);
+                var octave = (midi / 12) - 1;
+                Pen.strokeColor = Color.gray(0.25);
                 Pen.line(Point(plotRect.left, y), Point(plotRect.right, y));
-                Pen.stringRightJustIn("C" ++ ((midi / 12) - 1).asInteger, Rect(2, y - 6, plotLeft - 6, 12), Font.sansSerif(9, true), Color.gray(0.8));
+                Pen.stringRightJustIn("C" ++ octave, Rect(2, y - 6, plotLeft - 6, 12), Font.sansSerif(9, true), Color.gray(0.8));
             };
             Pen.stroke;
+
+            // Plot pitch trajectory inside strictly clipped region
+            Pen.push;
+            Pen.addRect(plotRect);
+            Pen.clip;
 
             if(pitchMIDI.notNil and: { pitchMIDI.size > 1 }) {
                 pitchMIDI.size.do { |i|
                     var note = pitchMIDI[i];
-                    var isVoiced = (voicing[i] > 0.5) and: { note >= minNote } and: { note <= maxNote };
+                    var isVoiced = (voicing[i] > 0.5) and: { (confidence[i] ? 0) > 0.3 } and: { note >= minNote } and: { note <= maxNote };
                     if(isVoiced) {
-                        var conf = confidence[i].clip(0.2, 1.0);
+                        var conf = confidence[i].clip(0.3, 1.0);
                         var x = plotRect.left + (i / (pitchMIDI.size - 1) * plotRect.width);
-                        var y = plotRect.bottom - (((note - minNote) / (maxNote - minNote)) * plotRect.height);
-                        Pen.fillColor = Color(0.2, 0.8 * conf, 0.4 + (0.5 * conf), conf);
-                        Pen.fillOval(Rect(x - 1.5, y - 1.5, 3, 3));
+                        var normY = (note - minNote) / (maxNote - minNote);
+                        var y = plotRect.bottom - (normY * plotRect.height);
+                        Pen.fillColor = Color(0.2, 0.9 * conf, 0.5 * conf + 0.4, conf.max(0.6));
+                        Pen.fillOval(Rect(x - 2, y - 2, 4, 4));
                     };
                 };
             };
+            Pen.pop;
 
             Pen.strokeColor = Color.gray(0.3);
             Pen.strokeRect(plotRect);
@@ -482,15 +549,20 @@ MIRaPlot {
             Pen.stringLeftJustIn("Pitch Track (F0)", Rect(8, 6, plotLeft - 10, 16), Font.sansSerif(10, true), Color.white);
             Pen.stringLeftJustIn("Voiced Pitch", Rect(8, 22, plotLeft - 10, 14), Font.sansSerif(9), Color(0.3, 0.8, 0.5));
             this.drawTimeAxis(plotRect, duration);
+            this.drawCursor(plotRect, duration, getCursorTime.value);
         };
 
         view.mouseDownAction = { |v, x, y|
             var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
             onSeek.value(normX * duration);
         };
+        view.mouseMoveAction = { |v, x, y|
+            var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
+            onSeek.value(normX * duration);
+        };
     }
 
-    *setupDynamicsTier { |view, data, plotLeft, plotWidth, h, onSeek|
+    *setupDynamicsTier { |view, data, plotLeft, plotWidth, h, onSeek, getCursorTime|
         var centroid = data[\centroid];
         var flatness = data[\flatness];
         var duration = data[\duration];
@@ -500,6 +572,10 @@ MIRaPlot {
 
             Pen.fillColor = Color(0.08, 0.08, 0.10);
             Pen.fillRect(plotRect);
+
+            Pen.push;
+            Pen.addRect(plotRect);
+            Pen.clip;
 
             if(centroid.notNil and: { centroid.size > 1 }) {
                 Pen.strokeColor = Color(0.3, 0.7, 1.0, 0.9);
@@ -523,6 +599,8 @@ MIRaPlot {
                 Pen.stroke;
             };
 
+            Pen.pop;
+
             Pen.strokeColor = Color.gray(0.3);
             Pen.strokeRect(plotRect);
 
@@ -534,11 +612,46 @@ MIRaPlot {
             Pen.stringRightJustIn("0 Hz", Rect(2, plotRect.bottom - 12, plotLeft - 6, 12), Font.sansSerif(9), Color.gray(0.8));
 
             this.drawTimeAxis(plotRect, duration);
+            this.drawCursor(plotRect, duration, getCursorTime.value);
         };
 
         view.mouseDownAction = { |v, x, y|
             var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
             onSeek.value(normX * duration);
+        };
+        view.mouseMoveAction = { |v, x, y|
+            var normX = ((x - plotLeft) / plotWidth).clip(0.0, 1.0);
+            onSeek.value(normX * duration);
+        };
+    }
+
+    *drawCursor { |plotRect, duration, cursorTime|
+        var x;
+        if(duration.notNil and: { duration > 0 } and: { cursorTime.notNil }) {
+            x = plotRect.left + ((cursorTime / duration).clip(0.0, 1.0) * plotRect.width);
+
+            // Cursor vertical bar
+            Pen.strokeColor = Color(1.0, 0.25, 0.15, 0.95);
+            Pen.width = 2.0;
+            Pen.line(Point(x, plotRect.top - 2), Point(x, plotRect.bottom + 2));
+            Pen.stroke;
+
+            // Cursor top marker / pointer
+            Pen.fillColor = Color(1.0, 0.25, 0.15);
+            Pen.beginPath;
+            Pen.moveTo(Point(x - 5, plotRect.top - 2));
+            Pen.lineTo(Point(x + 5, plotRect.top - 2));
+            Pen.lineTo(Point(x, plotRect.top + 5));
+            Pen.closePath;
+            Pen.fill;
+
+            // Cursor bottom marker / pointer
+            Pen.beginPath;
+            Pen.moveTo(Point(x - 5, plotRect.bottom + 2));
+            Pen.lineTo(Point(x + 5, plotRect.bottom + 2));
+            Pen.lineTo(Point(x, plotRect.bottom - 5));
+            Pen.closePath;
+            Pen.fill;
         };
     }
 

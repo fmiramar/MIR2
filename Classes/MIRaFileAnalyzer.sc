@@ -58,12 +58,12 @@ MIRaFileAnalyzer {
         synthDef = SynthDef(sdefName, { |bufnum|
             var sig = PlayBuf.ar(numChannels, bufnum, BufRateScale.kr(bufnum), loop: 0);
             var mono = if(numChannels > 1) { Mix(sig) * 0.5 } { sig };
-            var chain = FFT(LocalBuf(1024), mono);
+            var chain = FFT(LocalBuf(2048), mono);
             var pitch = PitchYIN.kr(mono, minFreq: 50, maxFreq: 1500);
-            var hpcp = HPCP.kr(chain, 12, 1024);
+            var hpcp = HPCP.kr(chain, size: 12, tuning: 440, fftSize: 2048);
             var cqt = CQT.kr(mono, fmin: fmin, numBins: numCQT, binsPerOctave: 12);
-            var centroid = SpecCentroid2.kr(chain, 40, 12000, 0, 1024);
-            var flatness = SpecFlatness2.kr(chain, 0, 1024);
+            var centroid = SpecCentroid2.kr(chain, 40, 12000, 0, 2048);
+            var flatness = SpecFlatness2.kr(chain, 0, 12000, 1, 1e-20, 2048);
             var onsets = Onsets2.kr(chain, threshold: 0.3);
             var rms = RunningSum.kr(mono.squared, 512).sqrt;
 
