@@ -30,7 +30,7 @@ examples::
 SilenceRate tracks the proportion of rolling RMS envelope frames that fall below a specified decibel threshold (ranging from 0 for continuous sound to 1 for complete silence). In this example, when sparse playing leaves gaps of silence, SilenceRate automatically fades in an ethereal ambient drone pad, seamlessly filling the acoustic space. An interactive code::MIR2GUI.scope:: displays real-time silence rate.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -57,7 +57,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Silence Rate", ~mir2Bus, 0.0, 1.0, "ratio");
-}).play(AppClock);
+});
 )
 ::
 code::

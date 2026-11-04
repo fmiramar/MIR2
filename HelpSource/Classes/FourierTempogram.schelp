@@ -44,13 +44,21 @@ examples::
 FourierTempogram computes windowed discrete Fourier projections of the onset novelty curve across an absolute BPM grid. In this example, it drives a tempo-synchronized cyclic stereo chorus: dominant periodicities modulate delay times in rhythmic lockstep with the acoustic drum performance. An interactive code::MIR2GUI.heatmap:: displays the real-time Fourier tempo spectrogram.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 48);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var chain = FFT(LocalBuf(1024), source, 0.25);
@@ -69,7 +77,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.heatmap("Fourier Tempogram", ~mir2Bus, 48);
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -43,13 +43,21 @@ examples::
 RhythmTransform measures per-band envelope modulation frequencies across an absolute Hz grid, exposing how rhythmic energy fluctuates independently within different spectral registers. In this example, 4 frequency bands are analyzed into 8 modulation bins ($0.5 \dots 8$ Hz): modulation peaks drive a multiband resonant vocoder tracking acoustic drum grooves. An interactive code::MIR2GUI.heatmap:: displays the 32-cell modulation matrix.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 32);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var band1 = LPF.ar(source, 250);
@@ -75,7 +83,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.heatmap("Rhythm Transform", ~mir2Bus, 32);
-}).play(AppClock);
+});
 )
 ::
 code::

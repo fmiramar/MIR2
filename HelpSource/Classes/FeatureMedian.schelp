@@ -30,13 +30,18 @@ examples::
 FeatureMedian applies a sliding rank filter to reject transient anomalies and erratic pitch jitter from feature streams. In this example, it filters the pitch output from an acoustic saxophone solo: spurious octave jumps and unvoiced pitch glitches are stripped away, yielding a rock-solid pitch trajectory driving an expressive synthesizer lead. An interactive code::MIR2GUI.scope:: monitors the stabilized pitch contour.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var pitch = PitchMPM.kr(source, minFreq: 100, maxFreq: 1200, frameSize: 2048, hop: 0.25);
@@ -50,7 +55,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Median Filtered Pitch", ~mir2Bus, 100.0, 1000.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

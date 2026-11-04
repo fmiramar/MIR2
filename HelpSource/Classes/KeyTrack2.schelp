@@ -44,7 +44,7 @@ examples::
 KeyTrack2 estimates musical key by correlating tuning-aware HPCP against 24 major and minor profiles, returning the root index (0=C..11=B), mode (0=Major, 1=Minor), and correlation strength. In this example, detected key root note plays an acoustic sub-bass pedal note, shifting cleanly when the harmony changes. An interactive code::MIR2GUI.scope:: displays real-time estimated key root.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -69,7 +69,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Estimated Key Root", ~mir2Bus, 0.0, 11.0, "pitch");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -45,7 +45,7 @@ examples::
 ChordTrack identifies chord roots and qualities from chroma using causal min-sum dynamic programming over templates (triads or extended chords). In this example, detected chords drive a polyphonic accompaniment synthesizer playing matching chord voicings in real time. An interactive code::MIR2GUI.scope:: displays real-time detected chord root.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -76,7 +76,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Detected Chord Root", ~mir2Bus, 0.0, 11.0, "root");
-}).play(AppClock);
+});
 )
 ::
 code::

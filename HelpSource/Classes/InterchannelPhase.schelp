@@ -41,7 +41,7 @@ examples::
 InterchannelPhase computes the circular mean of the interchannel spectral phase in radians (-pi to +pi) and its phase concentration (0 to 1). In this example, measured phase difference controls an allpass phase-correction delay line, dynamically aligning phase differences between stereo channels. An interactive code::MIR2GUI.scope:: displays real-time interchannel phase in radians.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("stereo.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -73,7 +73,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Interchannel Phase", ~mir2Bus, -pi, pi, "rad");
-}).play(AppClock);
+});
 )
 ::
 code::

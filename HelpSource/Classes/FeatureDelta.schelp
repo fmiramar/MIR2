@@ -30,13 +30,21 @@ examples::
 FeatureDelta calculates the causal regression first derivative of any control-rate feature stream. In this example, the velocity of spectral centroid changes is tracked on a drum groove: rapid upward spectral surges trigger a resonant micro-glitch stutter delay, accentuating transient attacks. An interactive code::MIR2GUI.scope:: plots the real-time feature derivative.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
@@ -51,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Centroid Delta", ~mir2Bus, -4000.0, 4000.0, "Hz/s");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -32,7 +32,7 @@ examples::
 DynamicComplexity computes the root-mean-square dB variation of non-silent RMS frames around the power-mean level of the rolling observation window. Steady continuous sounds produce low dynamic complexity (< 4 dB), while dynamic rhythmic grooves and articulated percussion produce high complexity (> 10 dB). In this example, dynamic complexity introduces a subtle granular delay scatter layer during highly dynamic passages. An interactive code::MIR2GUI.scope:: displays real-time dynamic complexity in dB.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -60,7 +60,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Dynamic Complexity", ~mir2Bus, 0.0, 20.0, "dB");
-}).play(AppClock);
+});
 )
 ::
 code::

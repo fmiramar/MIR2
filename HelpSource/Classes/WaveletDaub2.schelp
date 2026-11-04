@@ -34,7 +34,7 @@ examples::
 WaveletDaub2 performs discrete Daubechies wavelet analysis, clears a leading prefix of code::remove:: approximation coefficients, and reconstructs the audio signal via the inverse transform. In this example, an acoustic piano phrase is processed while a low-frequency oscillator modulates the code::remove:: parameter from 0 (exact delayed pass-through) to 256 (higher detail scales only). The dry delayed reference is panned left and the wavelet-filtered reconstruction is panned right. An interactive code::MIR2GUI.scope:: tracks the active removal count.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -58,7 +58,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Wavelet Removed Coeffs", ~mir2Bus, 0, 256, "coeffs");
-}).play(AppClock);
+});
 )
 ::
 code::

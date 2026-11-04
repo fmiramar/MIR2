@@ -32,7 +32,7 @@ examples::
 TemporalCentroid calculates the energy-weighted temporal center-of-mass within a rolling observation window (in seconds). Plucks with sharp attacks have an early temporal centroid (~0.05 s), while back-heavy swells produce late centroids. In this example, the temporal centroid controls a dynamic reverse swell envelope and filter sweep, accentuating front-heavy plucks vs. back-heavy sustaining notes. An interactive code::MIR2GUI.scope:: displays real-time temporal centroid in seconds.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Temporal Centroid", ~mir2Bus, 0.0, 0.5, "s");
-}).play(AppClock);
+});
 )
 ::
 code::

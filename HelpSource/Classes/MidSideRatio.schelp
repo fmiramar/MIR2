@@ -29,7 +29,7 @@ examples::
 MidSideRatio computes the logarithmic power ratio between mid and side components in decibels (positive values indicate center-dominant mono energy; negative values indicate side-dominant wide energy). In this example, the mid/side ratio controls a dynamic spatial compressor, providing transparent acoustic stabilization across the stereo image. An interactive code::MIR2GUI.scope:: displays real-time mid/side ratio in dB.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("stereo.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -62,7 +62,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Mid/Side Ratio", ~mir2Bus, -18.0, 18.0, "dB");
-}).play(AppClock);
+});
 )
 ::
 code::

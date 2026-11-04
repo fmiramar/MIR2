@@ -32,7 +32,7 @@ examples::
 EffectiveDuration counts the fraction of rolling RMS frames at or above 10% (-20 dB) of the maximum peak in the window (between 0 and 1). Short staccato plucks have low effective duration (~0.15), while ringing notes occupy a large fraction of the window. In this example, effective duration dynamically controls the decay time of an algorithmic stereo reverb: staccato notes get short snappy ambiences, while sustaining notes get lush lingering tails. An interactive code::MIR2GUI.scope:: displays real-time effective duration.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Effective Duration", ~mir2Bus, 0.0, 1.0, "ratio");
-}).play(AppClock);
+});
 )
 ::
 code::

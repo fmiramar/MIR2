@@ -29,7 +29,7 @@ examples::
 StereoBalance measures instantaneous energy balance between left and right channels (-1 for left only, +1 for right only). In this example, it monitors a dynamic stereo mix: when one channel becomes heavily dominant, an active differential amplifier applies gentle compensating inverse gain, keeping the center image stable without flattening stereo width. An interactive code::MIR2GUI.stereo:: displays the stereo balance needle and width.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("stereo.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 3);
@@ -61,7 +61,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.stereo("Stereo Balance", ~mir2Bus);
-}).play(AppClock);
+});
 )
 ::
 code::

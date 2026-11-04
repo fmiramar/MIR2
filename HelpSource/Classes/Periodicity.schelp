@@ -42,13 +42,18 @@ examples::
 Periodicity reports repeating-structure evidence without requiring a commitment to an F0 decision. In this example, periodicity controls the feedback damping of a Karplus-Strong physical waveguide: periodic sustained sections produce long ringing tones, while non-periodic friction decays instantly into muted plucks. An interactive code::MIR2GUI.scope:: tracks the live periodicity index.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("texture.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic texture fallback
+            PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var periodicity = Periodicity.kr(source, 60, 2000, 2048, 0.25, \nsdf);
@@ -61,7 +66,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Periodicity", ~mir2Bus, 0.0, 1.0);
-}).play(AppClock);
+});
 )
 ::
 code::

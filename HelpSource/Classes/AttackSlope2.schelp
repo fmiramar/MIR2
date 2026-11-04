@@ -36,7 +36,7 @@ examples::
 AttackSlope2 measures the linear rise slope (peak * (highRatio - lowRatio) / attackTime) of a captured transient event. Steep slopes indicate hard, forceful plucks or strikes; gentle slopes indicate soft legato playing. In this example, attack slope triggers a punchy sub-bass ping that reinforces hard-plucked notes. An interactive code::MIR2GUI.scope:: displays real-time attack slope.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -64,7 +64,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Attack Slope", ~mir2Bus, 0.0, 10.0, "slope");
-}).play(AppClock);
+});
 )
 ::
 code::

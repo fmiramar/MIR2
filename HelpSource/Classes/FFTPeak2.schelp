@@ -29,7 +29,7 @@ examples::
 FFTPeak2 extracts the frequency (Hz) and raw magnitude of the strongest local spectral peak using parabolic interpolation. In this example, the dominant spectral peak frequency tunes an audio-rate sine wave carrier for a heterodyne ring modulator, producing musical sum and difference sidebands centered around the principal melodic overtone. An interactive code::MIR2GUI.scope:: displays real-time dominant peak frequency.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -56,7 +56,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Dominant Peak Freq", ~mir2Bus, 100.0, 3000.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

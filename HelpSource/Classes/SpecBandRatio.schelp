@@ -37,7 +37,7 @@ examples::
 SpecBandRatio calculates the ratio of energy in a specified frequency band to total spectral energy (between 0 and 1). In this example, it measures the proportion of energy in the 40 to 300 Hz low band. When low bass energy dominates (e.g. heavy kicks), an active mix tilt filter gently boosts high frequencies to maintain crisp clarity. An interactive code::MIR2GUI.scope:: displays real-time low-band energy ratio.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -65,7 +65,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Low Band Energy Ratio", ~mir2Bus, 0.0, 1.0, "ratio");
-}).play(AppClock);
+});
 )
 ::
 code::

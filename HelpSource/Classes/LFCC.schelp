@@ -45,13 +45,18 @@ examples::
 LFCC calculates cepstral coefficients using linearly spaced triangular filter banks. In this example, it drives an overtone multiplier bank tracking chordal acoustics: linear cepstral shapes control resonance across an auxiliary bank of tuned comb filters, enhancing harmonic bloom on piano chords. An interactive code::MIR2GUI.bars:: displays the 13 linear cepstral coefficients in real time.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 13);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic chords fallback
+            Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
@@ -70,7 +75,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("LFCC Coefficients", ~mir2Bus, 13, -30.0, 30.0);
-}).play(AppClock);
+});
 )
 ::
 code::

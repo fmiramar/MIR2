@@ -32,7 +32,7 @@ examples::
 TuningFrequency calculates a circular weighted estimate of concert pitch relative to A440, returning estimated reference A (Hz), signed cents detuning, and circular concentration. In this example, it monitors acoustic piano tuning and tunes a reference test sine oscillator to demonstrate automatic calibration to non-standard concert pitch. An interactive code::MIR2GUI.scope:: displays real-time estimated concert A in Hz.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -57,7 +57,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Concert A Tuning", ~mir2Bus, 430.0, 450.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

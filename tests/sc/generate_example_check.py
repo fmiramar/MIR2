@@ -58,7 +58,7 @@ def silence_playback(body):
 for index, path in enumerate(files):
     if index % 16 == 0:
         lines += ['{']
-    text = path.read_text()
+    text = path.read_text(encoding='utf-8')
     match = re.search(r'~mir2\w*Example\s*=\s*\{(.*?)^\s*\}.play;', text, re.S | re.M)
     if not match:
         raise SystemExit('No audible example graph: ' + path.name)
@@ -152,5 +152,5 @@ else:
         .replace('OSC_PATH', json.dumps(str(output.with_suffix('.osc'))))
         .replace('REQUIRE_SOUND', 'false' if args.silence else 'true')]
 lines += ['};', ')']
-output.write_text('\n'.join(lines) + '\n')
+output.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 print(f'Generated {len(files)} example checks: {output}')

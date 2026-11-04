@@ -40,7 +40,7 @@ examples::
 SpecBandwidth calculates the generalized p-th order spectral bandwidth in Hz around the spectral centroid. Narrow bandwidth corresponds to focused pure solo tones, while wide bandwidth indicates breathiness, multi-pitch textures, or noise. In this example, spectral bandwidth modulates the Q factor of a resonant formant filter, narrowing into sharp resonance on pure tones and widening gently during noisier breath segments. An interactive code::MIR2GUI.scope:: displays real-time spectral bandwidth in Hz.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -65,7 +65,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Bandwidth", ~mir2Bus, 100.0, 4000.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

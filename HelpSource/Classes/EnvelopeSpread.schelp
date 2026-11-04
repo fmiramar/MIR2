@@ -32,7 +32,7 @@ examples::
 EnvelopeSpread computes the energy-weighted temporal standard deviation (spread) in seconds within a rolling observation window. Staccato plucks produce a compact, narrow temporal spread (~0.05 s), while ringing sustains produce a broad spread. In this example, envelope spread controls feedback on a stereo echo line: tight staccato plucks receive rhythmic multi-tap repeats, while sustained notes receive a single gentle echo. An interactive code::MIR2GUI.scope:: displays real-time envelope spread in seconds.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Envelope Spread", ~mir2Bus, 0.0, 0.3, "s");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -33,7 +33,7 @@ examples::
 FFTSubbandFlux2 measures spectral flux independently across specified frequency subbands. In this example, 4 subbands (`#[0, 250, 1500, 6000, 20000]`) monitor per-band transient activity. Sharp low-frequency flux (kick drum attack) triggers a sub-bass thump; high-frequency flux (hi-hat attack) triggers an airy stereo delay tap. An interactive code::MIR2GUI.bars:: displays real-time 4-subband flux.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 4);
@@ -61,7 +61,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("Subband Flux", ~mir2Bus, 4, 0.0, 2.0);
-}).play(AppClock);
+});
 )
 ::
 code::

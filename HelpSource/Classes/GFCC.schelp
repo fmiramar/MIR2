@@ -43,13 +43,18 @@ examples::
 GFCC computes gammatone cepstral coefficients using a cochlear auditory filterbank followed by DCT-II decorrelation. In this example, it drives an adaptive waveshaping saturator: cepstral coefficients dynamically modulate drive and bias in a Chebyshev polynomial wavefolder, transforming saxophone timbre into an evolving synth lead. An interactive code::MIR2GUI.bars:: displays the 13 gammatone cepstral coefficients in real time.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 13);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var gfcc = GFCC.kr(source, numCoeffs: 13, numBands: 32, minFreq: 80, maxFreq: 8000, include0: 1);
@@ -67,7 +72,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("GFCC Coefficients", ~mir2Bus, 13, -25.0, 25.0);
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -16,10 +16,27 @@
 
 MIR2GUI {
     *soundPath { |filename|
-        var devPath = this.filenameSymbol.asString.dirname.dirname +/+ "sounds" +/+ filename;
+        var devPath, matches;
+        // 1. Direct check relative to this class file (works in git checkout or installed Extensions/MIR2)
+        devPath = this.filenameSymbol.asString.dirname.dirname +/+ "sounds" +/+ filename;
         if(File.exists(devPath)) { ^devPath };
+
+        // 2. User Extension directory
         devPath = Platform.userExtensionDir +/+ "MIR2/sounds" +/+ filename;
         if(File.exists(devPath)) { ^devPath };
+
+        // 3. System Extension directory
+        devPath = Platform.systemExtensionDir +/+ "MIR2/sounds" +/+ filename;
+        if(File.exists(devPath)) { ^devPath };
+
+        // 4. User App Support directory
+        devPath = Platform.userAppSupportDir +/+ "Extensions/MIR2/sounds" +/+ filename;
+        if(File.exists(devPath)) { ^devPath };
+
+        // 5. Any subfolder in userExtensionDir ending in /sounds/filename
+        matches = (Platform.userExtensionDir +/+ "*/sounds" +/+ filename).pathMatch;
+        if(matches.notEmpty) { ^matches.first };
+
         ^nil
     }
 
@@ -130,10 +147,10 @@ MIR2Scope : MIR2BaseView {
         Pen.fillRect(Rect(0, 0, w, h));
 
         Pen.font = Font.sansSerif(11, true);
-        Pen.stringLeftJustified(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringLeftJustIn(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
 
         // Numeric Readout
-        Pen.stringRightJustified(
+        Pen.stringRightJustIn(
             "%.2f %".format(currentVal, units),
             Rect(padLeft, 8, plotW, 18),
             Font.monospace(11, true),
@@ -149,7 +166,7 @@ MIR2Scope : MIR2BaseView {
             var v = minVal + (range * frac);
             Pen.line(Point(padLeft, y), Point(padLeft + plotW, y));
             Pen.stroke;
-            Pen.stringRightJustified("%.1f".format(v), Rect(2, y - 6, padLeft - 6, 14), Font.sansSerif(9), Color.gray(0.6));
+            Pen.stringRightJustIn("%.1f".format(v), Rect(2, y - 6, padLeft - 6, 14), Font.sansSerif(9), Color.gray(0.6));
         };
 
         // Plot Trace
@@ -218,7 +235,7 @@ MIR2BarView : MIR2BaseView {
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, w, h));
 
-        Pen.stringLeftJustified(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringLeftJustIn(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
 
         // Bars
         numBars.do { |i|
@@ -297,7 +314,7 @@ MIR2Heatmap : MIR2BaseView {
 
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, w, h));
-        Pen.stringLeftJustified(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringLeftJustIn(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
 
         grid.do { |frame, xIdx|
             var x = padLeft + (xIdx * cellW);
@@ -360,7 +377,7 @@ MIR2ChromaWheel : MIR2BaseView {
 
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, bounds.width, bounds.height));
-        Pen.stringCenterJustified(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringCenteredIn(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
 
         // Reference Circles
         Pen.strokeColor = themeGrid;
@@ -393,7 +410,7 @@ MIR2ChromaWheel : MIR2BaseView {
 
             // Pitch label
             Pen.font = Font.sansSerif(10, true);
-            Pen.stringCenterJustified(
+            Pen.stringCenteredIn(
                 noteNames[i],
                 Rect(labelPt.x - 12, labelPt.y - 7, 24, 14),
                 Font.sansSerif(10, true),
@@ -442,7 +459,7 @@ MIR2TonnetzView : MIR2BaseView {
 
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, bounds.width, bounds.height));
-        Pen.stringCenterJustified(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringCenteredIn(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
 
         // Three Tonnetz Circles: Fifths (r), Minor 3rds (0.75r), Major 3rds (0.5r)
         Pen.strokeColor = themeGrid;
@@ -511,7 +528,7 @@ MIR2StereoScope : MIR2BaseView {
 
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, bounds.width, bounds.height));
-        Pen.stringCenterJustified(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringCenteredIn(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
 
         // Circular perimeter & crosshairs
         Pen.strokeColor = themeGrid;
@@ -534,7 +551,7 @@ MIR2StereoScope : MIR2BaseView {
         Pen.stroke;
 
         // Correlation readout
-        Pen.stringCenterJustified("Corr: %.2f | Bal: %.2f".format(corr, balance), Rect(10, bounds.height - 24, bounds.width - 20, 16), Font.monospace(10), themeFg);
+        Pen.stringCenteredIn("Corr: %.2f | Bal: %.2f".format(corr, balance), Rect(10, bounds.height - 24, bounds.width - 20, 16), Font.monospace(10), themeFg);
     }
 }
 
@@ -583,7 +600,7 @@ MIR2PianoRoll : MIR2BaseView {
 
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, w, h));
-        Pen.stringLeftJustified(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringLeftJustIn(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
 
         // Key stripes
         numSemitones.do { |i|
@@ -652,7 +669,7 @@ MIR2RhythmWheel : MIR2BaseView {
 
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, bounds.width, bounds.height));
-        Pen.stringCenterJustified(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringCenteredIn(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
 
         // Dial Circles
         Pen.strokeColor = themeGrid;
@@ -678,7 +695,7 @@ MIR2RhythmWheel : MIR2BaseView {
         Pen.stroke;
 
         // Center BPM Readout
-        Pen.stringCenterJustified("%.1f BPM".format(bpm), Rect(center.x - 50, center.y - 10, 100, 20), Font.sansSerif(13, true), themeFg);
+        Pen.stringCenteredIn("%.1f BPM".format(bpm), Rect(center.x - 50, center.y - 10, 100, 20), Font.sansSerif(13, true), themeFg);
     }
 }
 
@@ -730,7 +747,7 @@ MIR2TristimulusView : MIR2BaseView {
 
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, bounds.width, bounds.height));
-        Pen.stringCenterJustified(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringCenteredIn(name, Rect(10, 8, bounds.width - 20, 18), Font.sansSerif(11, true), themeFg);
 
         // Triangle Outline
         Pen.strokeColor = themeGrid;
@@ -739,9 +756,9 @@ MIR2TristimulusView : MIR2BaseView {
         Pen.stroke;
 
         // Vertex Labels
-        Pen.stringCenterJustified("T1 (f0)", Rect(v1.x - 30, v1.y - 18, 60, 16), Font.sansSerif(10, true), themeAccent);
-        Pen.stringCenterJustified("T2 (2-4)", Rect(v2.x - 35, v2.y + 4, 70, 16), Font.sansSerif(10, true), themeAccent2);
-        Pen.stringCenterJustified("T3 (5+)", Rect(v3.x - 35, v3.y + 4, 70, 16), Font.sansSerif(10, true), Color.fromHexString("#a29bfe"));
+        Pen.stringCenteredIn("T1 (f0)", Rect(v1.x - 30, v1.y - 18, 60, 16), Font.sansSerif(10, true), themeAccent);
+        Pen.stringCenteredIn("T2 (2-4)", Rect(v2.x - 35, v2.y + 4, 70, 16), Font.sansSerif(10, true), themeAccent2);
+        Pen.stringCenteredIn("T3 (5+)", Rect(v3.x - 35, v3.y + 4, 70, 16), Font.sansSerif(10, true), Color.fromHexString("#a29bfe"));
 
         // Position Bead
         Pen.fillColor = Color.white;
@@ -794,7 +811,7 @@ MIR2EnvelopeView : MIR2BaseView {
 
         Pen.fillColor = themeBg;
         Pen.fillRect(Rect(0, 0, w, h));
-        Pen.stringLeftJustified(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
+        Pen.stringLeftJustIn(name, Rect(padLeft, 8, plotW, 18), Font.sansSerif(11, true), themeFg);
 
         // Envelope shape
         Pen.beginPath;
@@ -806,6 +823,18 @@ MIR2EnvelopeView : MIR2BaseView {
         Pen.stroke;
 
         // Readout
-        Pen.stringRightJustified("Atk: %.3fs | Dec: %.2fs".format(attackVal, decayVal), Rect(padLeft, 8, plotW, 18), Font.monospace(10), themeAccent2);
+        Pen.stringRightJustIn("Atk: %.3fs | Dec: %.2fs".format(attackVal, decayVal), Rect(padLeft, 8, plotW, 18), Font.monospace(10), themeAccent2);
+    }
+}
+
++ Pen {
+    *stringLeftJustified { |string, rect, font, color|
+        ^this.stringLeftJustIn(string, rect, font, color)
+    }
+    *stringRightJustified { |string, rect, font, color|
+        ^this.stringRightJustIn(string, rect, font, color)
+    }
+    *stringCenterJustified { |string, rect, font, color|
+        ^this.stringCenteredIn(string, rect, font, color)
     }
 }

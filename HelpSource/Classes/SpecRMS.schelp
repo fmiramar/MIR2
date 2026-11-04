@@ -34,7 +34,7 @@ examples::
 SpecRMS calculates the root-mean-square amplitude in the frequency domain across selected bins. In this example, spectral RMS drives an optical-style mastering compressor with smooth program-dependent attack and decay, leveling dynamic drum grooves cleanly. An interactive code::MIR2GUI.scope:: displays real-time spectral RMS.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -63,7 +63,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral RMS", ~mir2Bus, 0.0, 1.0, "amp");
-}).play(AppClock);
+});
 )
 ::
 code::

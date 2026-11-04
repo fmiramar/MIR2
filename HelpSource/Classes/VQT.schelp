@@ -60,13 +60,20 @@ examples::
 VQT introduces a bandwidth offset code::gamma:: to shorten low-frequency analysis windows, delivering faster temporal response for transient bass articulation. In this example, 48 VQT bins analyze a bass-melody mix: fast low-end activity modulates an analog-style Moog ladder filter tracking walking bass lines cleanly. An interactive code::MIR2GUI.heatmap:: displays the real-time variable-Q spectrogram.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("bass-melody-mix.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 48);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic bass + melody fallback
+            var bass = SinOsc.ar(Select.kr(LFNoise0.kr(1).range(0, 4), [55, 65.4, 73.4, 82.4]), 0, 0.3);
+            var lead = Saw.ar(Select.kr(LFNoise0.kr(3).range(0, 5), [220, 261.63, 293.66, 329.63, 392]), 0.15);
+            bass + lead
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var magnitudes = VQT.kr(source, fmin: 55, numBins: 48, binsPerOctave: 12, gamma: 25, hop: 0.25);
@@ -81,7 +88,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.heatmap("VQT Spectrogram", ~mir2Bus, 48);
-}).play(AppClock);
+});
 )
 ::
 code::

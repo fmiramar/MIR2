@@ -29,7 +29,7 @@ examples::
 StereoWidth computes the normalized side-channel energy ratio from an M/S decomposition (0 for mono, ~0.7 for uncorrelated stereo, 1 for fully out-of-phase audio). In this example, measured stereo width dynamically controls the Side channel gain in a Mid/Side matrix: narrow mixes are gently widened, while overly wide or phasey signals are reined in to preserve center clarity. An interactive code::MIR2GUI.stereo:: displays the stereo width ellipse.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("stereo.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 3);
@@ -63,7 +63,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.stereo("Stereo Width", ~mir2Bus);
-}).play(AppClock);
+});
 )
 ::
 code::

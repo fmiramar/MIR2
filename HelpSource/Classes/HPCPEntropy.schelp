@@ -23,7 +23,7 @@ examples::
 HPCPEntropy computes the normalized Shannon entropy of pitch-class distribution (0 for a single isolated pitch class, 1 for equal uniform distribution across all 12 classes). Consonant simple triads have low entropy; dense cluster chords or atonal passages have high entropy. In this example, pitch-class entropy controls a diffuse granular delay scatter: simple triads remain clean and dry, while dissonant chords dissolve into an atmospheric cloud. An interactive code::MIR2GUI.scope:: displays real-time HPCP entropy.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -50,7 +50,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("HPCP Entropy", ~mir2Bus, 0.0, 1.0, "norm");
-}).play(AppClock);
+});
 )
 ::
 code::

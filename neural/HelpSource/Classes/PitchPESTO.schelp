@@ -36,7 +36,7 @@ examples::
 PitchPESTO estimates fundamental frequency and voicing confidence using a deep residual convolutional neural network. In this example, an acoustic vocal/instrumental melody is analyzed in real time. The detected pitch and confidence steer a two-partial synthesized tracking voice panned right while the acoustic phrase plays on the left. An interactive code::MIR2GUI.pianoRoll:: displays the estimated pitch in real time. Export a model for the server's actual sample rate first, using the extension README.
 code::
 (
-Routine({
+s.waitForBoot({
     var rate = s.sampleRate.asInteger;
     var modelPath = PitchPESTO.filenameSymbol.asString.dirname.dirname
         +/+ "models" +/+ ("mir-1k_g7-" ++ rate ++ ".wav");
@@ -77,13 +77,13 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.pianoRoll("PESTO Neural Pitch", ~mir2Bus, minMIDI: 48, maxMIDI: 84);
-}).play(AppClock);
+});
 )
 ::
 Stop the Synth before releasing its model:
 code::
 (
-Routine({
+s.waitForBoot({
     ~mir2PESTOExample.free;
     if(~mir2GUI.notNil) { ~mir2GUI.close };
     if(~mir2Bus.notNil) { ~mir2Bus.free };

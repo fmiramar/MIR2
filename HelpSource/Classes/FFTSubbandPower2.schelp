@@ -29,7 +29,7 @@ examples::
 FFTSubbandPower2 computes the mean bin power in each independently bounded frequency band. In this example, 4 subbands (`#[0, 250, 1500, 6000, 20000]`) monitor the balance between sub-bass, midrange, and treble. The normalized relative power across bands drives an active parametric equalizer, dynamically compensating for mix imbalances in real time. An interactive code::MIR2GUI.bars:: displays normalized power across subbands.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 4);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("Subband Power", ~mir2Bus, 4, 0.0, 1.0);
-}).play(AppClock);
+});
 )
 ::
 code::

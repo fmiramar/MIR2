@@ -34,7 +34,7 @@ examples::
 WaveletFlux detects positive changes across normalized wavelet scale energy fractions, making it a multiscale onset and transient tracker. In this example, sharp wavelet flux peaks extracted from an acoustic drum groove trigger tuned resonant modal pings that accentuate percussive strikes in stereo. An interactive code::MIR2GUI.scope:: plots real-time wavelet flux.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -62,7 +62,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Wavelet Flux", ~mir2Bus, 0.0, 2.0, "flux");
-}).play(AppClock);
+});
 )
 ::
 code::

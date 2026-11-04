@@ -88,7 +88,7 @@ Extracts an 8-band by 8-bin fluctuation pattern from drum groove audio. RhythmPa
 
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 64);
@@ -118,7 +118,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.heatmap("Rhythm Pattern (8 bands x 8 bins)", ~mir2Bus, 64);
-}).play(AppClock);
+});
 )
 ::
 code::

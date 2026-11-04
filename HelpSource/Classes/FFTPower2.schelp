@@ -37,7 +37,7 @@ examples::
 Spectral power calculates total frequency-domain power across selected bins. In this example, spectral power drives a smooth dynamic compressor with lookahead: loud drum hits automatically trigger proportional gain reduction to tame excessive transients. An interactive code::MIR2GUI.scope:: displays real-time spectral power in dB.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -66,7 +66,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Power", ~mir2Bus, -60.0, 0.0, "dB");
-}).play(AppClock);
+});
 )
 ::
 code::

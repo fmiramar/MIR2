@@ -53,14 +53,19 @@ examples::
 PitchSalienceBuf computes a continuous high-resolution pitch-salience representation across a logarithmic frequency grid, writing the frame directly into a control Buffer. In this example, 7 equidistant positions across the salience grid are read via code::BufRd.kr:: to animate a microtonal sine resynthesizer tracking the acoustic melody. An interactive code::MIR2GUI.scope:: monitors salience at the tonic frequency.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2SalienceBuffer = Buffer.alloc(s, PitchSalienceBuf.numBins(110, 880, 24), 1);
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var buf = ~mir2SalienceBuffer ? 1;
@@ -78,7 +83,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Primary Salience", ~mir2Bus, 0.0, 1.0);
-}).play(AppClock);
+});
 )
 ::
 code::

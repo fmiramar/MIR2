@@ -34,7 +34,7 @@ examples::
 WaveletCentroid computes the energy-weighted center of nominal wavelet scale frequencies in Hz. In this example, the wavelet centroid extracted from an acoustic melody controls the cutoff frequency of a tracking resonant filter on an accompanying analog-style sawtooth synth, harmonizing timbre with the melody. An interactive code::MIR2GUI.scope:: tracks the wavelet centroid frequency in Hz.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -60,7 +60,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Wavelet Centroid", ~mir2Bus, 100.0, 7000.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

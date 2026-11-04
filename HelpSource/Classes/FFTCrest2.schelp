@@ -37,7 +37,7 @@ examples::
 Spectral crest factor measures the ratio of peak spectral energy to average spectral energy. Sharp transient drum hits (such as rimshots and snare attacks) produce high crest factor spikes. In this example, crest factor opens a parallel overdrive distortion channel during sharp transients, preserving clean warm tone during sustained sounds. An interactive code::MIR2GUI.scope:: displays real-time spectral crest factor.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -65,7 +65,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Crest", ~mir2Bus, 1.0, 40.0, "ratio");
-}).play(AppClock);
+});
 )
 ::
 code::

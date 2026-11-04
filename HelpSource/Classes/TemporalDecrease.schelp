@@ -32,7 +32,7 @@ examples::
 TemporalDecrease fits a linear regression line to RMS envelope values versus time, negating the slope and normalizing by mean RMS amplitude. Positive values signify natural decay over the observation window; negative values signify envelope growth. In this example, temporal decrease controls an upward dynamic expander to smoothly linearize and sustain natural instrument note ring-downs. An interactive code::MIR2GUI.scope:: displays real-time temporal decrease slope.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -58,7 +58,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Temporal Decrease", ~mir2Bus, -2.0, 8.0, "slope");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -35,13 +35,18 @@ examples::
 Vibrato2 measures the instantaneous modulation rate (Hz) and peak-to-peak extent (cents) of pitch vibrato extracted from a continuous pitch contour. In this example, detected vibrato parameters synchronize an amplitude tremolo effect: whenever the performer introduces vibrato, the sound tremolos synchronously with the acoustic rate. An interactive code::MIR2GUI.scope:: tracks the detected vibrato rate in Hz.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var pitch = PitchMPM.kr(source, 80, 1200, 2048, 0.25);
@@ -59,7 +64,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Vibrato Rate", ~mir2Bus, 0.0, 10.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

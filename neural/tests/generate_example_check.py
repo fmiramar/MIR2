@@ -34,7 +34,7 @@ def main():
             parser.error("Refusing to overwrite existing file: " + str(target))
     root = Path(__file__).resolve().parents[1]
     help_path = root / "HelpSource/Classes/PitchPESTO.schelp"
-    source = help_path.read_text()
+    source = help_path.read_text(encoding='utf-8')
     match = re.search(r"~mir2PESTOExample\s*=\s*\{(.*?)^\s*\}\.play;", source, re.S | re.M)
     if not match or "PitchPESTO.kr" not in match.group(1) or "PlayBuf.ar" not in match.group(1):
         raise SystemExit("Cannot extract the audible PitchPESTO help graph")

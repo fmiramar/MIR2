@@ -23,7 +23,7 @@ examples::
 Tonnetz implements the 6D tonal-centroid projection of Harte, Sandler & Gasser (2006), projecting pitch classes onto 3 harmonic circles (Fifths, Minor Thirds, Major Thirds). In this example, the 6D coordinates steer spatial panning and filter resonant cutoffs of a secondary ambient texture. An interactive code::MIR2GUI.tonnetz:: displays the 2D planar projection of harmonic motion.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 6);
@@ -49,7 +49,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.tonnetz("Tonnetz Trajectory", ~mir2Bus);
-}).play(AppClock);
+});
 )
 ::
 code::

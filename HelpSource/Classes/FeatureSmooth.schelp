@@ -30,13 +30,18 @@ examples::
 FeatureSmooth performs causal one-pole exponential smoothing calibrated in physical seconds. In this example, it processes spectral flux extracted from a bowing friction texture: fast fluctuations are integrated into a slow, organic swell parameter that smoothly breathes open the wet space of an algorithmic reverb. An interactive code::MIR2GUI.scope:: plots the smoothed feature trajectory.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("texture.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic texture fallback
+            PinkNoise.ar * LFNoise1.kr(1).range(0.2, 0.8) + SinOsc.ar(LFNoise0.kr(2).range(200, 800), 0, 0.2)
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
@@ -51,7 +56,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Smoothed Feature", ~mir2Bus, 0.0, 0.5);
-}).play(AppClock);
+});
 )
 ::
 code::

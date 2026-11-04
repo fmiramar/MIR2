@@ -53,13 +53,18 @@ examples::
 Pitch2 provides a unified F0 tracker with explicit octave ambiguity and confidence metrics. In this example, detected pitch tunes an adaptive harmonic ring modulator: the carrier frequency locks in consonant intervals to the melodic source, while octave ambiguity dynamically reins in modulation intensity when pitch candidate rivalry is high. An interactive code::MIR2GUI.pianoRoll:: plots the fundamental pitch contour in real time.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var pitch = Pitch2.kr(source, minFreq: 80, maxFreq: 1500, frameSize: 2048, hop: 0.25, algorithm: \mpm);
@@ -78,7 +83,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.pianoRoll("Pitch2 Tracker", ~mir2Bus, 36, 84);
-}).play(AppClock);
+});
 )
 ::
 code::

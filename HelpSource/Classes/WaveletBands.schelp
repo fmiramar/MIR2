@@ -36,7 +36,7 @@ examples::
 WaveletBands decomposes audio into dyadic subbands and calculates multiscale RMS or energy. In this example, the multiscale RMS subband amplitudes extracted from an acoustic melody dynamically drive 7 tuned harmonic sinusoidal oscillators across dyadic octaves, creating an additive wavelet resynthesis shadow. An interactive code::MIR2GUI.bars:: view monitors the real-time subband RMS levels.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 7);
@@ -62,7 +62,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("Wavelet Band RMS", ~mir2Bus, 7, 0.0, 0.5, ["A6", "D6", "D5", "D4", "D3", "D2", "D1"]);
-}).play(AppClock);
+});
 )
 ::
 code::

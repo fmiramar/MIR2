@@ -32,7 +32,7 @@ examples::
 StrongDecay computes the square root of integrated envelope energy divided by the temporal energy centroid (Gouyon & Herrera). It yields higher values when strong energy is concentrated early in the observation window. In this example, StrongDecay detects rapid initial drop-offs and activates a sympathetic resonant comb filter that gently extends the acoustic pluck's decay ring-down. An interactive code::MIR2GUI.scope:: displays real-time StrongDecay.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Strong Decay", ~mir2Bus, 0.0, 0.5, "amp");
-}).play(AppClock);
+});
 )
 ::
 code::

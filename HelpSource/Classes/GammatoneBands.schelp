@@ -33,13 +33,20 @@ examples::
 GammatoneBands implements an auditory gammatone filterbank tracking instantaneous envelope power in psychoacoustic cochlear bands. In this example, it drives an additive resynthesizer tracking delicate acoustic plucks: 16 sinusoidal partials follow the instantaneous decay envelope of each critical band, synthesizing a glassy spectral shadow. An interactive code::MIR2GUI.bars:: displays real-time power across all 16 gammatone bands.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 16);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic pluck fallback
+            var trig = Impulse.kr(1.5);
+            var env = EnvGen.ar(Env.perc(0.005, 0.4), trig);
+            Pluck.ar(WhiteNoise.ar * env, trig, 0.2, 1/220, 2.0, 0.3)
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var bands = GammatoneBands.kr(source, numBands: 16, minFreq: 120, maxFreq: 7000, smoothing: 0.02, hop: 0.01);
@@ -58,7 +65,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("Gammatone Bands", ~mir2Bus, 16, 0.0, 0.5);
-}).play(AppClock);
+});
 )
 ::
 code::

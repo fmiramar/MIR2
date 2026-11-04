@@ -33,7 +33,7 @@ examples::
 SpecContrast calculates the dB difference between peak and valley energy quantiles in each frequency subband (Jiang et al. 2002). Tonal sounds with prominent partials produce high contrast; noisy or diffuse sounds produce low contrast. In this example, 4 subbands (`#[0, 300, 1800, 6000, 20000]`) measure dynamic contrast, driving an active multi-band expander that clarifies spectral definition. An interactive code::MIR2GUI.bars:: displays real-time contrast across subbands.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 4);
@@ -60,7 +60,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("Spectral Contrast (dB)", ~mir2Bus, 4, 0.0, 40.0);
-}).play(AppClock);
+});
 )
 ::
 code::

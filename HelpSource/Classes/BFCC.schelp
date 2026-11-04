@@ -45,13 +45,18 @@ examples::
 BFCC computes cepstral coefficients derived from Traunmuller Bark auditory bands. In this example, it drives a timbral resynthesis tracking the spectral envelope of a saxophone solo: low coefficients modulate formant filters over a synthetic harmonic sawtooth oscillator, translating the vocal character of the melody into a robotic double. An interactive code::MIR2GUI.bars:: displays the 13 cepstral coefficients in real time.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 13);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
@@ -72,7 +77,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("BFCC Coefficients", ~mir2Bus, 13, -30.0, 30.0);
-}).play(AppClock);
+});
 )
 ::
 code::

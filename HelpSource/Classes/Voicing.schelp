@@ -45,13 +45,18 @@ examples::
 Voicing separates periodic, harmonic vocal or instrumental sustains from noisy consonants, transient bursts, and breath. In this example, it drives a dual-path adaptive processor: voiced sections route through a lush stereo chorus resonator, while unvoiced sibilance and breath route into a gritty, saturated distortion stage. An interactive code::MIR2GUI.scope:: plots the continuous voicing evidence in real time.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var voicing = Voicing.kr(source, 1024, 0.25, 80, 1200, \hybrid, 0.5);
@@ -74,7 +79,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Voicing Probability", ~mir2Bus, 0.0, 1.0);
-}).play(AppClock);
+});
 )
 ::
 code::

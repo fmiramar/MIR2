@@ -60,13 +60,18 @@ examples::
 CQCC computes cepstral coefficients derived from uniform resampling of a constant-Q log spectrum. In this example, 13 constant-Q cepstral coefficients dynamically modulate an FM carrier: lower cepstral orders control the FM modulation index while higher orders control carrier frequency offsets, creating an expressive timbral shadow tracking acoustic piano chords. An interactive code::MIR2GUI.bars:: displays the 13 cepstral coefficients in real time.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 13);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic chords fallback
+            Mix.ar(SinOsc.ar([261.63, 329.63, 392.00, 523.25] * LFNoise0.kr(0.5).range(1, 1.25))) * 0.15
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var cqcc = CQCC.kr(source, numCoeffs: 13, fmin: 110, numBins: 48, include0: 1);
@@ -85,7 +90,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("CQCC Coefficients", ~mir2Bus, 13, -30.0, 30.0);
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -44,7 +44,7 @@ examples::
 KeyClarity2 reports the Pearson correlation coefficient (from 0 to 1) of the strongest key profile. When a chord progression establishes a clear, unambivalent tonal center, key clarity is high; during dissonant, modulating, or ambiguous passages, clarity drops. In this example, key clarity opens the cutoff of an ambient pad filter: clear tonality produces bright pad chords, while ambiguous passages dim gracefully into the background. An interactive code::MIR2GUI.scope:: displays real-time key clarity.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -69,7 +69,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Key Clarity", ~mir2Bus, 0.0, 1.0, "corr");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -35,7 +35,7 @@ examples::
 ChordStrength computes the similarity score (0 to 1) between active chroma and the best chord template. When chord recognition confidence is high, harmony is unambiguously defined; during transition boundaries, chord strength dips. In this example, chord strength modulates an ambient synth pad filter, opening brightly during solid chord sustains and ducking softly during transitions. An interactive code::MIR2GUI.scope:: displays real-time chord strength.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -61,7 +61,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Chord Strength", ~mir2Bus, 0.0, 1.0, "sim");
-}).play(AppClock);
+});
 )
 ::
 code::

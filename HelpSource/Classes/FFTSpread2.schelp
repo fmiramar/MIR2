@@ -37,7 +37,7 @@ examples::
 Spectral spread measures the second central moment of the spectrum (the frequency standard deviation around the spectral centroid). Narrow harmonic sounds have low spread; wide noisy textures have high spread. In this example, spectral spread controls a stereo decorrelation delay network, widening broadband noisy components while focusing narrow sinusoidal partials in the center. An interactive code::MIR2GUI.scope:: displays real-time spectral spread in Hz.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("texture.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -66,7 +66,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Spread", ~mir2Bus, 0.0, 5000.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

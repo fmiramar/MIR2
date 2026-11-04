@@ -32,7 +32,7 @@ examples::
 EnvelopeSkewness calculates the third energy-weighted temporal moment divided by variance^1.5, measuring temporal asymmetry between attack and decay. A sharp percussive onset with long exponential decay produces positive skewness; backwards swells produce negative skewness. In this example, envelope skewness controls the drive of an analog wavefolder, enriching transient harmonics during sharp asymmetric plucked attacks. An interactive code::MIR2GUI.scope:: displays real-time envelope skewness.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Envelope Skewness", ~mir2Bus, -2.0, 4.0, "skew");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -34,7 +34,7 @@ examples::
 WaveletSpread measures the energy-weighted standard deviation in Hz of nominal dyadic scale center frequencies around the wavelet centroid. In this example, the wavelet spread of an acoustic texture controls dynamic stereo width expansion and decorrelation delay: narrow scale spread remains centered, while broad multiscale distribution expands into a spacious stereo image. An interactive code::MIR2GUI.scope:: plots real-time wavelet spread in Hz.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("texture.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -61,7 +61,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Wavelet Spread", ~mir2Bus, 0.0, 5000.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

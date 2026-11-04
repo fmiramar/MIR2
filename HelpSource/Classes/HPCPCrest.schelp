@@ -23,7 +23,7 @@ examples::
 HPCPCrest calculates the peak-to-average crest factor of pitch-class distribution (from 1 for uniform equal distribution up to 12 for energy concentrated in a single pitch class). In this example, pitch-class crest factor controls an audio-rate resonant feedback comb filter, cleanly sustaining pure single notes while relaxing during complex chords. An interactive code::MIR2GUI.scope:: displays real-time HPCP crest factor.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -50,7 +50,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("HPCP Crest Factor", ~mir2Bus, 1.0, 12.0, "crest");
-}).play(AppClock);
+});
 )
 ::
 code::

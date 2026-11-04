@@ -44,13 +44,18 @@ examples::
 PitchMPM estimates fundamental frequency and NSDF clarity using the McLeod Pitch Method. In this example, it drives an analog sub-bass synthesizer with dynamic wavefolding: sustained notes synthesize a rich octave-below bassline, with clarity modulating wavefolding warmth. An interactive code::MIR2GUI.pianoRoll:: tracks the fundamental pitch.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var mpm = PitchMPM.kr(source, 80, 1200, 2048, 0.25, 0.93);
@@ -66,7 +71,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.pianoRoll("MPM Pitch Tracker", ~mir2Bus, 36, 84);
-}).play(AppClock);
+});
 )
 ::
 code::

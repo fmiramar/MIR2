@@ -8,7 +8,7 @@ var compiled = 0;
 var ok = true;
 
 files.do { |path|
-    var text = File.readAllString(path.fullPath);
+    var text = File.readAllString(path.fullPath).replace("\r\n", "\n");
     var offset = 0;
     var marker = "code::\n(";
     var start = text.find(marker, false, offset);

@@ -37,7 +37,7 @@ examples::
 SpecVariation computes the normalized cosine distance between consecutive FFT spectra (ranging from 0 to 1). It measures timbral change independent of absolute energy changes. In this example, sharp spectral transitions (such as sudden percussive hits or timbral shifts) trigger momentary reverse swell delays, creating dynamic rhythmic echoes. An interactive code::MIR2GUI.scope:: displays real-time spectral variation.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -65,7 +65,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Variation", ~mir2Bus, 0.0, 1.0, "dist");
-}).play(AppClock);
+});
 )
 ::
 code::

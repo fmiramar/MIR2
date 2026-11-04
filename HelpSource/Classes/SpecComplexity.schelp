@@ -43,7 +43,7 @@ examples::
 SpecComplexity counts the number of prominent local spectral peaks exceeding a relative amplitude threshold. Dense harmonic chords produce many peaks, whereas sparse solo tones produce few. In this example, spectral complexity opens an expansive stereo reverb tail during dense chordal passages, while sparse passages remain clean and dry. An interactive code::MIR2GUI.scope:: displays real-time spectral complexity.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -68,7 +68,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Complexity", ~mir2Bus, 0.0, 30.0, "peaks");
-}).play(AppClock);
+});
 )
 ::
 code::

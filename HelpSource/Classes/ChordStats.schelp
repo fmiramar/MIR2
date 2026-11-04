@@ -32,7 +32,7 @@ examples::
 ChordStats maintains streaming duration-weighted statistics of classified chords, returning normalized chord distribution entropy, state change rate (transitions/second), no-chord duration fraction, and dominant chord labels. In this example, chord transition rate modulates the depth of a stereo tremolo effect: static harmony produces a calm sustained sound, while rapid harmonic changes animate tremolo movement. An interactive code::MIR2GUI.scope:: displays real-time chord change rate.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Chord Change Rate", ~mir2Bus, 0.0, 3.0, "chg/s");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -32,7 +32,7 @@ examples::
 EnvelopeKurtosis computes the fourth energy-weighted temporal moment divided by squared variance (Pearson kurtosis, where 3 represents a Gaussian distribution). Highly impulsive plucked notes generate prominent kurtosis spikes (> 6). In this example, high kurtosis triggers an auxiliary crystalline chime layer, emphasizing crisp transients while leaving smooth sustained segments uncluttered. An interactive code::MIR2GUI.scope:: displays real-time envelope kurtosis.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Envelope Kurtosis", ~mir2Bus, 1.0, 15.0, "kurt");
-}).play(AppClock);
+});
 )
 ::
 code::

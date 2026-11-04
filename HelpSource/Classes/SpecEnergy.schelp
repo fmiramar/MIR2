@@ -37,7 +37,7 @@ examples::
 SpecEnergy calculates the unnormalized total spectral energy (sum of squared magnitudes). In this example, spectral energy modulates analog tape saturation drive and warmth, producing pleasing non-linear saturation on energetic drum hits while leaving quiet taps transparent. An interactive code::MIR2GUI.scope:: displays real-time spectral energy.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -64,7 +64,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Energy", ~mir2Bus, 0.0, 20.0, "energy");
-}).play(AppClock);
+});
 )
 ::
 code::

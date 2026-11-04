@@ -37,7 +37,7 @@ examples::
 SpecDecrease measures relative spectral energy fall-off from fundamental to Nyquist bins. When high-frequency energy decreases slowly (a bright, sizzly sound), an adaptive high-frequency saturator adds gentle warm overdrive to enhance upper-register presence. An interactive code::MIR2GUI.scope:: displays real-time spectral decrease.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -64,7 +64,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Decrease", ~mir2Bus, 0.0, 1.0, "index");
-}).play(AppClock);
+});
 )
 ::
 code::

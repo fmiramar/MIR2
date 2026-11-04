@@ -57,13 +57,18 @@ examples::
 Thirteen Mel-frequency cepstral coefficients capture spectral envelope shape and vocalic formant contours. In this example, 13 coefficients dynamically shape a vocoder carrier bank: low coefficients steer overall spectral tilt while higher coefficients imprint detailed vowel formants onto an analog pulse synthesizer. An interactive code::MIR2GUI.bars:: displays the real-time MFCC spectrum.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 13);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var chain = FFT(LocalBuf(1024), source, hop: 0.5);
@@ -77,7 +82,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.bars("MFCC Coefficients", ~mir2Bus, 13, -40, 40);
-}).play(AppClock);
+});
 )
 ::
 code::

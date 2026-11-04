@@ -44,13 +44,21 @@ examples::
 Tempogram computes cyclic autocorrelation tempo evidence across a wide BPM lag spectrum ($40 \dots 240$ BPM). In this example, it analyzes an acoustic drum groove: peak tempo evidence modulates an auxiliary poly-metric comb delay network that locks into sympathetic resonance with the drum meter. An interactive code::MIR2GUI.heatmap:: displays the real-time autocorrelation tempogram.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 48);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var chain = FFT(LocalBuf(1024), source, 0.25);
@@ -67,7 +75,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.heatmap("Tempogram", ~mir2Bus, 48);
-}).play(AppClock);
+});
 )
 ::
 code::

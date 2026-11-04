@@ -36,7 +36,7 @@ examples::
 DecayTime measures the event decay duration in seconds from the 90% peak down to the 10% floor within a captured time window. In this example, measured decay time automatically sets the feedback decay time of a tempo-synced digital delay, allowing repeats to fade synchronously with the natural acoustic decay of each pluck. An interactive code::MIR2GUI.envelope:: displays the measured transient profile.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 2);
@@ -63,7 +63,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.envelope("Decay Profile", ~mir2Bus);
-}).play(AppClock);
+});
 )
 ::
 code::

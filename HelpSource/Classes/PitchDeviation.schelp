@@ -26,13 +26,18 @@ examples::
 PitchDeviation measures signed microtonal pitch deviation in cents against an equal-tempered 12-TET grid or an arbitrary tuning reference. In this example, it drives an adaptive pitch-correction synthesizer: detected cents deviation quantizes a parallel tracking voice into exact 12-TET intonation beside the expressive acoustic source. An interactive code::MIR2GUI.scope:: plots the real-time cents deviation ($-50 \dots +50$ cents).
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var pitch = PitchMPM.kr(source, 80, 1200, 2048, 0.25);
@@ -46,7 +51,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Cents Deviation", ~mir2Bus, -50.0, 50.0, "cents");
-}).play(AppClock);
+});
 )
 ::
 code::

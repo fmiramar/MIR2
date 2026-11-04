@@ -38,13 +38,18 @@ examples::
 HarmonicSpread calculates the standard deviation of harmonic energy around the harmonic centroid in Hz. In this example, it drives an adaptive stereo widener: narrow, pure tones remain tightly focused in the center, while sounds with wide harmonic energy bloom out into an expansive stereo image via dynamic Haas delays. An interactive code::MIR2GUI.scope:: plots the harmonic spread in Hz.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var pitch = PitchMPM.kr(source, 80, 1600, 2048, 0.25);
@@ -62,7 +67,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Harmonic Spread", ~mir2Bus, 0.0, 3000.0, "Hz");
-}).play(AppClock);
+});
 )
 ::
 code::

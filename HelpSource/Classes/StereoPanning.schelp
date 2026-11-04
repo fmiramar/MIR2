@@ -41,7 +41,7 @@ examples::
 StereoPanning computes the frequency-weighted stereo panorama position from spectral channel magnitudes (-1 for hard left, 0 for dead center, +1 for hard right). In this example, the dominant pan direction steers a spatial counterpoint delay line panned in the opposite direction, creating antiphonal stereo echoes. An interactive code::MIR2GUI.stereo:: displays the stereo panorama ray.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("stereo.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 3);
@@ -73,7 +73,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.stereo("Stereo Panning", ~mir2Bus);
-}).play(AppClock);
+});
 )
 ::
 code::

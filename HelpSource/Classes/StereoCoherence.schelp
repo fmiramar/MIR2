@@ -41,7 +41,7 @@ examples::
 StereoCoherence measures the magnitude-squared cross-spectral coherence between two audio channels within a specified frequency band (0 for uncorrelated/diffuse sound, 1 for fully coherent linear relationship). In this example, low coherence (indicating diffuse ambient reverberation or room decorrelation) automatically opens an ambient stereo reverb send, while highly coherent direct sound remains crisp and upfront. An interactive code::MIR2GUI.scope:: displays real-time stereo coherence.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("stereo.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -73,7 +73,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Stereo Coherence", ~mir2Bus, 0.0, 1.0, "index");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -38,13 +38,20 @@ examples::
 PredominantPitch extracts the dominant melodic contour from complex polyphonic mixtures via causal contour continuity linking and salience accumulation inspired by Salamon & Gomez (2012). In this example, it isolates the singing treble melody from a dense walking-bass mixture, synthesizing a Moog-style lead that locks onto the melodic line while rejecting lower accompaniment. An interactive code::MIR2GUI.pianoRoll:: plots the extracted predominant pitch.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("bass-melody-mix.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic bass + melody fallback
+            var bass = SinOsc.ar(Select.kr(LFNoise0.kr(1).range(0, 4), [55, 65.4, 73.4, 82.4]), 0, 0.3);
+            var lead = Saw.ar(Select.kr(LFNoise0.kr(3).range(0, 5), [220, 261.63, 293.66, 329.63, 392]), 0.15);
+            bass + lead
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var result = PredominantPitch.kr(source, minFreq: 150, maxFreq: 1400, frameSize: 2048, hop: 0.25);
@@ -60,7 +67,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.pianoRoll("Predominant Pitch", ~mir2Bus, 36, 84);
-}).play(AppClock);
+});
 )
 ::
 code::

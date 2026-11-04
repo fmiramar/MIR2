@@ -29,13 +29,21 @@ examples::
 TempoRubato differentiates log tempo in physical time to measure instantaneous signed rate of tempo change (% acceleration or deceleration per second). In this example, it drives an expressive dynamic filter sweep: tempo accelerations open an auxiliary lowpass filter brighter, while decelerations darken the timbre. An interactive code::MIR2GUI.scope:: tracks the signed rubato rate in %/s.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic drum fallback
+            var trig = Impulse.kr(2);
+            var kick = SinOsc.ar(EnvGen.ar(Env([120, 45], [0.08], \exp), trig)) * EnvGen.ar(Env.perc(0.005, 0.3), trig);
+            var snare = WhiteNoise.ar * EnvGen.ar(Env.perc(0.005, 0.15), Impulse.kr(2, 0.5));
+            (kick + snare) * 0.5
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var chain = FFT(LocalBuf(1024), source, 0.25);
@@ -54,7 +62,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Tempo Rubato", ~mir2Bus, -20.0, 20.0, "%/s");
-}).play(AppClock);
+});
 )
 ::
 code::

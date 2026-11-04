@@ -44,13 +44,18 @@ examples::
 PitchYIN estimates monophonic F0 and continuous confidence using the cumulative mean normalized difference function (CMNDF). In this example, it drives an intelligent microtonal harmonizer: detected pitch tunes a 3-voice chord (1/1, 5/4, 3/2 intervals), while confidence cleanly mutes the harmonizer during breath pauses. An interactive code::MIR2GUI.pianoRoll:: plots the real-time pitch contour.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
     s.sync;
     ~mir2Example = {
-        var source = PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1);
+        var source = if(~mir2Buffer.notNil) {
+            PlayBuf.ar(1, ~mir2Buffer, BufRateScale.kr(~mir2Buffer), loop: 1)
+        } {
+            // Synthetic melody fallback
+            Saw.ar(Select.kr(LFNoise0.kr(2).range(0, 5), [220, 261.63, 293.66, 329.63, 392, 440])) * 0.2
+        };
         // For live input instead: source = SoundIn.ar(0);
 
         var yin = PitchYIN.kr(source, 100, 1500, 2048, 0.25, 0.15);
@@ -65,7 +70,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.pianoRoll("YIN Pitch Tracker", ~mir2Bus, 36, 84);
-}).play(AppClock);
+});
 )
 ::
 code::

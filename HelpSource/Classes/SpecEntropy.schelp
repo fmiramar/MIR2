@@ -40,7 +40,7 @@ examples::
 SpecEntropy computes the Shannon entropy of the power spectrum (0 for a pure sinusoidal tone, approaching 1 for white noise). In this example, high spectral entropy routes the audio into a diffuse multi-tap delay network, while low entropy preserves direct focused sound. An interactive code::MIR2GUI.scope:: displays real-time normalized spectral entropy.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("texture.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -66,7 +66,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Entropy", ~mir2Bus, 0.0, 1.0, "norm");
-}).play(AppClock);
+});
 )
 ::
 code::

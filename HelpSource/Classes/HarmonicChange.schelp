@@ -26,7 +26,7 @@ examples::
 HarmonicChange detects harmonic transitions by calculating 6D Euclidean distance in Tonnetz space between consecutive observations. Harmonic chord progressions produce prominent distance spikes upon new chord arrivals. In this example, detected harmonic transitions trigger a delicate bell chime on chord changes. An interactive code::MIR2GUI.scope:: displays real-time harmonic change distance.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -52,7 +52,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Harmonic Change", ~mir2Bus, 0.0, 1.0, "dist");
-}).play(AppClock);
+});
 )
 ::
 code::

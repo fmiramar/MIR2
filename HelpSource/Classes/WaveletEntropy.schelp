@@ -34,7 +34,7 @@ examples::
 WaveletEntropy measures the disorder of energy distribution across dyadic wavelet scales (0 = concentrated in a single scale, 1 = uniform distribution across all multiscale bands). In this example, wavelet entropy extracted from an acoustic sound texture dynamically regulates the feedback decay and diffusion damping of a stereo comb delay network: low entropy keeps reflections focused, while high entropy opens into an expansive ambient cloud. An interactive code::MIR2GUI.scope:: plots real-time wavelet entropy.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("texture.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -59,7 +59,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Wavelet Entropy", ~mir2Bus, 0.0, 1.0, "norm");
-}).play(AppClock);
+});
 )
 ::
 code::

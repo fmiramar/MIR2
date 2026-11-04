@@ -36,7 +36,7 @@ examples::
 AttackTime measures the physical attack duration in seconds from the 10% to 90% peak rise within an externally triggered capture window. In this example, detected note onsets trigger attack time analysis: the measured attack time dynamically modulates the attack slope of an auxiliary transient noise layer, blending transparently with acoustic attacks. An interactive code::MIR2GUI.envelope:: displays the measured attack and decay profile.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("plucks.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 2);
@@ -63,7 +63,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.envelope("Attack Profile", ~mir2Bus);
-}).play(AppClock);
+});
 )
 ::
 code::

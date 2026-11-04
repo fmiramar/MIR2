@@ -40,7 +40,7 @@ examples::
 SpecIrregularity measures jaggedness across adjacent bins in the spectrum (Jensen or Krimphoff formulation). A smooth spectral envelope produces low irregularity; jagged harmonic peaks produce high irregularity. In this example, spectral irregularity drives the drive and fold depth of a wavefolding saturator, dynamically enriching sounds with sparse or irregular spectral peaks. An interactive code::MIR2GUI.scope:: displays real-time spectral irregularity.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("melody.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -65,7 +65,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Irregularity", ~mir2Bus, 0.0, 2.0, "index");
-}).play(AppClock);
+});
 )
 ::
 code::

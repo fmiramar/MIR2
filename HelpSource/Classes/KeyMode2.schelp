@@ -44,7 +44,7 @@ examples::
 KeyMode2 detects the tonal mode of the estimated key (0 for Major, 1 for Minor, -1 for undefined). In this example, detected mode switches the harmony of a synthesized backing triad between bright Major and dark Minor voicings. An interactive code::MIR2GUI.scope:: displays real-time key mode.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("piano-chords.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -69,7 +69,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Key Mode (0=Maj, 1=Min)", ~mir2Bus, 0.0, 1.0, "mode");
-}).play(AppClock);
+});
 )
 ::
 code::

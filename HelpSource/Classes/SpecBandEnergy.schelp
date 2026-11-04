@@ -37,7 +37,7 @@ examples::
 SpecBandEnergy computes the unnormalized spectral energy inside an explicitly specified frequency band. In this example, it monitors low-end acoustic energy in the 35 to 130 Hz sub-bass band, driving a clean synthesized 55 Hz sub-bass sine wave that reinforces acoustic kick drum hits. An interactive code::MIR2GUI.scope:: displays real-time sub-bass band energy.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -65,7 +65,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Sub-Bass Band Energy", ~mir2Bus, 0.0, 10.0, "energy");
-}).play(AppClock);
+});
 )
 ::
 code::

@@ -37,7 +37,7 @@ examples::
 Spectral slope performs linear regression across FFT magnitudes to estimate overall spectral tilt. A steep negative slope corresponds to dark, low-frequency sounds; a flat slope indicates rich high-frequency energy. In this example, spectral slope controls the boost of an active high-shelving EQ, dynamically brightening dark drum hits while leaving naturally bright cymbals transparent. An interactive code::MIR2GUI.scope:: displays real-time spectral slope.
 code::
 (
-Routine({
+s.waitForBoot({
     var path = MIR2GUI.soundPath("drums.wav");
     ~mir2Buffer = if(path.notNil) { Buffer.read(s, path) } { nil };
     ~mir2Bus = Bus.control(s, 1);
@@ -65,7 +65,7 @@ Routine({
     }.play;
 
     ~mir2GUI = MIR2GUI.scope("Spectral Slope", ~mir2Bus, -0.0005, 0.0, "slope");
-}).play(AppClock);
+});
 )
 ::
 code::
