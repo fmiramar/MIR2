@@ -1,0 +1,47 @@
+class:: Periodicity2
+summary:: Regularity of same-direction crossing intervals
+categories:: UGens>Analysis
+related:: Guides/MIRa-MS20-ESP
+
+description::
+Three outputs: periodicity, jitter, eventConfidence, each in [0,1]. Insufficient or stale history returns all zeros. Stable extra-harmonic crossings can score highly. Existing Periodicity remains a separate correlation-based analyzer.
+
+All parameters except the signal input are construction-time numbers. Outputs are control rate. See the guide for calibration, clipping, latency and model limitations.
+
+classmethods::
+method:: kr
+
+argument:: in
+Audio input.
+
+argument:: lowCut
+Digital high-pass cutoff in Hz; zero bypasses.
+
+argument:: highCut
+Digital low-pass cutoff in Hz; zero bypasses.
+
+argument:: threshold
+Crossing threshold.
+
+argument:: hysteresis
+Schmitt half-width.
+
+argument:: windowTime
+Maximum supported history in seconds; capacity is 128 intervals.
+
+argument:: minIntervals
+Minimum complete intervals, limited to 2–64.
+
+argument:: jitterScale
+Positive reference coefficient of variation.
+
+argument:: timeout
+Stale-event timeout in seconds.
+
+returns::
+Three outputs: periodicity, jitter, eventConfidence, each in [0,1]. Insufficient or stale history returns all zeros. Stable extra-harmonic crossings can score highly. Existing Periodicity remains a separate correlation-based analyzer.
+
+examples::
+code::
+{ Periodicity2.kr(SinOsc.ar(220)).poll; Silent.ar(2) }.play;
+::

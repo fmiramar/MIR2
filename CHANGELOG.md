@@ -1,5 +1,10 @@
 # Development changes (unreleased)
 
+- Added four normalized ESP analyzers: FreqToVolt with digital/reduced-circuit modes,
+  independent event-timing Periodicity2, EnvFollow2 and TriggerDetector. Added
+  circuit research, focused numerical tests and a headless server smoke test.
+  Original Periodicity and existing test files are unchanged.
+
 - Added classical Onsets methods, a quarter-tone SuperFlux frontend, actual
   median and causal peak picker, quiet-signal suppression and diagnostic
   comparisons with the previous implementation and native OnsetsDS.

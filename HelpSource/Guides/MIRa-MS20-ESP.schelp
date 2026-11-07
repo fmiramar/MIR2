@@ -1,0 +1,69 @@
+title:: MIRa MS-20 ESP analysis
+summary:: Normalized F/V, envelope, trigger and event-timing analysis
+categories:: Guides>Analysis
+related:: Classes/FreqToVolt, Classes/Periodicity2, Classes/EnvFollow2, Classes/TriggerDetector, Classes/Periodicity, Classes/PitchMPM
+
+description::
+The four new analyzers expose only finite signals in [0,1]. FreqToVolt counts conditioned crossings; its frequency indication can disagree with fundamental pitch on harmonically complex input. Periodicity2 measures same-direction event timing. Existing Periodicity uses correlation evidence and remains a separate analyzer.
+
+section:: Modes and calibration
+FreqToVolt has exactly two literal modes: code::\digital:: and code::\circuit::. Mode and all numeric parameters are fixed at Synth construction; recreate the Synth to change them. Audio input is processed sample by sample; the public outputs update once per control block. TriggerDetector accepts a control-rate normalized envelope and emits a one-block activation pulse.
+
+Digital F/V uses unit-area crossing impulses and exponential averaging. Circuit F/V uses second-order high-pass, fourth-order low-pass, an idealized comparator and retriggerable pulse, followed by second-order smoothing coupled to LOW CUT. The original service drawing has an unresolved final LM339 connection; timing width and voltage gain are explicit software approximations. This is a topology-informed reduced model with numerical validation, not measured MS-20 hardware equivalence. The preamp is replaced by a calibrated amplified-branch input: one audio unit after inputGain equals one model volt, with assumed headroom limits. Physical sound-card voltages are not calibrated by this convention.
+
+Circuit highCut specifies the first low-pass section's natural frequency; lowCut specifies the high-pass natural frequency. Component-derived resistance limits may constrain requests. Bilinear discretization warps upper-band response. Circuit output smoothing follows lowCut; smoothTime affects only digital mode. pulseWidth affects only circuit mode. Digital filter cutoff zero bypasses; circuit stages are always present.
+
+The nominal internal reference is 8.4 V for F/V and 5 V for ENV. Public values are unitless. For unclipped F/V frequency output, indicated Hz equals code::frequency * referenceMaxFreq::; event rate similarly uses referenceMaxEventRate. The software voltage calibration also depends on referenceMaxFreq. Clipping at one loses information. The circuit validity flag clears for recent pulse overlap or clipped indication; event evidence never proves a unique F0. MS-20 Hz/V pitch control is proportional in voltage to frequency: doubling voltage nominally doubles pitch frequency, unlike a 1 V/oct exponential pitch input. These normalized outlets are neither hardware voltage nor ready-to-send 1 V/oct CV.
+
+EnvFollow2 circuit mode is a half-wave storage detector with a fixed diode approximation, approximately 0.96 ms charging and 22 ms release. Digital mode uses absolute-value attack/release smoothing and shares the declared volts/reference convention. attackTime/releaseTime affect only digital mode. TriggerDetector uses the normalized envelope; both modes use the approved reduced Schmitt law, without a measured threshold knob taper. hardwareGate is one when inactive and zero when active. TriggerDetector cannot recover envelope information already clipped at one.
+
+Periodicity2 needs minIntervals complete intervals. Count support reaches one at twice that count; freshness decays after one expected interval toward zero at timeout. Its 128-interval capacity can shorten the effective history at high rates. First useful latency therefore depends on event rate, windowTime and minIntervals; filter and smoothing latency are additional. Stable wrong crossings can score highly.
+
+section:: Digital and circuit comparison
+code::
+(
+{
+    var input=SinOsc.ar(220,0,4);
+    var digital=FreqToVolt.kr(input,mode:\digital);
+    var circuit=FreqToVolt.kr(input,mode:\circuit);
+    digital.poll(2,"digital: cv/frequency/eventRate/valid");
+    circuit.poll(2,"circuit: cv/frequency/eventRate/valid");
+    Silent.ar(2)
+}.play;
+)
+::
+
+section:: Audio-controlled musical patch
+Start with a low monitoring level. Adjust the explicit input gain for a guitar or microphone source.
+code::
+(
+{
+    var input=SoundIn.ar(0)*4;
+    var fv=FreqToVolt.kr(input,mode:\circuit);
+    var env=EnvFollow2.kr(input);
+    var detected=TriggerDetector.kr(env,threshold:0.1);
+    var note=Decay2.kr(detected[0],0.005,0.15);
+    var hz=(fv[1]*2000).clip(40,2000);
+    var sound=SinOsc.ar(hz)*env*(0.25+(note*0.75))*detected[1]*0.15;
+    sound!2
+}.play;
+)
+::
+
+section:: Timing versus pitch comparison
+code::
+(
+{
+    var input=SinOsc.ar(220,0,4);
+    var fv=FreqToVolt.kr(input);
+    var timing=Periodicity2.kr(input);
+    var correlation=Periodicity.kr(input);
+    var pitch=PitchMPM.kr(input);
+    (fv++timing++[correlation]++pitch).poll(2,"ESP / timing / existing correlation / MPM");
+    Silent.ar(2)
+}.play;
+)
+::
+
+section:: Validation limits
+See code::docs/ms20-esp/validation.md:: and code::circuit-assumptions.md:: in the source distribution for equations, test coverage, calibration and unresolved electrical details. No SPICE comparison or instrument measurements have been performed. The optional Supernova build requires a complete matching SuperCollider source tree including nova-tt.

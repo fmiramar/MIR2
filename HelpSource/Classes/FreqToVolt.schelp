@@ -1,0 +1,96 @@
+class:: FreqToVolt
+summary:: MS-20-inspired frequency-to-voltage event analysis
+categories:: UGens>Analysis
+related:: Guides/MIRa-MS20-ESP
+
+description::
+Four outputs: cv, frequency, eventRate, valid. All finite in [0,1]. Frequency indication is calibrated event evidence, not unique F0. Multiply unclipped frequency by referenceMaxFreq for indicated Hz.
+
+All parameters except the signal input are construction-time numbers. Outputs are control rate. See the guide for calibration, clipping, latency and model limitations.
+
+classmethods::
+method:: kr
+
+argument:: in
+Audio input; processed at audio sample granularity.
+
+argument:: lowCut
+Low cutoff in Hz; circuit mode couples this to output smoothing.
+
+argument:: highCut
+High cutoff in Hz; circuit mode uses two active low-pass sections.
+
+argument:: cvAdjust
+Fixed software calibration multiplier.
+
+argument:: mode
+Literal \digital or \circuit.
+
+argument:: inputGain
+Fixed gain; circuit frontend treats one amplified audio unit as one model volt.
+
+argument:: threshold
+Crossing threshold in conditioned input units.
+
+argument:: hysteresis
+Schmitt half-width; circuit mode enforces its assumed minimum.
+
+argument:: pulseWidth
+Circuit pulse duration in seconds; ignored in digital mode.
+
+argument:: smoothTime
+Digital averaging time in seconds; ignored in circuit mode.
+
+argument:: referenceMaxFreq
+Fixed frequency reference, default 2000 Hz. Also determines software voltage calibration.
+
+argument:: referenceMaxEventRate
+Fixed event-rate reference, default 4000 events per second.
+
+argument:: timeout
+Evidence timeout in seconds.
+
+returns::
+Four outputs: cv, frequency, eventRate, valid. All finite in [0,1]. Frequency indication is calibrated event evidence, not unique F0. Multiply unclipped frequency by referenceMaxFreq for indicated Hz.
+
+examples::
+Loop SuperCollider's bundled voice recording and use the extracted pitch to drive an LFSaw. The three choices use vanilla Pitch, MIR2 PitchMPM, and FreqToVolt. FreqToVolt counts conditioned events, so its indication can differ from the pitch estimators on speech.
+
+First boot the server and load the recording. Run the next block after the buffer has loaded.
+code::
+s.waitForBoot {
+    b = Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01.wav");
+};
+::
+
+The same source feeds all three analyzers. Change which while listening. FreqToVolt's normalized frequency outlet is multiplied by its default 2000 Hz reference; the other two already return Hz. Source amplitude controls loudness.
+code::
+(
+~pitchCompare = { |which = 0|
+    var source = PlayBuf.ar(1, b, BufRateScale.kr(b), loop: 1);
+    var vanilla = Pitch.kr(source)[0];
+    var mir = PitchMPM.kr(source)[0];
+    var fv = FreqToVolt.kr(source, mode: \digital)[1] * 2000;
+    var hz = Select.kr(which, [vanilla, mir, fv]);
+    var amp = Amplitude.kr(source);
+    (LFSaw.ar(hz.clip(40, 2000)) * amp * 0.3) ! 2
+}.play;
+)
+::
+
+Select one extractor at a time:
+code::
+~pitchCompare.set(\which, 0); // vanilla Pitch
+::
+code::
+~pitchCompare.set(\which, 1); // MIR2 PitchMPM
+::
+code::
+~pitchCompare.set(\which, 2); // FreqToVolt
+::
+
+Stop and free the buffer when finished:
+code::
+~pitchCompare.free;
+b.free;
+::

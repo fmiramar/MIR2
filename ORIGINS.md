@@ -84,3 +84,13 @@ a runtime dependency.
   Brown/Puckette engine and reproducible comparison with MIRa FFT routes.
 - `docs/neural-pitch-research.md`: pinned source and model references for the
   optional neural audit; no audited neural code or weights are embedded.
+
+## MS-20 ESP reduction
+
+The ESP filters, half-wave envelope and branch routing were independently derived
+from Korg's MS-20 service manual, Circuit Diagram (2), KLM-129. The final LM339
+timing connection remains ambiguous; a retriggerable software pulse and explicit
+calibration replace that subsection with user approval. No third-party implementation
+code was incorporated. Periodicity2 is a new crossing-interval regularity metric,
+not a historical Korg output. Sources, equations and evidence limits are recorded
+in [docs/ms20-esp](docs/ms20-esp/references.md); hardware equivalence is unverified.

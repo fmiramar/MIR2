@@ -5,6 +5,7 @@ InterfaceTable* ft = nullptr;
 
 PluginLoad(MIR2) {
     ft = inTable;
+    mir2plugin::registerESPUnits();
     mir2plugin::registerSpectralUnits();
     mir2plugin::registerPitchUnits();
     mir2plugin::registerOnsetUnits();

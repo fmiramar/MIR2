@@ -1,0 +1,38 @@
+class:: EnvFollow2
+summary:: Half-wave ESP envelope or digital attack/release follower
+categories:: UGens>Analysis
+related:: Guides/MIRa-MS20-ESP
+
+description::
+One normalized envelope in [0,1]. Circuit mode uses a fixed 0.6 V diode approximation, approximately 0.96 ms charging and 22 ms release. Digital mode full-wave rectifies. This class coexists with sc3-plugins EnvFollow.
+
+All parameters except the signal input are construction-time numbers. Outputs are control rate. See the guide for calibration, clipping, latency and model limitations.
+
+classmethods::
+method:: kr
+
+argument:: in
+Audio input at the calibrated amplified branch.
+
+argument:: inputGain
+Fixed gain; one input unit after gain corresponds to one model volt.
+
+argument:: mode
+Literal \digital or \circuit.
+
+argument:: attackTime
+Digital attack time in seconds; ignored in circuit mode.
+
+argument:: releaseTime
+Digital release time in seconds; ignored in circuit mode.
+
+argument:: referenceEnvVolts
+Positive fixed envelope reference, default 5 model volts.
+
+returns::
+One normalized envelope in [0,1]. Circuit mode uses a fixed 0.6 V diode approximation, approximately 0.96 ms charging and 22 ms release. Digital mode full-wave rectifies. This class coexists with sc3-plugins EnvFollow.
+
+examples::
+code::
+{ EnvFollow2.kr(SinOsc.ar(220, 0, 4)).poll; Silent.ar(2) }.play;
+::

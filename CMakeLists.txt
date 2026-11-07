@@ -28,6 +28,7 @@ sc_do_initial_compiler_config()
 sc_check_sc_path("${SC_PATH}")
 
 set(mir2_cpp_files
+    plugins/MIR2ESP.cpp
     plugins/MIR2.cpp
     plugins/MIR2Spectral.cpp
     plugins/MIR2Pitch.cpp

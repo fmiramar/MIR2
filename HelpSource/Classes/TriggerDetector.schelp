@@ -1,0 +1,32 @@
+class:: TriggerDetector
+summary:: Normalized envelope threshold and active-low diagnostic
+categories:: UGens>Analysis
+related:: Guides/MIRa-MS20-ESP
+
+description::
+Three binary outputs: trigger, gate, hardwareGate. Trigger lasts one control evaluation on activation. Gate is one while active; hardwareGate is its inverse (one inactive, zero active). No volts are emitted. There is no periodic retrigger option.
+
+All parameters except the signal input are construction-time numbers. Outputs are control rate. See the guide for calibration, clipping, latency and model limitations.
+
+classmethods::
+method:: kr
+
+argument:: envelope
+Control-rate normalized envelope; audio-rate input is rejected.
+
+argument:: threshold
+Normalized activation threshold.
+
+argument:: hysteresis
+Normalized Schmitt half-width.
+
+argument:: mode
+Literal \digital or \circuit; both use the documented reduced Schmitt model.
+
+returns::
+Three binary outputs: trigger, gate, hardwareGate. Trigger lasts one control evaluation on activation. Gate is one while active; hardwareGate is its inverse (one inactive, zero active). No volts are emitted. There is no periodic retrigger option.
+
+examples::
+code::
+{ TriggerDetector.kr(EnvFollow2.kr(SinOsc.ar(220, 0, 4))).poll; Silent.ar(2) }.play;
+::

@@ -215,6 +215,7 @@ inline void processPitchInput(Unit* unit, PitchState& state, int inNumSamples,
     }
 }
 
+void registerESPUnits();
 void registerSpectralUnits();
 void registerPitchUnits();
 void registerOnsetUnits();
